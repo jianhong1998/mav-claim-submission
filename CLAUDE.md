@@ -92,6 +92,7 @@ make test/unit         # Backend unit tests
 make test/api          # API integration tests
 
 make db/data/up        # Run database seeders
+make db/data/down      # Remove seeded data
 make db/data/reset     # Reset and reseed database
 ```
 

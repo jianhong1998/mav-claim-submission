@@ -8,7 +8,11 @@ import {
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { TokenService } from 'src/modules/auth/services/token.service';
-import { IEmailSendRequest, IEmailSendResponse } from '@project/types';
+import {
+  IEmailSendRequest,
+  IEmailSendResponse,
+  IGmailAccessResponse,
+} from '@project/types';
 import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
 
 @Injectable()
@@ -209,11 +213,14 @@ export class EmailService {
     }
   }
 
-  async checkGmailAccess(userId: string): Promise<boolean> {
+  async checkGmailAccess(userId: string): Promise<IGmailAccessResponse> {
     try {
       const tokens = await this.tokenService.getValidTokenForUser(userId);
       if (!tokens) {
-        return false;
+        return {
+          hasAccess: false,
+          error: 'No valid tokens found. Please re-authenticate.',
+        };
       }
 
       this.oauth2Client.setCredentials({
@@ -224,9 +231,12 @@ export class EmailService {
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
       // Test access by getting user profile
-      await gmail.users.getProfile({ userId: 'me' });
+      const profile = await gmail.users.getProfile({ userId: 'me' });
 
-      return true;
+      return {
+        hasAccess: true,
+        email: profile.data.emailAddress || undefined,
+      };
     } catch (error: unknown) {
       this.logger.warn(
         `Gmail access check failed for user ${userId}:`,
@@ -237,11 +247,23 @@ export class EmailService {
       if (typeof error === 'object' && error !== null && 'code' in error) {
         const errorWithCode = error as { code: number };
         if (errorWithCode.code === 401) {
-          return await this.refreshUserToken(userId);
+          const refreshed = await this.refreshUserToken(userId);
+          if (refreshed) {
+            // Recursively check access after token refresh
+            return await this.checkGmailAccess(userId);
+          }
+          return {
+            hasAccess: false,
+            error: 'Token expired and refresh failed. Please re-authenticate.',
+          };
         }
       }
 
-      return false;
+      return {
+        hasAccess: false,
+        error:
+          error instanceof Error ? error.message : 'Gmail access check failed',
+      };
     }
   }
 }

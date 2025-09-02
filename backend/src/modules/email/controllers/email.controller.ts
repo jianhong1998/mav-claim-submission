@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { EmailService } from '../services/email.service';
-import { IEmailSendRequest, IEmailSendResponse } from '@project/types';
+import {
+  IEmailSendRequest,
+  IEmailSendResponse,
+  IGmailAccessResponse,
+} from '@project/types';
 import {
   IsEmail,
   IsNotEmpty,
@@ -116,38 +120,33 @@ export class EmailController {
     @Session() session: SessionData,
     @Res() res: Response,
     @Headers('x-test-bypass') testBypass?: string,
-  ): Promise<Response<{ hasAccess: boolean; message: string }>> {
+  ): Promise<Response<IGmailAccessResponse>> {
     // Temporary bypass for testing - remove in production
     if (testBypass === 'true') {
       return res.status(HttpStatus.OK).json({
         hasAccess: true,
-        message: 'Test mode: Gmail access simulated',
+        email: 'test@example.com',
       });
     }
 
     if (!session?.isAuthenticated || !session?.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
         hasAccess: false,
-        message: 'Authentication required',
+        error: 'Authentication required',
       });
     }
 
     try {
-      const hasAccess = await this.emailService.checkGmailAccess(
+      const accessInfo = await this.emailService.checkGmailAccess(
         session.userId,
       );
 
-      return res.status(HttpStatus.OK).json({
-        hasAccess,
-        message: hasAccess
-          ? 'Gmail access is available'
-          : 'Gmail access not available. Please re-authenticate.',
-      });
+      return res.status(HttpStatus.OK).json(accessInfo);
     } catch (error: unknown) {
       this.logger.error('Gmail access check error:', error);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         hasAccess: false,
-        message: 'Failed to check Gmail access',
+        error: 'Failed to check Gmail access',
       });
     }
   }
@@ -156,11 +155,11 @@ export class EmailController {
   async refreshToken(
     @Session() session: SessionData,
     @Res() res: Response,
-  ): Promise<Response<{ success: boolean; message: string }>> {
+  ): Promise<Response<IGmailAccessResponse>> {
     if (!session?.isAuthenticated || !session?.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
-        success: false,
-        message: 'Authentication required',
+        hasAccess: false,
+        error: 'Authentication required',
       });
     }
 
@@ -169,17 +168,23 @@ export class EmailController {
         session.userId,
       );
 
-      return res.status(HttpStatus.OK).json({
-        success: refreshed,
-        message: refreshed
-          ? 'Token refreshed successfully'
-          : 'Failed to refresh token. Please re-authenticate.',
-      });
+      if (refreshed) {
+        // After successful refresh, check access to get updated info
+        const accessInfo = await this.emailService.checkGmailAccess(
+          session.userId,
+        );
+        return res.status(HttpStatus.OK).json(accessInfo);
+      } else {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          hasAccess: false,
+          error: 'Failed to refresh token. Please re-authenticate.',
+        });
+      }
     } catch (error: unknown) {
       this.logger.error('Email token refresh error:', error);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Failed to refresh token',
+        hasAccess: false,
+        error: 'Failed to refresh token',
       });
     }
   }
