@@ -8,7 +8,7 @@ export class AppConfig {
   private constructor() {}
 
   public static configModule = ConfigModule.forRoot({
-    envFilePath: ['.env'],
+    envFilePath: ['../.env', '.env'],
     cache: false,
     isGlobal: true,
   });

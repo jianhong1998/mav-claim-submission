@@ -10,6 +10,13 @@ type IEnvironmentVariableList = {
   cookieDomainName: string;
   cookieSecret: string;
 
+  // Auth Related
+  googleClientId: string;
+  googleClientSecret: string;
+  googleRedirectUri: string;
+  tokenEncryptionKey: string;
+  frontendBaseUrl: string;
+
   // Database Related
   databaseHost: string;
   databasePort: number;
@@ -46,10 +53,24 @@ export class EnvironmentVariableUtil {
         'BACKEND_COOKIE_DOMAIN_NAME',
         'localhost',
       ),
-      databaseHost: this.configService.get(
-        'BACKEND_DATABASE_HOST',
-        'localhost',
+      googleClientId: this.configService.get('BACKEND_GOOGLE_CLIENT_ID', ''),
+      googleClientSecret: this.configService.get(
+        'BACKEND_GOOGLE_CLIENT_SECRET',
+        '',
       ),
+      googleRedirectUri: this.configService.get(
+        'BACKEND_GOOGLE_REDIRECT_URI',
+        '',
+      ),
+      tokenEncryptionKey: this.configService.get(
+        'BACKEND_TOKEN_ENCRYPTION_KEY',
+        '',
+      ),
+      frontendBaseUrl: this.configService.get(
+        'BACKEND_FRONTEND_BASE_URL',
+        'http://localhost:3000',
+      ),
+      databaseHost: this.configService.get('DATABASE_HOST', 'localhost'),
       databasePort: this.configService.get<number>('DATABASE_PORT', 5432),
       databaseUser: this.configService.get('DATABASE_USER', 'postgres'),
       databasePassword: this.configService.get('DATABASE_PASSWORD', 'postgres'),
