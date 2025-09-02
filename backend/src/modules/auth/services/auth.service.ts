@@ -169,7 +169,7 @@ export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
       id: user.id,
       email: user.email,
       name: user.name,
-      picture: user.picture,
+      picture: user.picture ?? null,
       googleId: user.googleId,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
