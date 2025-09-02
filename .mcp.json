@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "spec-workflow": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@pimzino/spec-workflow-mcp@latest",
+        "./",
+        "--AutoStartDashboard",
+        "--port",
+        "9000"
+      ],
+      "env": {}
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    }
+  }
+}
