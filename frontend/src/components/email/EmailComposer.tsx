@@ -38,10 +38,15 @@ const emailSchema = z.object({
     .string()
     .min(1, 'Email body is required')
     .max(10000, 'Email body must be less than 10,000 characters'),
-  isHtml: z.boolean().default(false),
+  isHtml: z.boolean(),
 });
 
-type EmailFormData = z.infer<typeof emailSchema>;
+type EmailFormData = {
+  to: string;
+  subject: string;
+  body: string;
+  isHtml: boolean;
+};
 
 interface EmailComposerProps {
   onSend?: (emailData: IEmailSendRequest) => Promise<IEmailSendResponse>;
