@@ -81,7 +81,7 @@ describe('#Email Endpoints', () => {
         expect(axiosError.response?.status).toBe(401);
         expect(axiosError.response?.data).toMatchObject({
           hasAccess: false,
-          message: 'Authentication required',
+          error: 'Authentication required',
         });
       }
     });
@@ -95,8 +95,8 @@ describe('#Email Endpoints', () => {
         const axiosError = error as AxiosError;
         expect(axiosError.response?.status).toBe(401);
         expect(axiosError.response?.data).toMatchObject({
-          success: false,
-          message: 'Authentication required',
+          hasAccess: false,
+          error: 'Authentication required',
         });
       }
     });
