@@ -4,8 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { AuthService, UserCreationData } from './auth.service';
 import { TokenService } from './token.service';
-import { UserEntity } from 'src/db/entities/user.entity';
-import { OAuthTokenEntity } from 'src/db/entities/oauth-token.entity';
+import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
+import { UserEntity } from 'src/modules/models/user.entity';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('AuthService', () => {

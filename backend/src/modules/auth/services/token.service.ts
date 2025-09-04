@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
-import * as CryptoJS from 'crypto-js';
-import { OAuthTokenEntity } from 'src/db/entities/oauth-token.entity';
+import CryptoJS from 'crypto-js';
 import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { IOAuthToken } from '@project/types';
 import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
+import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
 
 export interface TokenCreationData {
   userId: string;

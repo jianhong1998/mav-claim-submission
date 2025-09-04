@@ -1,5 +1,5 @@
-import { UserEntity } from './entities/user.entity';
-import { OAuthTokenEntity } from './entities/oauth-token.entity';
+import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
+import { UserEntity } from 'src/modules/models/user.entity';
 
 export const ENTITY_MODELS = [UserEntity, OAuthTokenEntity];
 

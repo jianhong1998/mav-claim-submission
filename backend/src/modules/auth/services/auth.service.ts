@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
-import { UserEntity } from 'src/db/entities/user.entity';
 import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { TokenService } from './token.service';
 import { IUser, IAuthResponse } from '@project/types';
+import { UserEntity } from 'src/modules/models/user.entity';
 
 export interface UserCreationData {
   email: string;

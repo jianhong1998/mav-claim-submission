@@ -3,9 +3,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
-import * as CryptoJS from 'crypto-js';
+import CryptoJS from 'crypto-js';
 import { TokenService, TokenCreationData } from './token.service';
-import { OAuthTokenEntity } from 'src/db/entities/oauth-token.entity';
+import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
 import { CommonModule } from 'src/modules/common/common.module';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
