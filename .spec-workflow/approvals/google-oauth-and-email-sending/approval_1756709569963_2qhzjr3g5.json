@@ -1,0 +1,21 @@
+{
+  "id": "approval_1756709569963_2qhzjr3g5",
+  "title": "Requirements: Google OAuth and Email Sending Feature",
+  "filePath": ".spec-workflow/specs/google-oauth-and-email-sending/requirements.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-01T06:52:49.963Z",
+  "category": "spec",
+  "categoryName": "google-oauth-and-email-sending",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Note that frontend NextJS is integrated with ShardCN. Can use ShardCN for the frontend implementation.\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Note that frontend NextJS is integrated with ShardCN. Can use ShardCN for the frontend implementation.\",\n      \"timestamp\": \"2025-09-01T06:55:17.838Z\",\n      \"id\": \"comment_1756709717838_3ho7dmlg8\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Note that frontend NextJS is integrated with ShardCN. Can use ShardCN for the frontend implementation.\\n\\n\",\n  \"timestamp\": \"2025-09-01T06:55:24.011Z\"\n}",
+  "respondedAt": "2025-09-01T06:55:24.017Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Note that frontend NextJS is integrated with ShardCN. Can use ShardCN for the frontend implementation.",
+      "timestamp": "2025-09-01T06:55:17.838Z",
+      "id": "comment_1756709717838_3ho7dmlg8"
+    }
+  ]
+}

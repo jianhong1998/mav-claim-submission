@@ -20,3 +20,4 @@ postgres-data
 # Temp folders
 **/temp
 **/tmp
+.playwright-mcp/

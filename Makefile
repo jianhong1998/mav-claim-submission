@@ -36,6 +36,10 @@ clean/dist:
 build:
 	@pnpm run build
 
+build/backend:
+	@cd backend && \
+		pnpm run build
+
 format:
 	@pnpm run format
 

@@ -18,7 +18,19 @@ const eslintConfig = [
       'out/**',
       'build/**',
       'next-env.d.ts',
+      'eslint.config.mjs',
+      'postcss.config.mjs',
+      '*.config.mjs',
     ],
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
+    },
   },
 ];
 
