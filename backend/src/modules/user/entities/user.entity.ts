@@ -9,7 +9,7 @@ import {
   OneToMany,
   type Relation,
 } from 'typeorm';
-import { OAuthTokenEntity } from './oauth-token.entity';
+import { OAuthTokenEntity } from '../../auth/entities/oauth-token.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true })

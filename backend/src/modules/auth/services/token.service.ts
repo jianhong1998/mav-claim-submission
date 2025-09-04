@@ -5,7 +5,7 @@ import CryptoJS from 'crypto-js';
 import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { IOAuthToken } from '@project/types';
 import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
-import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
+import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
 
 export interface TokenCreationData {
   userId: string;

@@ -1,22 +1,19 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager } from 'typeorm';
-import { AuthService, UserCreationData } from './auth.service';
+import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
-import { OAuthTokenEntity } from 'src/modules/models/oauth-token.entity';
-import { UserEntity } from 'src/modules/models/user.entity';
+import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let userRepository: {
+  let userDBUtil: {
     create: ReturnType<typeof vi.fn>;
-    save: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-    find: ReturnType<typeof vi.fn>;
-    count: ReturnType<typeof vi.fn>;
-    softRemove: ReturnType<typeof vi.fn>;
+    getOne: ReturnType<typeof vi.fn>;
+    updateWithSave: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
   };
   let tokenService: {
     updateToken: ReturnType<typeof vi.fn>;
@@ -37,13 +34,6 @@ describe('AuthService', () => {
     deletedAt: undefined,
   };
 
-  const mockUserCreationData: UserCreationData = {
-    email: 'test@example.com',
-    name: 'Test User',
-    picture: 'https://example.com/picture.jpg',
-    googleId: 'google-123',
-  };
-
   const mockOAuthData = {
     googleId: 'google-123',
     email: 'test@example.com',
@@ -56,13 +46,11 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
-    const mockUserRepository = {
+    const mockUserDBUtil = {
       create: vi.fn(),
-      save: vi.fn(),
-      findOne: vi.fn(),
-      find: vi.fn(),
-      count: vi.fn(),
-      softRemove: vi.fn(),
+      getOne: vi.fn(),
+      updateWithSave: vi.fn(),
+      delete: vi.fn(),
     };
 
     const mockTokenService = {
@@ -76,8 +64,8 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: getRepositoryToken(UserEntity),
-          useValue: mockUserRepository,
+          provide: UserDBUtil,
+          useValue: mockUserDBUtil,
         },
         {
           provide: TokenService,
@@ -87,7 +75,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userRepository = module.get(getRepositoryToken(UserEntity));
+    userDBUtil = module.get(UserDBUtil);
     tokenService = module.get(TokenService);
   });
 
@@ -95,61 +83,20 @@ describe('AuthService', () => {
     vi.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('should create and save a new user', async () => {
-      const createdUser = { ...mockUser };
-      userRepository.create.mockReturnValue(createdUser);
-      userRepository.save.mockResolvedValue(createdUser);
-
-      const result = await service.create({
-        creationData: mockUserCreationData,
-      });
-
-      expect(userRepository.create).toHaveBeenCalledWith({
-        email: mockUserCreationData.email,
-        name: mockUserCreationData.name,
-        picture: mockUserCreationData.picture,
-        googleId: mockUserCreationData.googleId,
-      });
-      expect(userRepository.save).toHaveBeenCalledWith(createdUser);
-      expect(result).toEqual(createdUser);
-    });
-
-    it('should use entity manager repository when provided', async () => {
-      const mockEntityManager = {
-        getRepository: vi.fn().mockReturnValue(userRepository),
-      } as unknown as EntityManager;
-
-      const createdUser = { ...mockUser };
-      userRepository.create.mockReturnValue(createdUser);
-      userRepository.save.mockResolvedValue(createdUser);
-
-      await service.create({
-        creationData: mockUserCreationData,
-        entityManager: mockEntityManager,
-      });
-
-      expect(mockEntityManager.getRepository).toHaveBeenCalledWith(UserEntity);
-    });
-  });
-
   describe('getUserByGoogleId', () => {
-    it('should find user by Google ID', async () => {
-      userRepository.findOne.mockResolvedValue(mockUser);
+    it('should find user by Google ID using UserDBUtil', async () => {
+      userDBUtil.getOne.mockResolvedValue(mockUser);
 
       const result = await service.getUserByGoogleId('google-123');
 
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { googleId: 'google-123' },
-        transaction: true,
-        relations: undefined,
-        withDeleted: undefined,
+      expect(userDBUtil.getOne).toHaveBeenCalledWith({
+        criteria: { googleId: 'google-123' },
       });
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user not found', async () => {
-      userRepository.findOne.mockResolvedValue(null);
+      userDBUtil.getOne.mockResolvedValue(null);
 
       const result = await service.getUserByGoogleId('nonexistent-id');
 
@@ -158,22 +105,19 @@ describe('AuthService', () => {
   });
 
   describe('getUserByEmail', () => {
-    it('should find user by email', async () => {
-      userRepository.findOne.mockResolvedValue(mockUser);
+    it('should find user by email using UserDBUtil', async () => {
+      userDBUtil.getOne.mockResolvedValue(mockUser);
 
       const result = await service.getUserByEmail('test@example.com');
 
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-        transaction: true,
-        relations: undefined,
-        withDeleted: undefined,
+      expect(userDBUtil.getOne).toHaveBeenCalledWith({
+        criteria: { email: 'test@example.com' },
       });
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user not found', async () => {
-      userRepository.findOne.mockResolvedValue(null);
+      userDBUtil.getOne.mockResolvedValue(null);
 
       const result = await service.getUserByEmail('nonexistent@example.com');
 
@@ -182,17 +126,15 @@ describe('AuthService', () => {
   });
 
   describe('getUserById', () => {
-    it('should find user by ID with OAuth tokens relation', async () => {
+    it('should find user by ID with OAuth tokens relation using UserDBUtil', async () => {
       const userWithTokens = { ...mockUser, oauthTokens: [] };
-      userRepository.findOne.mockResolvedValue(userWithTokens);
+      userDBUtil.getOne.mockResolvedValue(userWithTokens);
 
       const result = await service.getUserById('user-1');
 
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        transaction: true,
-        relations: { oauthTokens: true },
-        withDeleted: undefined,
+      expect(userDBUtil.getOne).toHaveBeenCalledWith({
+        criteria: { id: 'user-1' },
+        relation: { oauthTokens: true },
       });
       expect(result).toEqual(userWithTokens);
     });
@@ -201,7 +143,7 @@ describe('AuthService', () => {
   describe('findOrCreateUser', () => {
     it('should return existing user when found', async () => {
       vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(mockUser);
-      vi.spyOn(service, 'updateWithSave').mockResolvedValue([mockUser]);
+      userDBUtil.updateWithSave.mockResolvedValue([mockUser]);
 
       const userData = {
         googleId: 'google-123',
@@ -213,7 +155,7 @@ describe('AuthService', () => {
       const result = await service.findOrCreateUser(userData);
 
       expect(service.getUserByGoogleId).toHaveBeenCalledWith('google-123');
-      expect(service.updateWithSave).toHaveBeenCalledWith({
+      expect(userDBUtil.updateWithSave).toHaveBeenCalledWith({
         dataArray: [
           expect.objectContaining({
             email: 'updated@example.com',
@@ -227,7 +169,7 @@ describe('AuthService', () => {
 
     it('should create new user when not found', async () => {
       vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(null);
-      vi.spyOn(service, 'create').mockResolvedValue(mockUser);
+      userDBUtil.create.mockResolvedValue(mockUser);
 
       const userData = {
         googleId: 'google-456',
@@ -238,7 +180,7 @@ describe('AuthService', () => {
       const result = await service.findOrCreateUser(userData);
 
       expect(service.getUserByGoogleId).toHaveBeenCalledWith('google-456');
-      expect(service.create).toHaveBeenCalledWith({
+      expect(userDBUtil.create).toHaveBeenCalledWith({
         creationData: userData,
       });
       expect(result).toEqual(mockUser);
@@ -411,18 +353,18 @@ describe('AuthService', () => {
 
   describe('deleteUser', () => {
     it('should delete user and return true when successful', async () => {
-      vi.spyOn(service, 'delete').mockResolvedValue([mockUser]);
+      userDBUtil.delete.mockResolvedValue([mockUser]);
 
       const result = await service.deleteUser('user-1');
 
-      expect(service.delete).toHaveBeenCalledWith({
+      expect(userDBUtil.delete).toHaveBeenCalledWith({
         criteria: { id: 'user-1' },
       });
       expect(result).toBe(true);
     });
 
     it('should return false when user not found', async () => {
-      vi.spyOn(service, 'delete').mockResolvedValue(null);
+      userDBUtil.delete.mockResolvedValue(null);
 
       const result = await service.deleteUser('user-1');
 

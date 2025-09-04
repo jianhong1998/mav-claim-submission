@@ -1,45 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
-import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { TokenService } from './token.service';
 import { IUser, IAuthResponse } from '@project/types';
-import { UserEntity } from 'src/modules/models/user.entity';
-
-export interface UserCreationData {
-  email: string;
-  name: string;
-  picture?: string;
-  googleId: string;
-}
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 
 @Injectable()
-export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
+export class AuthService {
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
+    private readonly userDBUtil: UserDBUtil,
     private readonly tokenService: TokenService,
-  ) {
-    super(UserEntity, userRepository);
-  }
-
-  async create(params: {
-    creationData: UserCreationData;
-    entityManager?: EntityManager;
-  }): Promise<UserEntity> {
-    const { creationData, entityManager } = params;
-    const repo =
-      entityManager?.getRepository(UserEntity) ?? this.userRepository;
-
-    const user = repo.create({
-      email: creationData.email,
-      name: creationData.name,
-      picture: creationData.picture,
-      googleId: creationData.googleId,
-    });
-
-    return await repo.save(user);
-  }
+  ) {}
 
   async findOrCreateUser(userData: {
     googleId: string;
@@ -47,10 +17,10 @@ export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
     name: string;
     picture?: string;
   }): Promise<UserEntity> {
-    let user = await this.getUserByGoogleId(userData.googleId);
+    const user = await this.getUserByGoogleId(userData.googleId);
 
     if (!user) {
-      user = await this.create({
+      return await this.userDBUtil.create({
         creationData: {
           email: userData.email,
           name: userData.name,
@@ -58,18 +28,21 @@ export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
           googleId: userData.googleId,
         },
       });
-    } else {
-      // Update user info in case it changed
-      user.name = userData.name;
-      user.picture = userData.picture;
-      user.email = userData.email;
-
-      await this.updateWithSave({
-        dataArray: [user],
-      });
     }
 
-    return user;
+    // Update user info in case it changed
+    user.name = userData.name;
+    user.picture = userData.picture;
+    user.email = userData.email;
+
+    const updatedUsers = await this.userDBUtil.updateWithSave({
+      dataArray: [user],
+    });
+
+    if (updatedUsers.length !== 1)
+      throw new Error('Updated user number is not 1.');
+
+    return updatedUsers[0];
   }
 
   async handleOAuthCallback(oauthData: {
@@ -106,19 +79,19 @@ export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
   }
 
   async getUserByGoogleId(googleId: string): Promise<UserEntity | null> {
-    return await this.getOne({
+    return await this.userDBUtil.getOne({
       criteria: { googleId },
     });
   }
 
   async getUserByEmail(email: string): Promise<UserEntity | null> {
-    return await this.getOne({
+    return await this.userDBUtil.getOne({
       criteria: { email },
     });
   }
 
   async getUserById(id: string): Promise<UserEntity | null> {
-    return await this.getOne({
+    return await this.userDBUtil.getOne({
       criteria: { id },
       relation: { oauthTokens: true },
     });
@@ -177,7 +150,7 @@ export class AuthService extends BaseDBUtil<UserEntity, UserCreationData> {
   }
 
   async deleteUser(userId: string): Promise<boolean> {
-    const result = await this.delete({
+    const result = await this.userDBUtil.delete({
       criteria: { id: userId },
     });
     return result !== null;

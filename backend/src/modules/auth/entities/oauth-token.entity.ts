@@ -10,7 +10,7 @@ import {
   JoinColumn,
   type Relation,
 } from 'typeorm';
-import { UserEntity } from './user.entity';
+import { UserEntity } from '../../user/entities/user.entity';
 
 @Entity('oauth_tokens')
 @Index(['userId', 'provider'], { unique: true })
