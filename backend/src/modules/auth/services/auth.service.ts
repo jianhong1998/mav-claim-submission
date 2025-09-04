@@ -32,7 +32,7 @@ export class AuthService {
 
     // Update user info in case it changed
     user.name = userData.name;
-    user.picture = userData.picture;
+    user.picture = userData.picture ?? null;
     user.email = userData.email;
 
     const updatedUsers = await this.userDBUtil.updateWithSave({

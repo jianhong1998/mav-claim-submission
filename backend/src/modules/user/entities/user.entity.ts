@@ -25,7 +25,7 @@ export class UserEntity {
   name: string;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
-  picture?: string;
+  picture: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
   googleId: string;

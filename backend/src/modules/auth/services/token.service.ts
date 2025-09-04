@@ -1,34 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import CryptoJS from 'crypto-js';
-import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { IOAuthToken } from '@project/types';
 import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
 import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
-
-export interface TokenCreationData {
-  userId: string;
-  provider: 'google';
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  scope: string;
-}
+import { TokenDBUtil, TokenCreationData } from '../utils/token-db.util';
 
 @Injectable()
-export class TokenService extends BaseDBUtil<
-  OAuthTokenEntity,
-  TokenCreationData
-> {
+export class TokenService {
   private readonly encryptionKey: string;
 
   constructor(
-    @InjectRepository(OAuthTokenEntity)
-    private readonly tokenRepository: Repository<OAuthTokenEntity>,
+    private readonly tokenDBUtil: TokenDBUtil,
     private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {
-    super(OAuthTokenEntity, tokenRepository);
     const variables = environmentVariableUtil.getVariables();
     this.encryptionKey =
       variables.tokenEncryptionKey || 'default-key-change-in-production';
@@ -39,29 +24,27 @@ export class TokenService extends BaseDBUtil<
     entityManager?: EntityManager;
   }): Promise<OAuthTokenEntity> {
     const { creationData, entityManager } = params;
-    const repo =
-      entityManager?.getRepository(OAuthTokenEntity) ?? this.tokenRepository;
 
     const encryptedAccessToken = this.encryptToken(creationData.accessToken);
     const encryptedRefreshToken = this.encryptToken(creationData.refreshToken);
 
-    const token = repo.create({
-      userId: creationData.userId,
-      provider: creationData.provider,
+    const encryptedCreationData = {
+      ...creationData,
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
-      expiresAt: creationData.expiresAt,
-      scope: creationData.scope,
-    });
+    };
 
-    return await repo.save(token);
+    return await this.tokenDBUtil.create({
+      creationData: encryptedCreationData,
+      entityManager,
+    });
   }
 
   async getTokenForUser(
     userId: string,
     provider: 'google' = 'google',
   ): Promise<OAuthTokenEntity | null> {
-    return await this.getOne({
+    return await this.tokenDBUtil.getOne({
       criteria: { userId, provider },
       relation: { user: true },
     });
@@ -82,7 +65,7 @@ export class TokenService extends BaseDBUtil<
     const encryptedRefreshToken = this.encryptToken(refreshToken);
 
     // Try to find existing token first, including soft-deleted ones
-    const existingToken = await this.getOne({
+    const existingToken = await this.tokenDBUtil.getOne({
       criteria: { userId, provider },
       withDeleted: true,
     });
@@ -95,9 +78,14 @@ export class TokenService extends BaseDBUtil<
       existingToken.scope = scope;
       existingToken.deletedAt = null; // Restore if it was soft-deleted
 
-      return await this.updateWithSave({
+      const updatedTokens = await this.tokenDBUtil.updateWithSave({
         dataArray: [existingToken],
-      }).then((tokens) => tokens[0]);
+      });
+
+      if (updatedTokens.length !== 1)
+        throw new Error('Updated token number is not 1.');
+
+      return updatedTokens[0];
     }
 
     // Create new token if none exists
@@ -117,7 +105,7 @@ export class TokenService extends BaseDBUtil<
     userId: string,
     provider: 'google' = 'google',
   ): Promise<boolean> {
-    const result = await this.delete({
+    const result = await this.tokenDBUtil.delete({
       criteria: { userId, provider },
     });
     return result !== null;
