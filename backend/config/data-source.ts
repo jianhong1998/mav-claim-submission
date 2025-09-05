@@ -9,7 +9,7 @@ const options: DataSourceOptions & SeederOptions = {
   password: process.env.DATABASE_PASSWORD || 'postgres',
   database: process.env.DATABASE_DB || 'invoice_management_app_db',
   synchronize: false,
-  entities: ['dist/backend/src/*.entity.{js,ts}'],
+  entities: ['dist/backend/src/**/*.entity.{js,ts}'],
   migrations: ['dist/backend/src/db/migrations/**/*{.js,.ts}'],
   seeds: ['dist/backend/src/db/seeders/**/*{.js,.ts}'],
   factories: ['dist/backend/src/db/factories/**/*{.js,.ts}'],
