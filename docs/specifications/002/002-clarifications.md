@@ -222,3 +222,7 @@ It should keep the attachments safe, cause this is the only sensitive data.
 
 - The app should be only in dark mode.
 - The app should support mobile responsive design.
+
+# Note of changes
+
+After offline discussion, we are going to use Google Drive to replace S3 bucket got blob storage.

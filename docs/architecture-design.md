@@ -10,7 +10,7 @@ The Mavericks Claim Submission system is a comprehensive web application built o
 2. **Backend API Server** - NestJS 11 REST API server  
 3. **Job Processing Service** - Asynchronous email processing using RabbitMQ
 4. **Database** - PostgreSQL with TypeORM
-5. **File Storage** - AWS S3 with CloudFront CDN
+5. **File Storage** - Google Drive per-employee storage
 6. **Shared Types Package** - Cross-workspace TypeScript type definitions
 
 ## System Architecture
@@ -25,8 +25,8 @@ The Mavericks Claim Submission system is a comprehensive web application built o
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   AWS S3 +      │    │   PostgreSQL    │    │   Google APIs   │
-│   CloudFront    │    │   Database      │    │   (Gmail)       │
+│   Google Drive  │    │   PostgreSQL    │    │   Google APIs   │
+│   (Per Employee)│    │   Database      │    │ (Gmail + Drive) │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -89,11 +89,11 @@ CREATE TABLE attachments (
     claim_id UUID NOT NULL REFERENCES claims(id) ON DELETE CASCADE,
     original_filename VARCHAR(255) NOT NULL,
     stored_filename VARCHAR(500) NOT NULL,
-    file_path VARCHAR(1000) NOT NULL, -- S3 path including filename
+    google_drive_file_id VARCHAR(255) NOT NULL, -- Google Drive file ID
+    google_drive_url VARCHAR(1000) NOT NULL, -- Shareable Google Drive URL
     file_size INTEGER NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'uploaded', 'failed')),
-    upload_url TEXT NULL, -- Pre-signed URL (temporary)
     uploaded_at TIMESTAMP WITH TIME ZONE NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -102,11 +102,12 @@ CREATE TABLE attachments (
 
 CREATE INDEX idx_attachments_claim_id ON attachments(claim_id);
 CREATE INDEX idx_attachments_status ON attachments(status);
+CREATE INDEX idx_attachments_drive_file_id ON attachments(google_drive_file_id);
 ```
 
 #### async_jobs
 ```sql
-CREATE TYPE job_type_enum AS ENUM ('send_claim_email', 'cleanup_expired_attachments');
+CREATE TYPE job_type_enum AS ENUM ('send_claim_email');
 CREATE TYPE job_status_enum AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
 
 CREATE TABLE async_jobs (
@@ -181,17 +182,20 @@ Response: {
   claimId: string;
   attachments: Array<{
     attachmentId: string;
-    uploadUrl: string; // Pre-signed CloudFront URL
-    expiresAt: string;
   }>;
 }
 ```
 
 #### Attachment Management
 ```typescript
-// Confirm attachment upload
+// Confirm attachment upload with Google Drive file details
 POST /api/claims/:claimId/attachments/:attachmentId/confirm
-Response: 200 | 404 (if file not found in S3)
+Body: {
+  googleDriveFileId: string;
+  googleDriveUrl: string;
+  storedFilename: string;
+}
+Response: 200 | 404 (if file not found in Google Drive)
 
 // Get claim details
 GET /api/claims/:claimId
@@ -208,7 +212,7 @@ Response: {
     id: string;
     originalFilename: string;
     status: AttachmentStatusEnum;
-    downloadUrl?: string; // Pre-signed download URL
+    googleDriveUrl?: string; // Shareable Google Drive URL
   }>;
 }
 ```
@@ -237,47 +241,33 @@ POST /api/claims/:claimId/resend
 Response: { jobId: string }
 ```
 
-### File Upload Endpoints
-```typescript
-// Generate pre-signed upload URL
-POST /api/files/upload-url
-Body: {
-  filename: string;
-  fileSize: number;
-  mimeType: string;
-  claimId: string;
-}
-Response: {
-  uploadUrl: string;
-  expiresAt: string;
-  attachmentId: string;
-}
-```
 
 ## File Upload Architecture
 
-### AWS S3 Structure
+### Google Drive Structure
 ```
-mavericks-claims-bucket/
-├── claims/
-│   └── {claimUuid}/
-│       └── attachments/
-│           ├── jason_lee_company_dinner_2025_09_1725456123000.pdf
-│           ├── jason_lee_company_dinner_2025_09_1725456124000.png
-│           └── ...
-└── temp/ (for cleanup of failed uploads)
+Employee's Google Drive/
+└── Mavericks Claims/
+    └── {claimUuid}/
+        ├── jason_lee_company_dinner_2025_09_1725456123000.pdf
+        ├── jason_lee_company_dinner_2025_09_1725456124000.png
+        └── ...
 ```
 
 ### File Upload Flow
-1. **Client Request**: Client sends POST to `/api/files/upload-url` with file metadata
-2. **Backend Validation**: Validate file type, size, and user permissions
-3. **Pre-signed URL Generation**: Generate CloudFront pre-signed URL with 15-minute expiry
-4. **Database Record**: Create attachment record with `pending` status
-5. **Client Upload**: Client uploads directly to CloudFront URL
-6. **Upload Confirmation**: Client calls `/api/claims/:claimId/attachments/:attachmentId/confirm`
-7. **Backend Verification**: Backend verifies file exists in S3
-8. **Status Update**: Update attachment status to `uploaded`
-9. **Job Trigger**: When all attachments uploaded, create async job for email sending
+1. **Claim Creation**: Client sends POST to `/api/claims` with file metadata only
+2. **Backend Validation**: Validate file metadata and user permissions
+3. **Database Record**: Create claim and attachment records with `pending` status
+4. **Client-Side Upload**: Client uploads files directly to employee's Google Drive using:
+   - Google Drive API v3 with employee's OAuth access token
+   - Create "Mavericks Claims" folder if it doesn't exist
+   - Create claim-specific subfolder using claim UUID
+   - Upload files with proper naming convention
+   - Set file sharing to "anyone with the link" for payroll access
+5. **Upload Confirmation**: Client calls `/api/claims/:claimId/attachments/:attachmentId/confirm` with Google Drive file details
+6. **Backend Verification**: Backend verifies file exists in Google Drive using file ID
+7. **Status Update**: Update attachment status to `uploaded`
+8. **Job Trigger**: When all attachments uploaded, create async job for email sending
 
 ### File Naming Convention
 Format: `{employee_name}_{claim_category}_{year}_{month}_{timestamp}.{extension}`
@@ -289,6 +279,91 @@ Format: `{employee_name}_{claim_category}_{year}_{month}_{timestamp}.{extension}
 - `extension`: Original file extension
 
 Example: `jason_lee_company_dinner_2025_09_1725456123000.pdf`
+
+### Google Drive API Integration
+
+#### Client-Side Upload Implementation
+```javascript
+// Initialize Google Drive API
+function initializeDriveAPI() {
+  return gapi.load('client:auth2', async () => {
+    await gapi.client.init({
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      scope: 'https://www.googleapis.com/auth/drive.file'
+    });
+  });
+}
+
+// Upload file to Google Drive
+async function uploadToGoogleDrive(file, claimUuid, storedFilename) {
+  // 1. Create "Mavericks Claims" folder if not exists
+  const claimsFolder = await createOrGetFolder('Mavericks Claims');
+  
+  // 2. Create claim-specific subfolder
+  const claimFolder = await createOrGetFolder(claimUuid, claimsFolder.id);
+  
+  // 3. Upload file with metadata
+  const metadata = {
+    name: storedFilename,
+    parents: [claimFolder.id]
+  };
+  
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+  form.append('file', file);
+  
+  const response = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gapi.auth.getToken().access_token}`
+      },
+      body: form
+    }
+  );
+  
+  const result = await response.json();
+  
+  // 4. Set file permissions for payroll access
+  await gapi.client.drive.permissions.create({
+    fileId: result.id,
+    resource: {
+      role: 'reader',
+      type: 'anyone'
+    }
+  });
+  
+  // 5. Generate shareable URL
+  const shareableUrl = `https://drive.google.com/file/d/${result.id}/view`;
+  
+  return {
+    fileId: result.id,
+    shareableUrl: shareableUrl
+  };
+}
+```
+
+#### Backend Verification
+```typescript
+// Verify file exists in Google Drive
+async function verifyGoogleDriveFile(fileId: string, userAccessToken: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size`,
+      {
+        headers: {
+          'Authorization': `Bearer ${userAccessToken}`
+        }
+      }
+    );
+    
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+```
 
 ## Async Job Processing with RabbitMQ
 
@@ -309,28 +384,47 @@ interface SendClaimEmailJobPayload {
 }
 ```
 
-#### Cleanup Expired Attachments Job
-```typescript
-interface CleanupAttachmentsJobPayload {
-  olderThanHours: number;
-  status: 'pending' | 'failed';
-}
-```
 
 ### Job Processing Flow
 
 #### Email Sending Process
-1. **Job Creation**: Backend creates `send_claim_email` job after all attachments uploaded
+1. **Job Creation**: Backend creates `send_claim_email` job after all attachments uploaded to Google Drive
 2. **Job Queue**: Job added to RabbitMQ with retry configuration
 3. **Job Processing**: 
-   - Fetch claim and user data from database
+   - Fetch claim and attachment data from database
    - Get valid OAuth tokens for user's Gmail access
    - Refresh tokens if expired
-   - Generate email from HTML template
-   - Send email via Gmail API
+   - Generate email from HTML template with Google Drive shareable URLs
+   - Send email via Gmail API (no file attachments, only links)
    - Update claim status based on result
 4. **Retry Logic**: Up to 3 retries with exponential backoff
 5. **Failure Handling**: Mark claim as `failed` after max retries
+
+#### Email Template Integration
+```typescript
+// Email template with Google Drive URLs
+interface EmailTemplateData {
+  employeeName: string;
+  category: string;
+  month: string;
+  year: number;
+  totalAmount: number;
+  googleDriveUrls: Array<{
+    filename: string;
+    url: string;
+  }>;
+}
+
+// Template example
+const emailTemplate = `
+  <p>Please find the claim documents at the following links:</p>
+  <ul>
+    {{#each googleDriveUrls}}
+    <li><a href="{{url}}">{{filename}}</a></li>
+    {{/each}}
+  </ul>
+`;
+```
 
 #### Job Monitoring
 ```typescript
@@ -357,11 +451,6 @@ const queueConfig = {
     deadLetterExchange: 'claim-emails-dlx',
     messageTtl: 3600000, // 1 hour
     maxRetries: 3
-  },
-  cleanupQueue: {
-    name: 'cleanup-tasks',
-    durable: true,
-    schedule: '0 2 * * *' // Daily at 2 AM
   }
 };
 ```
@@ -416,11 +505,12 @@ frontend/src/
 │   │   ├── useClaimsQuery.ts
 │   │   ├── useClaimMutation.ts
 │   │   ├── useAuthQuery.ts
-│   │   └── useFileUpload.ts
+│   │   └── useGoogleDriveUpload.ts
 │   └── useAuth.ts
 └── lib/
     ├── api-client.ts
     ├── auth.ts
+    ├── google-drive.ts
     ├── utils.ts
     └── validations.ts
 ```
@@ -475,13 +565,18 @@ interface ClaimsListProps {
 ### User Flows
 
 #### Claim Submission Flow
-1. **Authentication**: User logs in via Google OAuth
+1. **Authentication**: User logs in via Google OAuth (includes Drive API scope)
 2. **Form Entry**: User fills claim form with validation
 3. **File Selection**: User selects files with client-side validation
 4. **Preview**: User reviews claim details and attachments
-5. **Submission**: Files uploaded to S3, claim created in database
-6. **Confirmation**: User redirected to claims list with success message
-7. **Background Processing**: Email job processed asynchronously
+5. **Claim Creation**: Backend creates claim and attachment records with pending status
+6. **File Upload**: Client uploads files directly to user's Google Drive:
+   - Initialize Google Drive API client
+   - Create "Mavericks Claims" folder structure
+   - Upload files with proper naming and permissions
+   - Send file IDs and URLs back to backend for confirmation
+7. **Confirmation**: User redirected to claims list with success message
+8. **Background Processing**: Email job processed asynchronously with Drive URLs
 
 #### Claim Management Flow
 1. **List View**: User sees paginated claims with filters
@@ -498,11 +593,12 @@ interface ClaimsListProps {
 - **API Security**: Session-based authentication for all protected endpoints
 
 ### File Security
-- **Upload Validation**: File type, size, and content validation
-- **Pre-signed URLs**: Time-limited access (15 minutes) for uploads
-- **S3 Security**: Files encrypted at rest (AES-256)
-- **Access Control**: User can only access their own files
-- **CloudFront**: Secure CDN with signed URLs for downloads
+- **Upload Validation**: File type, size, and content validation (client and server-side)
+- **Google Drive Security**: Files encrypted at rest and in transit by Google Workspace
+- **Per-Employee Isolation**: Files stored in individual employee Google Drives
+- **Access Control**: Files shared with "anyone with the link" for payroll access
+- **Workspace Integration**: Leverages existing Google Workspace security policies
+- **OAuth-based Access**: File operations use employee's OAuth tokens
 
 ### Data Protection
 - **Database Encryption**: Sensitive data encrypted at rest
@@ -578,17 +674,11 @@ DATABASE_NAME=mavericks_claims
 DATABASE_USER=claims_user
 DATABASE_PASSWORD=secure_password
 
-# Authentication
+# Authentication & Google APIs
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 BACKEND_COOKIE_SECRET=secure_session_secret
-
-# AWS Configuration
-AWS_REGION=ap-southeast-1
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_S3_BUCKET=mavericks-claims-bucket
-AWS_CLOUDFRONT_DOMAIN=your-cloudfront-domain.cloudfront.net
+# Note: Google Drive API access is handled via OAuth tokens (no additional config needed)
 
 # RabbitMQ
 RABBITMQ_HOST=rabbitmq
@@ -605,15 +695,16 @@ BACKEND_BASE_URL=http://localhost:3001
 - **Application Logs**: Structured JSON logging with correlation IDs
 - **Database Monitoring**: Query performance and connection pooling metrics
 - **Job Queue Monitoring**: RabbitMQ management interface and metrics
-- **File Storage Monitoring**: S3 and CloudFront usage metrics
+- **Google API Monitoring**: OAuth token refresh rates and API quota usage
 - **Health Checks**: Liveness and readiness probes for all services
 
 ### Scalability Considerations
 - **Horizontal Scaling**: Backend and job processors can scale independently
 - **Database**: Connection pooling and read replicas for scaling reads
-- **File Storage**: CloudFront CDN for global file access
+- **File Storage**: Google Drive leverages Google's global infrastructure
 - **Queue Processing**: Multiple job processor instances for parallel processing
 - **Caching**: Redis for session storage and query result caching
+- **Google API Limits**: Consider quota limits for Drive API operations
 
 ## Development Workflow
 
@@ -639,4 +730,4 @@ BACKEND_BASE_URL=http://localhost:3001
 5. **Deploy**: Rolling deployment with health checks
 6. **Monitoring**: Verify all services are healthy post-deployment
 
-This architecture provides a robust, scalable foundation for the Mavericks Claim Submission system while leveraging the existing authentication and email infrastructure.
+This architecture provides a robust, scalable foundation for the Mavericks Claim Submission system while fully leveraging the Google Workspace ecosystem for authentication, email, and file storage. The integration with Google Drive provides enhanced security through per-employee file isolation and eliminates the need for additional cloud storage infrastructure.
