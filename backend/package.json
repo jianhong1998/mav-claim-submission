@@ -16,8 +16,7 @@
     "test:cov": "vitest run --coverage",
     "typeorm": "DOTENV_CONFIG_PATH=../.env node -r dotenv/config ./node_modules/typeorm/cli.js -d dist/backend/config/data-source.js",
     "typeorm-extension": "DOTENV_CONFIG_PATH=../.env node -r dotenv/config ./node_modules/typeorm-extension/bin/cli.cjs -d dist/backend/config/data-source.js",
-    "migration:generate": "npm run build && npm run typeorm -- migration:generate -p src/db/migrations/$npm_config_name && npm run format",
-    "migration:run": "npm run typeorm -- migration:run",
+    "migration:run": "pnpm run typeorm migration:run",
     "seed:create": "npx typeorm-extension seed:create -n src/db/seeders/$npm_config_name",
     "seed:run": "npm run typeorm-extension -- seed:run"
   },
