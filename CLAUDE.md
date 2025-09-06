@@ -69,6 +69,40 @@ make test/api          # API integration tests
 - **No `any` types** - always use proper typing
 - **Shared types**: Import from `@project/types` for cross-workspace consistency
 - **Path aliases**: Backend uses `src/` prefix, frontend uses `@/` prefix
+- **Enum Pattern**: Use `Object.freeze()` with `as const` instead of TypeScript `enum`
+
+### Enum Implementation Pattern
+
+**❌ Avoid TypeScript `enum`:**
+```typescript
+// DON'T use this pattern
+export enum ClaimCategory {
+  TELCO = 'telco',
+  FITNESS = 'fitness',
+}
+```
+
+**✅ Prefer `Object.freeze()` with `as const`:**
+```typescript
+// USE this pattern instead
+export const ClaimCategory = Object.freeze({
+  TELCO: 'telco',
+  FITNESS: 'fitness',
+  DENTAL: 'dental',
+  COMPANY_EVENT: 'company-event',
+  COMPANY_LUNCH: 'company-lunch',
+  COMPANY_DINNER: 'company-dinner',
+  OTHERS: 'others',
+} as const);
+export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
+```
+
+**Benefits of `Object.freeze()` pattern:**
+- Better tree-shaking support
+- More predictable JavaScript output
+- Avoids TypeScript enum pitfalls
+- Compatible with const assertions
+- Better integration with module systems
 
 ## Environment Variables
 

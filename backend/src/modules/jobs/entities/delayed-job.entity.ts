@@ -61,7 +61,7 @@ export class DelayedJobEntity {
   errorMessage: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  result: Record<string, any> | null;
+  result: Record<string, unknown> | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;

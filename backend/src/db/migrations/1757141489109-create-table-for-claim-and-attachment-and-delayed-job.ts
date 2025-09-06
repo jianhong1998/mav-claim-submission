@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
+export class CreateTableForClaimAndAttachmentAndDelayedJob1757141489109
   implements MigrationInterface
 {
-  name = 'CreateTableForClaimAndAttachmentAndDelayedJob1757138726358';
+  name = 'CreateTableForClaimAndAttachmentAndDelayedJob1757141489109';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -48,6 +48,32 @@ export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
             CREATE INDEX "IDX_17e1d93794fe56e3e87e59d87f" ON "delayed_jobs" ("status")
         `);
     await queryRunner.query(`
+            CREATE TYPE "public"."attachments_status_enum" AS ENUM('pending', 'uploaded', 'failed')
+        `);
+    await queryRunner.query(`
+            CREATE TABLE "attachments" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "claimId" uuid NOT NULL,
+                "originalFilename" character varying(255) NOT NULL,
+                "storedFilename" character varying(255) NOT NULL,
+                "googleDriveFileId" character varying(255),
+                "googleDriveUrl" text,
+                "fileSize" bigint NOT NULL,
+                "mimeType" character varying(100) NOT NULL,
+                "status" "public"."attachments_status_enum" NOT NULL DEFAULT 'pending',
+                "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "deletedAt" TIMESTAMP WITH TIME ZONE,
+                CONSTRAINT "PK_5e1f050bcff31e3084a1d662412" PRIMARY KEY ("id")
+            )
+        `);
+    await queryRunner.query(`
+            CREATE INDEX "IDX_e8cc99b26b14533500b7a6ffaa" ON "attachments" ("status")
+        `);
+    await queryRunner.query(`
+            CREATE INDEX "IDX_3011e4956fc43cc5bee18e167a" ON "attachments" ("claimId")
+        `);
+    await queryRunner.query(`
             CREATE TYPE "public"."claims_category_enum" AS ENUM(
                 'telco',
                 'fitness',
@@ -88,6 +114,9 @@ export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
             )
         `);
     await queryRunner.query(`
+            CREATE INDEX "IDX_5bdd25f3c6aab8d5d3373eb183" ON "claims" ("submissionDate")
+        `);
+    await queryRunner.query(`
             CREATE INDEX "IDX_b97d384ef21347eff1a236e1b4" ON "claims" ("month", "year")
         `);
     await queryRunner.query(`
@@ -100,59 +129,21 @@ export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
             CREATE INDEX "IDX_299a3ed5259cccd5cf541512e7" ON "claims" ("userId")
         `);
     await queryRunner.query(`
-            CREATE TYPE "public"."attachments_status_enum" AS ENUM('pending', 'uploaded', 'failed')
-        `);
-    await queryRunner.query(`
-            CREATE TABLE "attachments" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "claimId" uuid NOT NULL,
-                "originalFilename" character varying(255) NOT NULL,
-                "storedFilename" character varying(255) NOT NULL,
-                "googleDriveFileId" character varying(255),
-                "googleDriveUrl" text,
-                "fileSize" bigint NOT NULL,
-                "mimeType" character varying(100) NOT NULL,
-                "status" "public"."attachments_status_enum" NOT NULL DEFAULT 'pending',
-                "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-                "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-                "deletedAt" TIMESTAMP WITH TIME ZONE,
-                CONSTRAINT "PK_5e1f050bcff31e3084a1d662412" PRIMARY KEY ("id")
-            )
-        `);
-    await queryRunner.query(`
-            CREATE INDEX "IDX_e8cc99b26b14533500b7a6ffaa" ON "attachments" ("status")
-        `);
-    await queryRunner.query(`
-            CREATE INDEX "IDX_3011e4956fc43cc5bee18e167a" ON "attachments" ("claimId")
+            ALTER TABLE "attachments"
+            ADD CONSTRAINT "FK_3011e4956fc43cc5bee18e167a2" FOREIGN KEY ("claimId") REFERENCES "claims"("id") ON DELETE CASCADE ON UPDATE NO ACTION
         `);
     await queryRunner.query(`
             ALTER TABLE "claims"
             ADD CONSTRAINT "FK_299a3ed5259cccd5cf541512e73" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
         `);
-    await queryRunner.query(`
-            ALTER TABLE "attachments"
-            ADD CONSTRAINT "FK_3011e4956fc43cc5bee18e167a2" FOREIGN KEY ("claimId") REFERENCES "claims"("id") ON DELETE CASCADE ON UPDATE NO ACTION
-        `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-            ALTER TABLE "attachments" DROP CONSTRAINT "FK_3011e4956fc43cc5bee18e167a2"
-        `);
-    await queryRunner.query(`
             ALTER TABLE "claims" DROP CONSTRAINT "FK_299a3ed5259cccd5cf541512e73"
         `);
     await queryRunner.query(`
-            DROP INDEX "public"."IDX_3011e4956fc43cc5bee18e167a"
-        `);
-    await queryRunner.query(`
-            DROP INDEX "public"."IDX_e8cc99b26b14533500b7a6ffaa"
-        `);
-    await queryRunner.query(`
-            DROP TABLE "attachments"
-        `);
-    await queryRunner.query(`
-            DROP TYPE "public"."attachments_status_enum"
+            ALTER TABLE "attachments" DROP CONSTRAINT "FK_3011e4956fc43cc5bee18e167a2"
         `);
     await queryRunner.query(`
             DROP INDEX "public"."IDX_299a3ed5259cccd5cf541512e7"
@@ -167,6 +158,9 @@ export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
             DROP INDEX "public"."IDX_b97d384ef21347eff1a236e1b4"
         `);
     await queryRunner.query(`
+            DROP INDEX "public"."IDX_5bdd25f3c6aab8d5d3373eb183"
+        `);
+    await queryRunner.query(`
             DROP TABLE "claims"
         `);
     await queryRunner.query(`
@@ -174,6 +168,18 @@ export class CreateTableForClaimAndAttachmentAndDelayedJob1757138726358
         `);
     await queryRunner.query(`
             DROP TYPE "public"."claims_category_enum"
+        `);
+    await queryRunner.query(`
+            DROP INDEX "public"."IDX_3011e4956fc43cc5bee18e167a"
+        `);
+    await queryRunner.query(`
+            DROP INDEX "public"."IDX_e8cc99b26b14533500b7a6ffaa"
+        `);
+    await queryRunner.query(`
+            DROP TABLE "attachments"
+        `);
+    await queryRunner.query(`
+            DROP TYPE "public"."attachments_status_enum"
         `);
     await queryRunner.query(`
             DROP INDEX "public"."IDX_17e1d93794fe56e3e87e59d87f"

@@ -22,6 +22,7 @@ import { ClaimCategory } from '../enums/claim-category.enum';
 @Index(['status'])
 @Index(['category'])
 @Index(['month', 'year'])
+@Index(['submissionDate'])
 @Check(`"totalAmount" > 0`)
 @Check(`"month" >= 1 AND "month" <= 12`)
 @Check(`"year" >= 2020 AND "year" <= 2100`)
