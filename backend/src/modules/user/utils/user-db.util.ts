@@ -3,7 +3,9 @@ import { UserEntity } from '../entities/user.entity';
 import { IUserCreationData } from '../types/user-creation-data.type';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class UserDBUtil extends BaseDBUtil<UserEntity, IUserCreationData> {
   constructor(
     @InjectRepository(UserEntity)
