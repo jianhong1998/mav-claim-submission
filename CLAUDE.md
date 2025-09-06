@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 📋 **[System Architecture](docs/project-info/architecture.md)** - TurboRepo structure, components, database schema, and technology stack
 
-🏢 **[Business Logic](docs/project-info/business-logic.md)** - Claim categories, validation rules, status flows, and Google Drive integration requirements  
+🏢 **[Business Logic](docs/project-info/business-logic.md)** - Claim categories, validation rules, status flows, and Google Drive integration requirements
 
 🔗 **[API Endpoints](docs/project-info/api-endpoints.md)** - Authentication, email, and claims management endpoints (existing and planned)
 
@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Key Development Patterns
 
 ### Workspace Structure
+
 ```
 backend/          # NestJS API with Google OAuth & Gmail
 frontend/         # Next.js with dark mode & mobile responsive
@@ -29,13 +30,14 @@ api-test/         # Integration testing suite
 ```
 
 ### Essential Commands
+
 ```bash
 # Development
 pnpm run dev           # Start all workspaces
 make format && make lint  # Always run after code changes
 
 # Database
-make up                # Start PostgreSQL  
+make up                # Start PostgreSQL
 make db/data/up        # Run migrations & seed data
 pnpm run migration:generate --name=Name  # Create migration
 
@@ -45,6 +47,7 @@ make test/api          # API integration tests
 ```
 
 ### Google Workspace Integration
+
 - **Authentication**: Google OAuth with @mavericks-consulting.com domain
 - **File Storage**: Employee's personal Google Drive (not S3)
 - **Email**: Gmail API with shareable Drive URLs (no attachments)
@@ -66,19 +69,52 @@ make test/api          # API integration tests
 - **No `any` types** - always use proper typing
 - **Shared types**: Import from `@project/types` for cross-workspace consistency
 - **Path aliases**: Backend uses `src/` prefix, frontend uses `@/` prefix
+- **Enum Pattern**: Use `Object.freeze()` with `as const` instead of TypeScript `enum`
+
+### Enum Implementation Pattern
+
+**❌ Avoid TypeScript `enum`:**
+```typescript
+// DON'T use this pattern
+export enum ClaimCategory {
+  TELCO = 'telco',
+  FITNESS = 'fitness',
+}
+```
+
+**✅ Prefer `Object.freeze()` with `as const`:**
+```typescript
+// USE this pattern instead
+export const ClaimCategory = Object.freeze({
+  TELCO: 'telco',
+  FITNESS: 'fitness',
+  DENTAL: 'dental',
+  COMPANY_EVENT: 'company-event',
+  COMPANY_LUNCH: 'company-lunch',
+  COMPANY_DINNER: 'company-dinner',
+  OTHERS: 'others',
+} as const);
+export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
+```
+
+**Benefits of `Object.freeze()` pattern:**
+- Better tree-shaking support
+- More predictable JavaScript output
+- Avoids TypeScript enum pitfalls
+- Compatible with const assertions
+- Better integration with module systems
 
 ## Environment Variables
 
 Managed from root `.env` file:
+
 - `DATABASE_*`: PostgreSQL settings
-- `GOOGLE_CLIENT_ID/SECRET`: OAuth credentials  
+- `GOOGLE_CLIENT_ID/SECRET`: OAuth credentials
 - `RABBITMQ_*`: Job queue settings
 - **Required**: Gmail API and Google Drive API enabled in Google Cloud Console
 
-## Special Instructions
+## Special App Requirements
 
-- Always use agents if suitable for the task
-- Always run `make format` and `make lint` after code changes
 - For claim features, refer to detailed requirements in `docs/specifications/002/`
 - Google Drive integration must use client-side uploads with OAuth tokens
 - Email processing must be asynchronous using RabbitMQ
@@ -91,3 +127,8 @@ Managed from root `.env` file:
 🚧 **In Development**: Claim submission system, Google Drive integration, RabbitMQ job processing
 
 📋 **Next Phase**: Frontend claim forms, attachment uploads, email templates, status management
+
+## Development Practices
+
+- Always use agents if suitable for the task
+- Always run `make format` and `make lint` after code changes
