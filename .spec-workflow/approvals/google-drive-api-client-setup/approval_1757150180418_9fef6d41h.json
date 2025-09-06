@@ -1,0 +1,21 @@
+{
+  "id": "approval_1757150180418_9fef6d41h",
+  "title": "Google Drive API Client Setup - Implementation Tasks",
+  "filePath": ".spec-workflow/specs/google-drive-api-client-setup/tasks.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-06T09:16:20.418Z",
+  "category": "spec",
+  "categoryName": "google-drive-api-client-setup",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Class-based DTO should only in backend.\nTypes in `packages/types/src/dtos` should be type/interface based DTO for frontend and backend sharing the same DTO type.\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Class-based DTO should only in backend.\\nTypes in `packages/types/src/dtos` should be type/interface based DTO for frontend and backend sharing the same DTO type.\",\n      \"timestamp\": \"2025-09-06T09:18:45.429Z\",\n      \"id\": \"comment_1757150325429_28d06bz9m\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Class-based DTO should only in backend.\\nTypes in `packages/types/src/dtos` should be type/interface based DTO for frontend and backend sharing the same DTO type.\\n\\n\",\n  \"timestamp\": \"2025-09-06T09:19:48.955Z\"\n}",
+  "respondedAt": "2025-09-06T09:19:48.959Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Class-based DTO should only in backend.\nTypes in `packages/types/src/dtos` should be type/interface based DTO for frontend and backend sharing the same DTO type.",
+      "timestamp": "2025-09-06T09:18:45.429Z",
+      "id": "comment_1757150325429_28d06bz9m"
+    }
+  ]
+}
