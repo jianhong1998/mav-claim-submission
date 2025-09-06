@@ -1,0 +1,63 @@
+{
+  "id": "approval_1757147738944_icbftcktn",
+  "title": "Structure Steering Document - Codebase Organization & Patterns",
+  "filePath": ".spec-workflow/steering/structure.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-06T08:35:38.944Z",
+  "category": "steering",
+  "categoryName": "steering",
+  "response": "Feedback Summary (4 comments):\n\nSpecific Text Comments:\n1. \"ui/                   # Base UI components (Radix ...\": Instead of Radix, frontend is using ShardCN as the frontend UI library. This folder is storing all the ShardCN components\n2. \"**Components**: `PascalCase.tsx` (e.g., `GoogleAut...\": All file names should be in kebab-case convention.\n3. \"**Types/Interfaces**: `kebab-case.type.ts` or `keb...\": Type and interfaces should be with `*.type.ts`. Only DTO class Object in the backend is using `*.dto.ts`.\n4. \"export function ComponentName({ prop }: ComponentP...\": Use `FC` from `react` instead of hard coded the type.\nUse arrow function instead of traditional `function` syntax.\nExample:\n```\nexport const ComponentName: FC<ComponentProps> = ({prop}) => {}\n```\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"Instead of Radix, frontend is using ShardCN as the frontend UI library. This folder is storing all the ShardCN components\",\n      \"timestamp\": \"2025-09-06T08:40:02.129Z\",\n      \"selectedText\": \"ui/                   # Base UI components (Radix + custom)\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1757148002129_qcziczod6\"\n    },\n    {\n      \"type\": \"selection\",\n      \"comment\": \"All file names should be in kebab-case convention.\",\n      \"timestamp\": \"2025-09-06T08:42:09.275Z\",\n      \"selectedText\": \"**Components**: `PascalCase.tsx` (e.g., `GoogleAuthButton.tsx`, `ClaimForm.tsx`)\\n- **Services/Classes**: `PascalCase.ts` (e.g., `AuthService.ts`, `EmailService.ts`)\\n- **Utilities/Helpers**: `kebab-case.ts` (e.g., `date-utils.ts`, `api-client.ts`)\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1757148129275_38xmjhrk5\"\n    },\n    {\n      \"type\": \"selection\",\n      \"comment\": \"Type and interfaces should be with `*.type.ts`. Only DTO class Object in the backend is using `*.dto.ts`.\",\n      \"timestamp\": \"2025-09-06T08:42:48.919Z\",\n      \"selectedText\": \"**Types/Interfaces**: `kebab-case.type.ts` or `kebab-case.dto.ts`\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1757148168919_3jaa75hen\"\n    },\n    {\n      \"type\": \"selection\",\n      \"comment\": \"Use `FC` from `react` instead of hard coded the type.\\nUse arrow function instead of traditional `function` syntax.\\nExample:\\n```\\nexport const ComponentName: FC<ComponentProps> = ({prop}) => {}\\n```\",\n      \"timestamp\": \"2025-09-06T08:46:07.163Z\",\n      \"selectedText\": \"export function ComponentName({ prop }: ComponentProps) {\\n  // Hooks at the top\\n  // Event handlers in the middle  \\n  // Render logic at the bottom\\n}\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1757148367163_0ymmf9w7y\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (4 comments):\\n\\nSpecific Text Comments:\\n1. \\\"ui/                   # Base UI components (Radix ...\\\": Instead of Radix, frontend is using ShardCN as the frontend UI library. This folder is storing all the ShardCN components\\n2. \\\"**Components**: `PascalCase.tsx` (e.g., `GoogleAut...\\\": All file names should be in kebab-case convention.\\n3. \\\"**Types/Interfaces**: `kebab-case.type.ts` or `keb...\\\": Type and interfaces should be with `*.type.ts`. Only DTO class Object in the backend is using `*.dto.ts`.\\n4. \\\"export function ComponentName({ prop }: ComponentP...\\\": Use `FC` from `react` instead of hard coded the type.\\nUse arrow function instead of traditional `function` syntax.\\nExample:\\n```\\nexport const ComponentName: FC<ComponentProps> = ({prop}) => {}\\n```\\n\",\n  \"timestamp\": \"2025-09-06T08:50:06.545Z\"\n}",
+  "respondedAt": "2025-09-06T08:50:06.548Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "Instead of Radix, frontend is using ShardCN as the frontend UI library. This folder is storing all the ShardCN components",
+      "timestamp": "2025-09-06T08:40:02.129Z",
+      "selectedText": "ui/                   # Base UI components (Radix + custom)",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1757148002129_qcziczod6"
+    },
+    {
+      "type": "selection",
+      "comment": "All file names should be in kebab-case convention.",
+      "timestamp": "2025-09-06T08:42:09.275Z",
+      "selectedText": "**Components**: `PascalCase.tsx` (e.g., `GoogleAuthButton.tsx`, `ClaimForm.tsx`)\n- **Services/Classes**: `PascalCase.ts` (e.g., `AuthService.ts`, `EmailService.ts`)\n- **Utilities/Helpers**: `kebab-case.ts` (e.g., `date-utils.ts`, `api-client.ts`)",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1757148129275_38xmjhrk5"
+    },
+    {
+      "type": "selection",
+      "comment": "Type and interfaces should be with `*.type.ts`. Only DTO class Object in the backend is using `*.dto.ts`.",
+      "timestamp": "2025-09-06T08:42:48.919Z",
+      "selectedText": "**Types/Interfaces**: `kebab-case.type.ts` or `kebab-case.dto.ts`",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1757148168919_3jaa75hen"
+    },
+    {
+      "type": "selection",
+      "comment": "Use `FC` from `react` instead of hard coded the type.\nUse arrow function instead of traditional `function` syntax.\nExample:\n```\nexport const ComponentName: FC<ComponentProps> = ({prop}) => {}\n```",
+      "timestamp": "2025-09-06T08:46:07.163Z",
+      "selectedText": "export function ComponentName({ prop }: ComponentProps) {\n  // Hooks at the top\n  // Event handlers in the middle  \n  // Render logic at the bottom\n}",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1757148367163_0ymmf9w7y"
+    }
+  ]
+}

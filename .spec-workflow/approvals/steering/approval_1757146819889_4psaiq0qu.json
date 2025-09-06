@@ -1,0 +1,21 @@
+{
+  "id": "approval_1757146819889_4psaiq0qu",
+  "title": "Product Steering Document - Vision & Goals",
+  "filePath": ".spec-workflow/steering/product.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-06T08:20:19.889Z",
+  "category": "steering",
+  "categoryName": "steering",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Regarding `Real-time Updates: Server-sent events for live status updates without page refresh`, server-sent events are not required. Frontend can use TanStack React Query to fetch data with setting 5 minutes as data stale time.\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Regarding `Real-time Updates: Server-sent events for live status updates without page refresh`, server-sent events are not required. Frontend can use TanStack React Query to fetch data with setting 5 minutes as data stale time.\",\n      \"timestamp\": \"2025-09-06T08:29:02.354Z\",\n      \"id\": \"comment_1757147342354_m9z8efbgd\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Regarding `Real-time Updates: Server-sent events for live status updates without page refresh`, server-sent events are not required. Frontend can use TanStack React Query to fetch data with setting 5 minutes as data stale time.\\n\\n\",\n  \"timestamp\": \"2025-09-06T08:29:05.596Z\"\n}",
+  "respondedAt": "2025-09-06T08:29:05.601Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Regarding `Real-time Updates: Server-sent events for live status updates without page refresh`, server-sent events are not required. Frontend can use TanStack React Query to fetch data with setting 5 minutes as data stale time.",
+      "timestamp": "2025-09-06T08:29:02.354Z",
+      "id": "comment_1757147342354_m9z8efbgd"
+    }
+  ]
+}
