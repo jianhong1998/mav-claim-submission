@@ -26,7 +26,7 @@
   - _Leverage: existing type patterns from packages/types/src/auth.dto.ts_
   - _Requirements: Requirement 2_
 
-- [ ] 4. Create backend Drive class-based DTOs
+- [x] 4. Create backend Drive class-based DTOs
   - File: backend/src/modules/drive/dtos/drive-request.dto.ts
   - Implement DriveUploadRequestDto and DriveOperationRequestDto classes with validation decorators
   - Classes should implement the shared type interfaces from packages/types
@@ -35,7 +35,7 @@
   - _Leverage: backend/src/modules/email/controllers/email.controller.ts class DTO patterns_
   - _Requirements: Requirement 1, Requirement 2_
 
-- [ ] 5. Extend TokenService for Drive API scope handling
+- [x] 5. Extend TokenService for Drive API scope handling
   - File: backend/src/modules/auth/services/token.service.ts (modify existing)
   - Add Drive API scope validation and storage methods
   - Update token refresh logic to handle multiple scopes (Gmail + Drive)
@@ -43,7 +43,7 @@
   - _Leverage: existing TokenService implementation_
   - _Requirements: Requirement 1, Requirement 3_
 
-- [ ] 6. Create Drive service module structure
+- [x] 6. Create Drive service module structure
   - File: backend/src/modules/drive/drive.module.ts
   - Set up NestJS module with proper imports and providers
   - Configure dependency injection for DriveService
