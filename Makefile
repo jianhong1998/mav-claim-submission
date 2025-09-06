@@ -79,3 +79,8 @@ db/data/reset:
 		pnpm run build && \
 		DOTENV_CONFIG_PATH=../.env pnpx node -r dotenv/config ./dist/backend/config/db-scripts/data-down.js && \
 		pnpm run seed:run
+
+db/migration/generate:
+	@cd backend && \
+		chmod +x ./scripts/generate-migration.sh && \
+		./scripts/generate-migration.sh ${name}
