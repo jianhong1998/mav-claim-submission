@@ -94,7 +94,7 @@
   - _Leverage: frontend/src/lib/api-client.ts patterns_
   - _Requirements: Requirement 2_
 
-- [ ] 12. Create useDriveClient hook
+- [x] 12. Create useDriveClient hook
   - File: frontend/src/hooks/queries/drive/use-drive-client.ts
   - Implement React hook for Drive client initialization and authentication
   - Add error handling and loading states using TanStack Query patterns
@@ -102,7 +102,7 @@
   - _Leverage: frontend/src/hooks/queries/auth/useAuth.ts patterns, frontend/src/hooks/queries/helper/error-handler.ts_
   - _Requirements: Requirement 2_
 
-- [ ] 13. Create useDriveUpload hook
+- [x] 13. Create useDriveUpload hook
   - File: frontend/src/hooks/queries/drive/use-drive-upload.ts
   - Implement file upload functionality with progress tracking
   - Add validation, error handling, and success callbacks
@@ -111,7 +111,7 @@
   - _Leverage: TanStack Query mutation patterns from existing hooks_
   - _Requirements: Requirement 2_
 
-- [ ] 14. Create useDriveOperations hook
+- [x] 14. Create useDriveOperations hook
   - File: frontend/src/hooks/queries/drive/use-drive-operations.ts
   - Implement folder creation, file sharing, and permission management
   - Add query patterns for metadata fetching with 5-minute stale time
@@ -119,7 +119,7 @@
   - _Leverage: TanStack Query patterns from frontend/src/hooks/queries/auth/useAuth.ts_
   - _Requirements: Requirement 2_
 
-- [ ] 15. Update query keys for Drive operations
+- [x] 15. Update query keys for Drive operations
   - File: frontend/src/hooks/queries/keys/key.ts (modify existing)
   - Add Drive-specific query keys following existing patterns
   - Extend QueryGroup enum with DRIVE group
