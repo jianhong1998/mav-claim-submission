@@ -129,7 +129,7 @@
 
 ## Environment and Configuration
 
-- [ ] 16. Update environment configuration
+- [x] 16. Update environment configuration
   - File: backend/src/configs/ (modify existing configuration)
   - Add Drive API scope configuration to existing Google OAuth setup
   - Validate Drive API environment variables in EnvironmentVariableUtil
@@ -137,7 +137,7 @@
   - _Leverage: existing EnvironmentVariableUtil patterns_
   - _Requirements: Requirement 3_
 
-- [ ] 17. Update OAuth scope configuration
+- [x] 17. Update OAuth scope configuration
   - File: backend/src/modules/auth/strategies/ (modify existing Passport strategy)
   - Add drive.file scope to existing Google OAuth strategy
   - Update authentication flow to request Drive permissions
@@ -147,7 +147,7 @@
 
 ## Testing Implementation
 
-- [ ] 18. Create Drive service unit tests
+- [x] 18. Create Drive service unit tests
   - File: backend/src/modules/drive/services/drive.service.spec.ts
   - Write comprehensive tests for DriveService methods
   - Mock Google APIs client and test error scenarios
@@ -156,7 +156,7 @@
   - _Leverage: existing test patterns from backend/src/modules/email/services/email.service.spec.ts_
   - _Requirements: Requirement 1, Requirement 4_
 
-- [ ] 19. Create backend DTO validation tests
+- [x] 19. Create backend DTO validation tests
   - File: backend/src/modules/drive/dtos/drive-request.dto.spec.ts
   - Test class-validator decorators on backend class-based Drive DTOs
   - Verify validation error messages and edge cases

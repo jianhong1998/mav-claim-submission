@@ -14,6 +14,8 @@ type IEnvironmentVariableList = {
   googleClientId: string;
   googleClientSecret: string;
   googleRedirectUri: string;
+  googleDriveApiKey: string;
+  googleDriveScope: string;
   tokenEncryptionKey: string;
   frontendBaseUrl: string;
 
@@ -61,6 +63,14 @@ export class EnvironmentVariableUtil {
       googleRedirectUri: this.configService.get(
         'BACKEND_GOOGLE_REDIRECT_URI',
         '',
+      ),
+      googleDriveApiKey: this.configService.get(
+        'BACKEND_GOOGLE_DRIVE_API_KEY',
+        '',
+      ),
+      googleDriveScope: this.configService.get(
+        'BACKEND_GOOGLE_DRIVE_SCOPE',
+        'https://www.googleapis.com/auth/drive.file',
       ),
       tokenEncryptionKey: this.configService.get(
         'BACKEND_TOKEN_ENCRYPTION_KEY',
