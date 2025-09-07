@@ -40,6 +40,10 @@ build/backend:
 	@cd backend && \
 		pnpm run build
 
+build/frontend:
+	@cd frontend && \
+		pnpm run build
+
 format:
 	@pnpm run format
 

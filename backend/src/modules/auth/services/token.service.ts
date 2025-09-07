@@ -5,6 +5,7 @@ import { IOAuthToken } from '@project/types';
 import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
 import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
 import { TokenDBUtil, TokenCreationData } from '../utils/token-db.util';
+import { RequiredScope } from '../enums/required-scope.enum';
 
 @Injectable()
 export class TokenService {
@@ -57,9 +58,17 @@ export class TokenService {
     refreshToken: string;
     expiresAt: Date;
     scope: string;
+    mergeScopes?: boolean;
   }): Promise<OAuthTokenEntity> {
-    const { userId, provider, accessToken, refreshToken, expiresAt, scope } =
-      params;
+    const {
+      userId,
+      provider,
+      accessToken,
+      refreshToken,
+      expiresAt,
+      scope,
+      mergeScopes = true,
+    } = params;
 
     const encryptedAccessToken = this.encryptToken(accessToken);
     const encryptedRefreshToken = this.encryptToken(refreshToken);
@@ -71,11 +80,20 @@ export class TokenService {
     });
 
     if (existingToken) {
+      // Merge scopes if requested and existing token has scopes
+      let finalScope = scope;
+      if (mergeScopes && existingToken.scope) {
+        const existingScopes = this.parseScopeString(existingToken.scope);
+        const newScopes = this.parseScopeString(scope);
+        const combinedScopes = new Set([...existingScopes, ...newScopes]);
+        finalScope = Array.from(combinedScopes).join(' ');
+      }
+
       // Update existing token
       existingToken.accessToken = encryptedAccessToken;
       existingToken.refreshToken = encryptedRefreshToken;
       existingToken.expiresAt = expiresAt;
-      existingToken.scope = scope;
+      existingToken.scope = finalScope;
       existingToken.deletedAt = null; // Restore if it was soft-deleted
 
       const updatedTokens = await this.tokenDBUtil.updateWithSave({
@@ -152,6 +170,98 @@ export class TokenService {
     };
   }
 
+  validateRequiredScopes(
+    tokenScopes: string,
+    requiredScopes: RequiredScope[],
+  ): boolean {
+    const scopes = this.parseScopeString(tokenScopes);
+    return requiredScopes.every((scope) => scopes.includes(scope));
+  }
+
+  hasGmailScope(token: OAuthTokenEntity): boolean {
+    return this.validateRequiredScopes(token.scope, [RequiredScope.GMAIL]);
+  }
+
+  hasDriveScope(token: OAuthTokenEntity): boolean {
+    return this.validateRequiredScopes(token.scope, [RequiredScope.DRIVE]);
+  }
+
+  hasAllRequiredScopes(
+    token: OAuthTokenEntity,
+    includesDrive: boolean = false,
+  ): boolean {
+    const requiredScopes: RequiredScope[] = [
+      RequiredScope.EMAIL,
+      RequiredScope.PROFILE,
+      RequiredScope.GMAIL,
+    ];
+
+    if (includesDrive) {
+      requiredScopes.push(RequiredScope.DRIVE);
+    }
+
+    return this.validateRequiredScopes(token.scope, requiredScopes);
+  }
+
+  combineScopes(
+    existingScopes: string,
+    additionalScopes: RequiredScope[],
+  ): string {
+    const existing = this.parseScopeString(existingScopes);
+    const combined = new Set([...existing, ...additionalScopes]);
+    return Array.from(combined).join(' ');
+  }
+
+  async getUserTokenWithScope(
+    userId: string,
+    requiredScope: RequiredScope,
+  ): Promise<{ token: OAuthTokenEntity; hasRequiredScope: boolean } | null> {
+    const token = await this.getTokenForUser(userId);
+
+    if (!token) {
+      return null;
+    }
+
+    const hasRequiredScope = this.validateRequiredScopes(token.scope, [
+      requiredScope,
+    ]);
+
+    return {
+      token,
+      hasRequiredScope,
+    };
+  }
+
+  async updateTokenWithAdditionalScopes(params: {
+    userId: string;
+    provider: 'google';
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+    newScopes: RequiredScope[];
+  }): Promise<OAuthTokenEntity> {
+    const existingToken = await this.getTokenForUser(
+      params.userId,
+      params.provider,
+    );
+
+    let combinedScope = params.newScopes.join(' ');
+
+    if (existingToken) {
+      combinedScope = this.combineScopes(existingToken.scope, params.newScopes);
+    }
+
+    return this.updateToken({
+      userId: params.userId,
+      provider: params.provider,
+      accessToken: params.accessToken,
+      refreshToken: params.refreshToken,
+      expiresAt: params.expiresAt,
+      scope: combinedScope,
+      mergeScopes: true,
+    });
+  }
+
   private encryptToken(token: string): string {
     return CryptoJS.AES.encrypt(token, this.encryptionKey).toString();
   }
@@ -159,5 +269,12 @@ export class TokenService {
   private decryptToken(encryptedToken: string): string {
     const bytes = CryptoJS.AES.decrypt(encryptedToken, this.encryptionKey);
     return bytes.toString(CryptoJS.enc.Utf8);
+  }
+
+  private parseScopeString(scopes: string): string[] {
+    return scopes
+      .split(/\s+/)
+      .map((scope) => scope.trim())
+      .filter((scope) => scope.length > 0);
   }
 }
