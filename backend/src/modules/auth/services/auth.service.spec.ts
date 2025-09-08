@@ -191,7 +191,7 @@ describe('AuthService', () => {
     it('should handle new user OAuth callback', async () => {
       vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(null);
       vi.spyOn(service, 'findOrCreateUser').mockResolvedValue(mockUser);
-      tokenService.updateToken.mockResolvedValue({} as any);
+      tokenService.updateToken.mockResolvedValue({});
 
       const result = await service.handleOAuthCallback(mockOAuthData);
 
@@ -219,7 +219,7 @@ describe('AuthService', () => {
     it('should handle existing user OAuth callback', async () => {
       vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(mockUser);
       vi.spyOn(service, 'findOrCreateUser').mockResolvedValue(mockUser);
-      tokenService.updateToken.mockResolvedValue({} as any);
+      tokenService.updateToken.mockResolvedValue({});
 
       const result = await service.handleOAuthCallback(mockOAuthData);
 

@@ -205,7 +205,7 @@ describe('TokenService', () => {
             accessToken: expect.any(String),
             refreshToken: expect.any(String),
             expiresAt: new Date('2025-01-01T00:00:00Z'),
-            scope: 'updated-scope',
+            scope: 'email profile updated-scope', // Merged scopes
           }),
         ],
       });

@@ -42,7 +42,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID,
       clientSecret,
       callbackURL,
-      scope: ['email', 'profile', 'https://www.googleapis.com/auth/gmail.send'],
+      scope: [
+        'email',
+        'profile',
+        'https://www.googleapis.com/auth/gmail.send',
+        variables.googleDriveScope,
+      ],
     } as StrategyOptions);
 
     this.logger = this.loggerUtil.createLogger('GoogleStrategy');
@@ -103,6 +108,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         this.logger.warn('No refresh token received from Google OAuth');
       }
 
+      const variables = this.environmentVariableUtil.getVariables();
       const user: IPassportUser = {
         googleId: profileData.id,
         email,
@@ -111,7 +117,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         accessToken,
         refreshToken,
         expiresAt,
-        scope: 'email profile https://www.googleapis.com/auth/gmail.send',
+        scope: `email profile https://www.googleapis.com/auth/gmail.send ${variables.googleDriveScope}`,
       };
 
       this.logger.log(`Google OAuth validation successful for user: ${email}`);

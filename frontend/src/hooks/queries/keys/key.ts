@@ -8,6 +8,7 @@ export const QueryGroup = Object.freeze({
   HEALTH_CHECK: 'health-check',
   AUTH: 'auth',
   EMAIL: 'email',
+  DRIVE: 'drive',
 } as const);
 export type QueryGroup = (typeof QueryGroup)[keyof typeof QueryGroup];
 

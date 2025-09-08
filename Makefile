@@ -40,6 +40,10 @@ build/backend:
 	@cd backend && \
 		pnpm run build
 
+build/frontend:
+	@cd frontend && \
+		pnpm run build
+
 format:
 	@pnpm run format
 
@@ -61,6 +65,10 @@ test/unit:
 
 test/api:
 	@cd api-test && \
+		pnpm run test
+
+test/ui:
+	@cd frontend && \
 		pnpm run test
 
 # Database commands using TurboRepo
