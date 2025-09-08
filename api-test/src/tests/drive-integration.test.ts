@@ -8,28 +8,10 @@ import {
 import { AxiosError } from 'axios';
 
 describe('#Drive Integration', () => {
-  const TEST_BYPASS_HEADER = { 'x-test-bypass': 'true' };
-
   describe('POST /drive/check-access', () => {
-    it('should return drive access status with test bypass', async () => {
-      const result = await axiosInstance.post(
-        '/drive/check-access',
-        {},
-        {
-          headers: TEST_BYPASS_HEADER,
-        },
-      );
-
-      expect(result.status).toBe(200);
-      expect(result.data).toMatchObject({
-        hasAccess: true,
-        email: 'test@example.com',
-      } as IDriveAccessResponse);
-    });
-
-    it('should return 401 when not authenticated (without bypass)', async () => {
+    it('should return 401 when not authenticated', async () => {
       try {
-        await axiosInstance.post('/drive/check-access');
+        await axiosInstance.post('/drive/check-access', {});
       } catch (error) {
         const axiosError = error as AxiosError;
         expect(axiosError.response?.status).toBe(401);
@@ -62,23 +44,7 @@ describe('#Drive Integration', () => {
       parentFolderId: 'root',
     };
 
-    it('should handle folder creation with test bypass', async () => {
-      const result = await axiosInstance.post(
-        '/drive/create-folder',
-        folderData,
-        {
-          headers: TEST_BYPASS_HEADER,
-        },
-      );
-
-      expect(result.status).toBe(200);
-      expect(result.data).toMatchObject({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      } as IDriveFolderCreateResponse);
-    });
-
-    it('should return 401 when not authenticated (without bypass)', async () => {
+    it('should return 401 when not authenticated', async () => {
       try {
         await axiosInstance.post('/drive/create-folder', folderData);
       } catch (error) {
@@ -107,22 +73,7 @@ describe('#Drive Integration', () => {
   describe('GET /drive/file/:fileId/metadata', () => {
     const testFileId = 'test-file-id-123';
 
-    it('should handle file metadata retrieval with test bypass', async () => {
-      const result = await axiosInstance.get(
-        `/drive/file/${testFileId}/metadata`,
-        {
-          headers: TEST_BYPASS_HEADER,
-        },
-      );
-
-      expect(result.status).toBe(200);
-      expect(result.data).toMatchObject({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      } as IDriveOperationResponse);
-    });
-
-    it('should return 401 when not authenticated (without bypass)', async () => {
+    it('should return 401 when not authenticated', async () => {
       try {
         await axiosInstance.get(`/drive/file/${testFileId}/metadata`);
       } catch (error) {
@@ -135,17 +86,15 @@ describe('#Drive Integration', () => {
       }
     });
 
-    it('should return 400 for empty file ID', async () => {
+    it('should return 401 for authentication before validating file ID', async () => {
       try {
-        await axiosInstance.get('/drive/file/ /metadata', {
-          headers: TEST_BYPASS_HEADER,
-        });
+        await axiosInstance.get('/drive/file/ /metadata');
       } catch (error) {
         const axiosError = error as AxiosError;
-        expect(axiosError.response?.status).toBe(400);
+        expect(axiosError.response?.status).toBe(401);
         expect(axiosError.response?.data).toMatchObject({
           success: false,
-          error: 'File ID is required',
+          error: 'Authentication required',
         } as IDriveOperationResponse);
       }
     });
@@ -158,23 +107,7 @@ describe('#Drive Integration', () => {
       role: 'reader',
     };
 
-    it('should handle permission update with test bypass', async () => {
-      const result = await axiosInstance.post(
-        '/drive/file/permissions',
-        permissionData,
-        {
-          headers: TEST_BYPASS_HEADER,
-        },
-      );
-
-      expect(result.status).toBe(200);
-      expect(result.data).toMatchObject({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      } as IDrivePermissionResponse);
-    });
-
-    it('should return 401 when not authenticated (without bypass)', async () => {
+    it('should return 401 when not authenticated', async () => {
       try {
         await axiosInstance.post('/drive/file/permissions', permissionData);
       } catch (error) {

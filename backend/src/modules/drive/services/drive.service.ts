@@ -228,17 +228,7 @@ export class DriveService {
         throw new BadRequestException('File not found');
       }
 
-      return {
-        id: response.data.id!,
-        name: response.data.name!,
-        mimeType: response.data.mimeType!,
-        size: response.data.size ? parseInt(response.data.size) : undefined,
-        webViewLink: response.data.webViewLink || undefined,
-        webContentLink: response.data.webContentLink || undefined,
-        parents: response.data.parents || undefined,
-        createdTime: response.data.createdTime!,
-        modifiedTime: response.data.modifiedTime!,
-      };
+      return DriveUtils.mapFileMetadataResponse(response.data);
     } catch (error: unknown) {
       logger.error(
         `Failed to get file metadata for ${params.fileId}:`,

@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import type { IDriveFileMetadata } from '@project/types';
 
 export const DriveConstants = Object.freeze({
   MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
@@ -405,6 +406,46 @@ export class DriveUtils {
       mimeType: DriveConstants.GOOGLE_FOLDER_MIME_TYPE,
       parents: params.parents,
       description: params.description,
+    };
+  }
+
+  static mapFileMetadataResponse(responseData: {
+    id?: string | null;
+    name?: string | null;
+    mimeType?: string | null;
+    size?: string | null;
+    webViewLink?: string | null;
+    webContentLink?: string | null;
+    parents?: string[] | null;
+    createdTime?: string | null;
+    modifiedTime?: string | null;
+  }): IDriveFileMetadata {
+    if (!responseData) {
+      throw new BadRequestException('Invalid file metadata response');
+    }
+
+    if (
+      !responseData.id ||
+      !responseData.name ||
+      !responseData.mimeType ||
+      !responseData.createdTime ||
+      !responseData.modifiedTime
+    ) {
+      throw new BadRequestException(
+        'Required file metadata fields are missing',
+      );
+    }
+
+    return {
+      id: responseData.id,
+      name: responseData.name,
+      mimeType: responseData.mimeType,
+      size: responseData.size ? parseInt(responseData.size, 10) : undefined,
+      webViewLink: responseData.webViewLink || undefined,
+      webContentLink: responseData.webContentLink || undefined,
+      parents: responseData.parents || undefined,
+      createdTime: responseData.createdTime,
+      modifiedTime: responseData.modifiedTime,
     };
   }
 }

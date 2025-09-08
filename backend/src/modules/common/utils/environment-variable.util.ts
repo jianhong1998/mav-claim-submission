@@ -55,16 +55,19 @@ export class EnvironmentVariableUtil {
         'BACKEND_COOKIE_DOMAIN_NAME',
         'localhost',
       ),
-      googleClientId: this.configService.get('BACKEND_GOOGLE_CLIENT_ID', ''),
-      googleClientSecret: this.configService.get(
+      googleClientId: this.configService.getOrThrow(
+        'BACKEND_GOOGLE_CLIENT_ID',
+        '',
+      ),
+      googleClientSecret: this.configService.getOrThrow(
         'BACKEND_GOOGLE_CLIENT_SECRET',
         '',
       ),
-      googleRedirectUri: this.configService.get(
+      googleRedirectUri: this.configService.getOrThrow(
         'BACKEND_GOOGLE_REDIRECT_URI',
         '',
       ),
-      googleDriveApiKey: this.configService.get(
+      googleDriveApiKey: this.configService.getOrThrow(
         'BACKEND_GOOGLE_DRIVE_API_KEY',
         '',
       ),
@@ -72,7 +75,7 @@ export class EnvironmentVariableUtil {
         'BACKEND_GOOGLE_DRIVE_SCOPE',
         'https://www.googleapis.com/auth/drive.file',
       ),
-      tokenEncryptionKey: this.configService.get(
+      tokenEncryptionKey: this.configService.getOrThrow(
         'BACKEND_TOKEN_ENCRYPTION_KEY',
         '',
       ),

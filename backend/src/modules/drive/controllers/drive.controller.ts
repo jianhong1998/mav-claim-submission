@@ -40,16 +40,7 @@ export class DriveController {
   async checkDriveAccess(
     @Session() session: SessionData,
     @Res() res: Response,
-    @Headers('x-test-bypass') testBypass?: string,
   ): Promise<Response<IDriveAccessResponse>> {
-    // Temporary bypass for testing - remove in production
-    if (testBypass === 'true') {
-      return res.status(HttpStatus.OK).json({
-        hasAccess: true,
-        email: 'test@example.com',
-      });
-    }
-
     if (!session?.isAuthenticated || !session?.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
         hasAccess: false,
@@ -116,16 +107,7 @@ export class DriveController {
     @Body() folderData: DriveFolderCreateRequestDto,
     @Session() session: SessionData,
     @Res() res: Response,
-    @Headers('x-test-bypass') testBypass?: string,
   ): Promise<Response<IDriveFolderCreateResponse>> {
-    // Temporary bypass for testing - remove in production
-    if (testBypass === 'true') {
-      return res.status(HttpStatus.OK).json({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      });
-    }
-
     // Check authentication
     if (!session || !session.isAuthenticated || !session.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
@@ -177,16 +159,7 @@ export class DriveController {
     @Param('fileId') fileId: string,
     @Session() session: SessionData,
     @Res() res: Response,
-    @Headers('x-test-bypass') testBypass?: string,
   ): Promise<Response<IDriveOperationResponse>> {
-    // Temporary bypass for testing - remove in production
-    if (testBypass === 'true') {
-      return res.status(HttpStatus.OK).json({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      });
-    }
-
     if (!session?.isAuthenticated || !session?.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
@@ -249,16 +222,7 @@ export class DriveController {
     @Body() permissionData: DrivePermissionUpdateRequestDto,
     @Session() session: SessionData,
     @Res() res: Response,
-    @Headers('x-test-bypass') testBypass?: string,
   ): Promise<Response<IDrivePermissionResponse>> {
-    // Temporary bypass for testing - remove in production
-    if (testBypass === 'true') {
-      return res.status(HttpStatus.OK).json({
-        success: false,
-        error: 'Test mode: Drive operations are disabled during development',
-      });
-    }
-
     if (!session?.isAuthenticated || !session?.userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,

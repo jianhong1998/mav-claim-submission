@@ -27,6 +27,7 @@ const MockDriveUtils = DriveUtils as unknown as {
   validateFolderName: ReturnType<typeof vi.fn>;
   createFileMetadata: ReturnType<typeof vi.fn>;
   createFolderMetadata: ReturnType<typeof vi.fn>;
+  mapFileMetadataResponse: ReturnType<typeof vi.fn>;
   mapDriveApiError: ReturnType<typeof vi.fn>;
   shouldRetryError: ReturnType<typeof vi.fn>;
   calculateRetryDelay: ReturnType<typeof vi.fn>;
@@ -116,6 +117,29 @@ describe('DriveService', () => {
       name: 'test-folder',
       mimeType: 'application/vnd.google-apps.folder',
     });
+    MockDriveUtils.mapFileMetadataResponse.mockImplementation(
+      (data: {
+        id?: string | null;
+        name?: string | null;
+        mimeType?: string | null;
+        size?: string | null;
+        webViewLink?: string | null;
+        webContentLink?: string | null;
+        parents?: string[] | null;
+        createdTime?: string | null;
+        modifiedTime?: string | null;
+      }) => ({
+        id: data.id!,
+        name: data.name!,
+        mimeType: data.mimeType!,
+        size: data.size ? parseInt(data.size, 10) : undefined,
+        webViewLink: data.webViewLink || undefined,
+        webContentLink: data.webContentLink || undefined,
+        parents: data.parents || undefined,
+        createdTime: data.createdTime!,
+        modifiedTime: data.modifiedTime!,
+      }),
+    );
     MockDriveUtils.mapDriveApiError.mockReturnValue({
       code: 500,
       message: 'Unknown error',

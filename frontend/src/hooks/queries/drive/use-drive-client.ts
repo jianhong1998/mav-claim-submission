@@ -206,7 +206,7 @@ export const useDriveClient = (): UseDriveClientState &
           result.error?.status,
         );
       }
-    } catch (_error) {
+    } catch (error) {
       // Drive client initialization error
       throw error;
     }
@@ -222,7 +222,7 @@ export const useDriveClient = (): UseDriveClientState &
           result.error?.status,
         );
       }
-    } catch (_error) {
+    } catch (error) {
       // Drive sign-in error
       throw error;
     }
@@ -238,7 +238,7 @@ export const useDriveClient = (): UseDriveClientState &
           result.error?.status,
         );
       }
-    } catch (_error) {
+    } catch (error) {
       // Drive sign-out error
       throw error;
     }
