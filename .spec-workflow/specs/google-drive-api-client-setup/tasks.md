@@ -164,7 +164,7 @@
   - _Leverage: existing backend DTO test patterns_
   - _Requirements: Requirement 1_
 
-- [ ] 20. Create frontend Drive hook tests
+- [x] 20. Create frontend Drive hook tests
   - File: frontend/src/hooks/queries/drive/use-drive-client.test.ts
   - Test Drive client initialization and authentication flows
   - Mock Google Drive API responses and test error scenarios

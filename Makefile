@@ -67,6 +67,10 @@ test/api:
 	@cd api-test && \
 		pnpm run test
 
+test/ui:
+	@cd frontend && \
+		pnpm run test
+
 # Database commands using TurboRepo
 db/data/up:
 	@cd backend && \
