@@ -5,6 +5,7 @@ import { AppConfig } from 'src/configs/app.config';
 import { CommonModule } from '../common/common.module';
 import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
+import { DriveModule } from '../drive/drive.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { EmailModule } from '../email/email.module';
     CommonModule,
     AuthModule,
     EmailModule,
+    DriveModule,
   ],
   controllers: [AppController],
   providers: [AppService],
