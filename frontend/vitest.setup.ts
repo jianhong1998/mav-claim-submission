@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // Mock Next.js modules
 vi.mock('next/navigation', () => ({
@@ -15,8 +17,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock Google APIs client
-global.gapi = {
-  load: vi.fn((name: string, callback: () => void) => {
+(global as any).gapi = {
+  load: vi.fn((callback: () => void) => {
     if (callback) callback();
   }),
   client: {
