@@ -7,7 +7,6 @@ import {
   Index,
 } from 'typeorm';
 import { JobStatus } from '../enums/job-status.enum';
-import { JobType } from '../enums/job-type.enum';
 
 @Entity('delayed_jobs')
 @Index(['status'])
@@ -23,7 +22,7 @@ export class DelayedJobEntity {
     length: 100,
     nullable: false,
   })
-  type: JobType;
+  type: string;
 
   @Column({
     type: 'enum',
