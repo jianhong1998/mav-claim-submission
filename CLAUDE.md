@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Overview
 
-**Mavericks Claim Submission System** - A TurboRepo monorepo for digital expense claim processing that replaces manual email workflows. Built with NestJS backend, Next.js frontend, Google Drive file storage, and RabbitMQ job processing.
+**Mavericks Claim Submission System** - A TurboRepo monorepo for digital expense claim processing that replaces manual email workflows. Built with NestJS backend, Next.js frontend, Google Drive file storage, and synchronous Gmail email processing.
 
 ## Architecture & Requirements
 
@@ -55,11 +55,11 @@ make test/api          # API integration tests
 
 ### Critical Implementation Notes
 
-**Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata and verification.
+**Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata.
 
-**Async Email Processing**: RabbitMQ jobs send emails with Google Drive shareable URLs instead of file attachments. Jobs run in separate Docker container.
+**Synchronous Email Processing**: Gmail API sends emails immediately with Google Drive shareable URLs instead of file attachments.
 
-**Claim Status Flow**: `draft → sent ↔ paid` or `draft → failed → sent ↔ paid`
+**Claim Status Flow**: `draft → sent ↔ paid`
 
 **Dark Mode Only**: UI exclusively uses dark theme with mobile-responsive design.
 
@@ -110,23 +110,42 @@ Managed from root `.env` file:
 
 - `DATABASE_*`: PostgreSQL settings
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth credentials
-- `RABBITMQ_*`: Job queue settings
 - **Required**: Gmail API and Google Drive API enabled in Google Cloud Console
 
 ## Special App Requirements
 
 - For claim features, refer to detailed requirements in `docs/specifications/002/`
 - Google Drive integration must use client-side uploads with OAuth tokens
-- Email processing must be asynchronous using RabbitMQ
+- Email processing must be synchronous using Gmail API
 - UI must support dark mode and mobile responsiveness only
 
 ## Current Status
 
-✅ **Implemented**: Google OAuth authentication, Gmail API integration, user management, database foundation
+✅ **Implemented**: 
+- **Database Layer**: Complete entity models with proper relationships:
+  - User entity with Google OAuth integration
+  - Claims entity with categories, status flow, and validation constraints
+  - Attachments entity with Google Drive file metadata
+  - OAuth tokens entity for Google API access
+- **Database Utilities**: Full CRUD operations for all entities with TypeORM
+- **Business Logic**: Claim categories, status enums using Object.freeze() pattern
+- **Architecture**: TurboRepo monorepo with NestJS backend, Next.js frontend
+- **Testing**: Vitest unit testing setup with coverage reporting
+- **Development Tools**: ESLint, Prettier, TypeScript strict mode across workspaces
 
-🚧 **In Development**: Claim submission system, Google Drive integration, RabbitMQ job processing
+🚧 **In Development**: 
+- **API Endpoints Refactor**: New standardized DTO structure across all modules:
+  - Auth endpoints with proper response DTOs (logout, profile, refresh, status)
+  - Drive endpoints with structured response DTOs (access check, file operations, permissions)
+  - Email endpoints with request/response DTOs (access check, send operations)
+- **Swagger Integration**: API documentation with OpenAPI specifications
+- **Controllers & Services**: Implementation of business logic layers
 
-📋 **Next Phase**: Frontend claim forms, attachment uploads, email templates, status management
+📋 **Next Phase**: 
+- Complete API endpoint implementations and testing
+- Google Drive client-side integration with OAuth flow  
+- Frontend claim submission and management interfaces
+- Email notification templates and workflows
 
 ## Development Practices
 

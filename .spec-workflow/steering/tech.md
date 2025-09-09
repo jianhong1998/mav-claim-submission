@@ -38,9 +38,9 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 
 **Monorepo Structure**: TurboRepo with workspace-based dependency management
 - **Client-Server**: Next.js frontend communicates with NestJS backend via REST API
-- **Job Queue Architecture**: RabbitMQ for asynchronous email processing (same backend codebase, different entry point)
+- **Synchronous Processing**: Direct email sending via Gmail API (no queue complexity)
 - **Google-First Integration**: Direct Google API integration rather than third-party abstractions
-- **Feature-based Modules**: NestJS modules organized by business domain (auth, email, claims, attachments, jobs)
+- **Feature-based Modules**: NestJS modules organized by business domain (auth, email, drive, claims, user)
 
 ### Data Storage
 
@@ -56,7 +56,7 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 - **Protocols**: HTTP/REST for client-server, HTTPS for Google APIs
 - **Authentication**: Google OAuth 2.0 with @mavericks-consulting.com domain restriction
 - **File Operations**: Direct client-to-Google Drive uploads (no server relay)
-- **Email Processing**: Gmail API for sending (no SMTP)
+- **Email Processing**: Gmail API for synchronous sending (no SMTP, no queues)
 
 ### Monitoring & Dashboard Technologies
 
@@ -75,7 +75,7 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 - **Development workflow**: 
   - Hot reload via Nodemon (backend) and Next.js Turbopack (frontend)
   - Cross-workspace TypeScript watching (backend watches types package)
-  - Docker Compose for PostgreSQL and RabbitMQ services
+  - Docker Compose for PostgreSQL service
 
 ### Code Quality Tools
 
@@ -101,14 +101,14 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 
 - **Target Platform(s)**: Docker containers for production, local development via Node.js
 - **Distribution Method**: Container registry deployment (backend), static site generation (frontend)
-- **Installation Requirements**: Node.js 22+, PostgreSQL 14+, RabbitMQ 3+
+- **Installation Requirements**: Node.js 22+, PostgreSQL 14+
 - **Update Mechanism**: Rolling deployment with database migrations
 
 ## Technical Requirements & Constraints
 
 ### Performance Requirements
 
-- **API Response Time**: <200ms for CRUD operations, <2s for Google API calls
+- **API Response Time**: <200ms for CRUD operations, <2s for Google API calls (including email sending)
 - **File Upload**: Direct client-to-Google Drive (no server bandwidth consumption)
 - **Memory Usage**: <512MB per backend instance, optimized Next.js bundle
 - **Database**: Connection pooling with TypeORM for concurrent requests
@@ -135,7 +135,7 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 - **Expected Load**: 50 concurrent users, 1000 claims/month
 - **Availability Requirements**: 99.5% uptime during business hours
 - **Growth Projections**: Horizontal scaling via container orchestration
-- **Job Processing**: RabbitMQ queue for async email processing with retry mechanisms
+- **Email Processing**: Synchronous Gmail API calls (appropriate for current scale)
 
 ## Technical Decisions & Rationale
 
@@ -147,12 +147,14 @@ Full-stack web application with asynchronous job processing - a TurboRepo monore
 4. **TanStack Query over SWR**: Superior caching controls, better DevTools, optimistic updates
 5. **Object.freeze() over TypeScript enums**: Better tree-shaking, predictable JS output, const assertion compatibility
 6. **Client-side Google Drive uploads**: Reduces server load, improves upload speed, maintains Google's security model
+7. **Synchronous email over async queues**: Simpler architecture, fewer moving parts, appropriate for current scale
 
 ## Known Limitations
 
-- **Google API Rate Limits**: Gmail API has sending quotas, Drive API has request limits (mitigated with retry logic)
+- **Google API Rate Limits**: Gmail API has sending quotas, Drive API has request limits (handled with proper error responses)
 - **File Size Constraints**: 5MB limit enforced client-side and server-side for user experience
 - **Browser Dependency**: Requires modern browser with Google OAuth support (IE not supported)
 - **Domain Lock-in**: Tightly coupled to @mavericks-consulting.com Google Workspace (intentional design)
 - **Single Database**: No read replicas or sharding (acceptable for current scale, future consideration)
 - **Manual Status Updates**: Paid/unpaid status requires manual employee input (business requirement, not technical limitation)
+- **Synchronous Email**: Email failures block claim submission (acceptable trade-off for architectural simplicity)

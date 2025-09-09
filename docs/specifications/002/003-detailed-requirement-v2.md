@@ -46,8 +46,8 @@ Generate a shareable Google Drive URL for the file (set to "anyone with the link
 Send the file ID, shareable URL, and metadata (e.g., original file name, new file name) to the backend for storage in the database.
 
 FR3.8: If an upload fails, the client must retry the upload up to 3 times before notifying the backend of the failure (status code 404).
-FR3.9: Documents must only be uploaded to Google Drive after the employee submits the claim.
-FR3.10: The backend must verify the existence of uploaded files in Google Drive (via file ID) and update the attachment status to uploaded in the database upon confirmation.
+FR3.9: Documents must be uploaded to Google Drive before the employee submits the claim.
+FR3.10: The backend must trust client-provided file IDs and URLs without verification for architectural simplicity.
 
 2.4 Database and Storage
 
@@ -80,27 +80,23 @@ MONTH: Two-digit month of the expense (e.g., 09 for September).
 TIMESTAMP: Unix timestamp of the upload time.
 FILE_EXTENSION: Original file extension (e.g., pdf, png).
 
-FR4.5: The system must set the claim status to draft upon creation, sent upon successful email sending, failed if email sending fails after 3 retries, and paid when manually updated by the employee.
+FR4.5: The system must set the claim status to sent upon successful email sending, failed if email sending fails, and paid when manually updated by the employee.
 
 2.5 Email Sending
 
 FR5.1: The system must generate emails using a predefined HTML template stored in the backend codebase, replacing variables (e.g., {{CATEGORY}}, {{MONTH}}, {{YEAR}}, {{TOTAL_AMOUNT}}, {{EMPLOYEE_NAME}}) with actual values.
 FR5.2: Each email must correspond to a single claim and include shareable Google Drive URLs for all associated documents (e.g., "Please find the claims documents here: [link1], [link2]") instead of attachments.
 FR5.3: Emails must be sent from the employee’s @mavericks-consulting.com email address to payroll@mavericks-consulting.com.
-FR5.4: Email sending must be handled by an asynchronous delayed job using RabbitMQ, running in a separate Docker container connected to the database.
+FR5.4: Email sending must be handled synchronously during claim submission using Gmail API.
 FR5.5: The email sending process must follow these steps:
-Client sends a request to create a claim, including document metadata.
-Backend inserts claim data into the database with status draft.
-Client uploads files directly to Google Drive using the Drive API and sends file IDs/URLs to the backend.
-Backend verifies file existence in Google Drive (via file ID) and updates attachment status to uploaded.
-If all documents are uploaded, the backend inserts a delayed job into the database with the claim data and Drive URLs.
-Backend responds to the client with a 200 status code (or 404 for failed uploads).
-The delayed job retrieves claim data, populates the email template with Drive URLs, and sends the email via Google Gmail API.
-If email sending fails, retry up to 3 times:
-If all retries fail, update claim status to failed.
-If successful, update claim status to sent.
+Client uploads files directly to Google Drive using the Drive API.
+Client sends a request to create a claim, including complete document metadata with Drive file IDs and URLs.
+Backend creates claim and attachment records in the database.
+Backend immediately generates and sends email via Gmail API with Drive URLs.
+Backend updates claim status to sent or failed based on email result.
+Backend responds to client with final claim status.
 
-FR5.6: If the claim status is failed, employees must be able to click a "Resend" button to trigger a new delayed job to retry sending the email.
+FR5.6: If the claim status is failed, employees must be able to click a "Resend" button to retry sending the email immediately.
 FR5.7: The client must redirect to the claim list page after receiving a 200 status code and confirming all files are uploaded.
 
 2.6 Claim Viewing
@@ -128,8 +124,8 @@ List of documents (with original file names and Google Drive shareable URLs for 
 FR6.6: Employees must be able to mark a claim as paid or revert it to sent via a button.
 FR6.7: Marking a claim as paid must trigger a confirmation modal to confirm the action.
 FR6.8: The claim status must follow these transitions:
-draft -> sent <-> paid.
-draft -> failed -> sent <-> paid.
+sent <-> paid.
+failed -> sent <-> paid.
 
 3. Non-Functional Requirements
    3.1 User Interface and Experience
@@ -158,7 +154,7 @@ NFR4.2: The database must support efficient querying for claim filtering and pag
 
 TC1: The system must use Google Drive for document storage, with client-side uploads via the Google Drive API (v3).
 TC2: Email sending must integrate with the Google Gmail API.
-TC3: Asynchronous delayed jobs must use RabbitMQ for queue management, running in a separate Docker container.
+TC3: Email sending must be synchronous during claim creation for architectural simplicity.
 TC4: The backend and delayed job must use the same tech stack (as defined in separate documentation).
 TC5: The system must integrate with Google Workspace for authentication and Drive access.
 
