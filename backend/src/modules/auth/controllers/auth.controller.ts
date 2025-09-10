@@ -9,9 +9,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import { TokenService } from '../services/token.service';
 import {
   AuthenticatedResponseDTO,
   UnauthenticatedResponseDTO,
@@ -19,19 +18,17 @@ import {
 } from '../dtos/auth-response.dto';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { IUser } from '@project/types';
-
-interface AuthenticatedRequest extends Request {
-  user?: UserEntity;
-}
+import { User, UserOptional } from '../decorators/user.decorator';
+import {
+  type AuthenticatedRequest,
+  JwtAuthGuard,
+} from '../guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly tokenService: TokenService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   /**
    * Initiate Google OAuth flow
@@ -101,9 +98,9 @@ export class AuthController {
    * Requirements: 4.1 - Authentication State API
    */
   @Get('status')
-  async getAuthStatus(@Req() req: Request): Promise<AuthStatusResponseDTO> {
-    const user = await this.tokenService.validateSessionFromRequest(req);
-
+  getAuthStatus(
+    @UserOptional() user: UserEntity | null,
+  ): AuthStatusResponseDTO {
     if (!user) {
       return new AuthStatusResponseDTO({
         isAuthenticated: false,
@@ -123,22 +120,8 @@ export class AuthController {
    * Requirements: 4.1 - Authentication State API
    */
   @Get('profile')
-  async getUserProfile(
-    @Req() req: Request,
-  ): Promise<AuthenticatedResponseDTO | UnauthenticatedResponseDTO> {
-    const user = await this.tokenService.validateSessionFromRequest(req);
-
-    if (!user) {
-      const token = this.tokenService.extractJWTFromRequest(req);
-      const message = !token
-        ? 'No authentication token provided'
-        : 'Invalid or expired session';
-
-      return new UnauthenticatedResponseDTO({
-        message,
-      });
-    }
-
+  @UseGuards(JwtAuthGuard)
+  getUserProfile(@User() user: UserEntity): AuthenticatedResponseDTO {
     const userDTO = this.mapUserEntityToDTO(user);
 
     return new AuthenticatedResponseDTO({
@@ -152,10 +135,11 @@ export class AuthController {
    * Requirements: 4.1 - Authentication State API
    */
   @Post('logout')
-  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+  async logout(
+    @UserOptional() user: UserEntity | null,
+    @Res() res: Response,
+  ): Promise<void> {
     try {
-      const user = await this.tokenService.validateSessionFromRequest(req);
-
       if (user) {
         await this.authService.logout(user.id);
         this.logger.log(`User logged out: ${user.email}`);
