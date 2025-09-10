@@ -151,3 +151,4 @@ Managed from root `.env` file:
 
 - Always use agents if suitable for the task
 - Always run `make format` and `make lint` after code changes
+- always format code with command `make format` before running lint check
