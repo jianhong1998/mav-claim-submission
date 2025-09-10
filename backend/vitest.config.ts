@@ -1,12 +1,11 @@
 import { defineConfig } from 'vitest/config';
-import swc from 'unplugin-swc';
+// import swc from 'unplugin-swc';
 
 export default defineConfig({
   plugins: [
-    // @ts-expect-error: Plugin version compatibility issue between unplugin-swc and vitest
-    swc.vite({
-      module: { type: 'es6' },
-    }),
+    // swc.vite({
+    //   module: { type: 'es6' },
+    // }),
   ],
   test: {
     globals: true,
