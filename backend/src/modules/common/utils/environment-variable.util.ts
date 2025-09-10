@@ -17,6 +17,7 @@ type IEnvironmentVariableList = {
   googleDriveApiKey: string;
   googleDriveScope: string;
   tokenEncryptionKey: string;
+  jwtSecret: string;
   frontendBaseUrl: string;
 
   // Database Related
@@ -78,6 +79,10 @@ export class EnvironmentVariableUtil {
       tokenEncryptionKey: this.configService.getOrThrow(
         'BACKEND_TOKEN_ENCRYPTION_KEY',
         '',
+      ),
+      jwtSecret: this.configService.get(
+        'BACKEND_JWT_SECRET',
+        'mav-claim-jwt-secret-default-key',
       ),
       frontendBaseUrl: this.configService.get(
         'BACKEND_FRONTEND_BASE_URL',
