@@ -1,12 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { UnauthorizedException } from '@nestjs/common';
-import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  Mock,
+  MockInstance,
+} from 'vitest';
 import * as jwt from 'jsonwebtoken';
 import { google } from 'googleapis';
 import { AuthService, GoogleProfile, GoogleTokens } from './auth.service';
 import { JWTPayload, TokenService } from './token.service';
 import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 import { TokenDBUtil } from '../utils/token-db.util';
+import {
+  TokenEncryptionUtil,
+  type EncryptedToken,
+} from '../utils/token-encryption.util';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { OAuthTokenEntity } from '../entities/oauth-token.entity';
 
@@ -35,6 +47,10 @@ describe('AuthService', () => {
     getOne: Mock;
     create: Mock;
     delete: Mock;
+  };
+  let mockTokenEncryptionUtil: {
+    encrypt: Mock;
+    decrypt: Mock;
   };
   let mockTokenService: {
     generateJWT: Mock;
@@ -69,12 +85,24 @@ describe('AuthService', () => {
     updatedAt: new Date(),
   } as UserEntity;
 
-  const mockOAuthTokenEntity: OAuthTokenEntity = {
+  const mockEncryptedAccessToken: EncryptedToken = {
+    data: 'encrypted-access-token-data',
+    iv: 'mock-iv-123',
+    salt: 'mock-salt-456',
+  };
+
+  const mockEncryptedRefreshToken: EncryptedToken = {
+    data: 'encrypted-refresh-token-data',
+    iv: 'mock-iv-789',
+    salt: 'mock-salt-abc',
+  };
+
+  const mockOAuthTokenEntity = {
     id: 'token-123',
     userId: 'user-123',
     provider: 'google',
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
+    accessToken: mockEncryptedAccessToken,
+    refreshToken: mockEncryptedRefreshToken,
     expiresAt: new Date(Date.now() + 3600 * 1000),
     scope: 'profile email gmail.send drive.file',
     createdAt: new Date(),
@@ -98,6 +126,11 @@ describe('AuthService', () => {
       delete: vi.fn(),
     };
 
+    mockTokenEncryptionUtil = {
+      encrypt: vi.fn().mockResolvedValue('encrypted-token'),
+      decrypt: vi.fn().mockResolvedValue('decrypted-token'),
+    };
+
     mockTokenService = {
       generateJWT: vi.fn().mockReturnValue('mock-jwt-token'),
       validateJWT: vi.fn(),
@@ -109,7 +142,9 @@ describe('AuthService', () => {
       refreshAccessToken: vi.fn(),
     };
 
-    (google.auth.OAuth2 as Mock).mockReturnValue(mockOAuth2Client);
+    (google.auth.OAuth2 as unknown as MockInstance).mockReturnValue(
+      mockOAuth2Client,
+    );
 
     // Setup JWT mocks
     (jwt.sign as Mock).mockReturnValue('mock-jwt-token');
@@ -120,9 +155,10 @@ describe('AuthService', () => {
 
     // Instantiate AuthService directly with mocked dependencies
     authService = new AuthService(
-      mockUserDBUtil as UserDBUtil,
-      mockTokenDBUtil as TokenDBUtil,
-      mockTokenService as TokenService,
+      mockUserDBUtil as unknown as UserDBUtil,
+      mockTokenDBUtil as unknown as TokenDBUtil,
+      mockTokenEncryptionUtil as unknown as TokenEncryptionUtil,
+      mockTokenService as unknown as TokenService,
     );
 
     // Mock logger to avoid console output during tests
@@ -343,7 +379,7 @@ describe('AuthService', () => {
           criteria: { userId: 'user-123', provider: 'google' },
         });
         expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
-          refresh_token: 'mock-refresh-token',
+          refresh_token: 'decrypted-token',
         });
         expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
         expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
@@ -446,7 +482,7 @@ describe('AuthService', () => {
             userId: 'user-123',
             provider: 'google',
             accessToken: 'new-access-token',
-            refreshToken: 'mock-refresh-token', // Preserved original refresh token
+            refreshToken: 'decrypted-token', // Preserved original refresh token
             expiresAt: expect.any(Date),
             scope: 'profile email gmail.send drive.file',
           },

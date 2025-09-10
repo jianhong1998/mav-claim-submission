@@ -79,7 +79,7 @@ describe('GoogleOAuthStrategy', () => {
     updatedAt: new Date(),
   } as UserEntity;
 
-  const mockOAuthTokenEntity: OAuthTokenEntity = {
+  const mockOAuthTokenEntity = {
     id: 'token-123',
     userId: 'user-123',
     provider: 'google',
@@ -90,7 +90,7 @@ describe('GoogleOAuthStrategy', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-  } as OAuthTokenEntity;
+  } as unknown as OAuthTokenEntity;
 
   beforeEach(() => {
     // Reset all mocks
@@ -113,13 +113,13 @@ describe('GoogleOAuthStrategy', () => {
     };
 
     mockDone = vi.fn();
-    mockStrategyConstructor = Strategy as Mock;
+    mockStrategyConstructor = Strategy as unknown as Mock;
 
     // Instantiate GoogleOAuthStrategy
     googleStrategy = new GoogleOAuthStrategy(
-      mockUserDBUtil as UserDBUtil,
-      mockTokenDBUtil as TokenDBUtil,
-      mockEnvironmentVariableUtil as EnvironmentVariableUtil,
+      mockUserDBUtil as unknown as UserDBUtil,
+      mockTokenDBUtil as unknown as TokenDBUtil,
+      mockEnvironmentVariableUtil as unknown as EnvironmentVariableUtil,
     );
   });
 
@@ -169,9 +169,9 @@ describe('GoogleOAuthStrategy', () => {
 
       expect(() => {
         new GoogleOAuthStrategy(
-          mockUserDBUtil as UserDBUtil,
-          mockTokenDBUtil as TokenDBUtil,
-          mockEnvironmentVariableUtil as EnvironmentVariableUtil,
+          mockUserDBUtil as unknown as UserDBUtil,
+          mockTokenDBUtil as unknown as TokenDBUtil,
+          mockEnvironmentVariableUtil as unknown as EnvironmentVariableUtil,
         );
       }).not.toThrow();
 

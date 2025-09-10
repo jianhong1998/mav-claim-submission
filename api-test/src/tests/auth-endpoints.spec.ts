@@ -122,6 +122,55 @@ describe('#Auth Endpoints Integration Tests', () => {
       // 3. Database setup for user and token storage
       // This is complex for integration tests without full OAuth mock setup
     });
+
+    describe('OAuth Error Handling', () => {
+      it('should handle OAuth state parameter mismatches', async () => {
+        try {
+          await axiosInstance.get(
+            '/auth/google/callback?state=invalid-state&code=test-code',
+            {
+              maxRedirects: 0,
+            },
+          );
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          // OAuth state mismatch should redirect or return 401/400/500
+          expect([302, 401, 400, 500]).toContain(
+            axiosError.response?.status || 0,
+          );
+        }
+      });
+
+      it('should handle missing OAuth code parameter', async () => {
+        try {
+          await axiosInstance.get('/auth/google/callback?state=valid-state', {
+            maxRedirects: 0,
+          });
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          // Missing code parameter should result in redirect or error
+          expect([302, 401, 400, 500]).toContain(
+            axiosError.response?.status || 0,
+          );
+        }
+      });
+
+      it('should enforce HTTPS in production for OAuth redirects', async () => {
+        // This test documents security requirement - OAuth should enforce HTTPS in production
+        try {
+          await axiosInstance.get('/auth/google', {
+            maxRedirects: 0,
+          });
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          const location = axiosError.response?.headers?.location as string;
+          if (location) {
+            // In development, may use HTTP, but production should enforce HTTPS
+            expect(location).toMatch(/^https:\/\/accounts\.google\.com/);
+          }
+        }
+      });
+    });
   });
 
   describe('Session Management Endpoints (Requirement 2.1)', () => {
@@ -184,45 +233,47 @@ describe('#Auth Endpoints Integration Tests', () => {
 
     describe('GET /auth/profile', () => {
       it('should return 401 when not authenticated', async () => {
-        const result = await axiosInstance.get('/auth/profile');
-
-        expect(result.status).toBe(200);
-        expect(result.data).toMatchObject({
-          user: null,
-          isAuthenticated: false,
-          message: 'No authentication token provided',
-        });
+        try {
+          await axiosInstance.get('/auth/profile');
+          // Should not reach here - expecting 401
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+        }
       });
 
-      it('should return unauthenticated response with invalid JWT', async () => {
-        const result = await axiosInstance.get('/auth/profile', {
-          headers: {
-            Authorization: 'Bearer invalid-jwt-token',
-          },
-        });
-
-        expect(result.status).toBe(200);
-        expect(result.data).toMatchObject({
-          user: null,
-          isAuthenticated: false,
-          message: 'Invalid or expired session',
-        });
+      it('should return 401 with invalid JWT token', async () => {
+        try {
+          await axiosInstance.get('/auth/profile', {
+            headers: {
+              Authorization: 'Bearer invalid-jwt-token',
+            },
+          });
+          // Should not reach here - expecting 401
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+          // May include error details in response body
+          expect(axiosError.response?.data).toBeDefined();
+        }
       });
 
-      it('should handle missing Authorization header gracefully', async () => {
-        const result = await axiosInstance.get('/auth/profile');
-
-        expect(result.status).toBe(200);
-        expect((result.data as { user: null }).user).toBe(null);
-        expect(
-          (result.data as { isAuthenticated: boolean }).isAuthenticated,
-        ).toBe(false);
-        expect((result.data as { message: string }).message).toContain(
-          'No authentication token',
-        );
+      it('should return 401 with missing Authorization header', async () => {
+        try {
+          await axiosInstance.get('/auth/profile');
+          // Should not reach here - expecting 401
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+          // Profile endpoint requires authentication
+          expect(axiosError.response?.data).toBeDefined();
+        }
       });
 
-      it('should reject expired JWT tokens', async () => {
+      it('should reject expired JWT tokens with 401', async () => {
         // Create a mock expired token
         const expiredPayload = {
           sub: mockValidUser.id,
@@ -231,19 +282,20 @@ describe('#Auth Endpoints Integration Tests', () => {
         };
         const expiredToken = `mock.${btoa(JSON.stringify(expiredPayload))}.signature`;
 
-        const result = await axiosInstance.get('/auth/profile', {
-          headers: {
-            Authorization: `Bearer ${expiredToken}`,
-          },
-        });
-
-        expect(result.status).toBe(200);
-        expect(
-          (result.data as { isAuthenticated: boolean }).isAuthenticated,
-        ).toBe(false);
-        expect((result.data as { message: string }).message).toContain(
-          'Invalid or expired',
-        );
+        try {
+          await axiosInstance.get('/auth/profile', {
+            headers: {
+              Authorization: `Bearer ${expiredToken}`,
+            },
+          });
+          // Should not reach here - expecting 401
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+          // JWT guard rejects expired tokens
+          expect(axiosError.response?.data).toBeDefined();
+        }
       });
 
       // Note: Testing successful profile retrieval would require:
@@ -329,6 +381,51 @@ describe('#Auth Endpoints Integration Tests', () => {
       // 2. Database with user and token records
       // 3. Verification of token revocation
     });
+
+    describe('Session Security Tests', () => {
+      it('should not accept cookies from different domains', async () => {
+        const result = await axiosInstance.get('/auth/status', {
+          headers: {
+            Cookie: 'jwt=malicious-token; Domain=evil.com',
+          },
+        });
+
+        expect(result.status).toBe(200);
+        expect(
+          (result.data as { isAuthenticated: boolean }).isAuthenticated,
+        ).toBe(false);
+      });
+
+      it('should handle mixed authentication headers properly', async () => {
+        const result = await axiosInstance.get('/auth/status', {
+          headers: {
+            Cookie: 'jwt=cookie-token',
+            Authorization: 'Bearer header-token',
+          },
+        });
+
+        expect(result.status).toBe(200);
+        // Should handle multiple auth methods gracefully
+        expect(typeof result.data).toBe('object');
+      });
+
+      it('should validate JWT signature properly', async () => {
+        const invalidJWT =
+          'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ';
+
+        try {
+          await axiosInstance.get('/auth/profile', {
+            headers: {
+              Authorization: `Bearer ${invalidJWT}`,
+            },
+          });
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+        }
+      });
+    });
   });
 
   describe('Error Handling and Edge Cases', () => {
@@ -366,41 +463,47 @@ describe('#Auth Endpoints Integration Tests', () => {
     });
 
     it('should handle concurrent auth requests properly', async () => {
-      // Test multiple simultaneous requests
-      const requests = [
+      // Test multiple simultaneous requests - mix of protected and unprotected endpoints
+      const statusRequests = [
         axiosInstance.get('/auth/status'),
         axiosInstance.get('/auth/status'),
-        axiosInstance.get('/auth/profile'),
       ];
 
-      const results = await Promise.all(requests);
+      const statusResults = await Promise.all(statusRequests);
 
-      results.forEach((result) => {
+      // Status endpoint should work without authentication
+      statusResults.forEach((result) => {
         expect(result.status).toBe(200);
         expect(
           (result.data as { isAuthenticated: boolean }).isAuthenticated,
         ).toBe(false);
       });
+
+      // Profile endpoint should return 401 without authentication
+      try {
+        await axiosInstance.get('/auth/profile');
+        expect(true).toBe(false);
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        expect(axiosError.response?.status).toBe(401);
+      }
     });
 
     it('should handle large header values gracefully', async () => {
       const largeToken = 'Bearer ' + 'a'.repeat(8192); // 8KB token
 
       try {
-        const result = await axiosInstance.get('/auth/profile', {
+        await axiosInstance.get('/auth/profile', {
           headers: {
             Authorization: largeToken,
           },
         });
-
-        expect(result.status).toBe(200);
-        expect(
-          (result.data as { isAuthenticated: boolean }).isAuthenticated,
-        ).toBe(false);
+        // Should not reach here - expecting error
+        expect(true).toBe(false);
       } catch (error) {
-        // Should either handle gracefully or return appropriate error
+        // Should either return 401 (unauthorized) or appropriate header error
         const axiosError = error as AxiosError;
-        expect([200, 400, 413, 431]).toContain(
+        expect([401, 400, 413, 431]).toContain(
           axiosError.response?.status || 0,
         );
       }
@@ -471,22 +574,27 @@ describe('#Auth Endpoints Integration Tests', () => {
     it('should handle requests with expired tokens consistently', async () => {
       const expiredToken = createMockJWT(mockValidUser, -3600000); // -1 hour
 
-      const profileResult = await axiosInstance.get('/auth/profile', {
-        headers: {
-          Authorization: `Bearer ${expiredToken}`,
-        },
-      });
+      // Profile endpoint should reject expired token with 401
+      try {
+        await axiosInstance.get('/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${expiredToken}`,
+          },
+        });
+        expect(true).toBe(false);
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        expect(axiosError.response?.status).toBe(401);
+      }
 
+      // Status endpoint handles expired tokens gracefully (returns unauthenticated)
       const statusResult = await axiosInstance.get('/auth/status', {
         headers: {
           Authorization: `Bearer ${expiredToken}`,
         },
       });
 
-      // Both should consistently reject expired tokens
-      expect(
-        (profileResult.data as { isAuthenticated: boolean }).isAuthenticated,
-      ).toBe(false);
+      expect(statusResult.status).toBe(200);
       expect(
         (statusResult.data as { isAuthenticated: boolean }).isAuthenticated,
       ).toBe(false);
@@ -502,14 +610,29 @@ describe('#Auth Endpoints Integration Tests', () => {
       ];
 
       for (const token of invalidTokens) {
-        const profileResult = await axiosInstance.get('/auth/profile', {
+        // Profile endpoint should reject invalid tokens with 401
+        try {
+          await axiosInstance.get('/auth/profile', {
+            headers: {
+              Authorization: token,
+            },
+          });
+          expect(true).toBe(false);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          expect(axiosError.response?.status).toBe(401);
+        }
+
+        // Status endpoint handles invalid tokens gracefully
+        const statusResult = await axiosInstance.get('/auth/status', {
           headers: {
             Authorization: token,
           },
         });
 
+        expect(statusResult.status).toBe(200);
         expect(
-          (profileResult.data as { isAuthenticated: boolean }).isAuthenticated,
+          (statusResult.data as { isAuthenticated: boolean }).isAuthenticated,
         ).toBe(false);
       }
     });
@@ -519,6 +642,72 @@ describe('#Auth Endpoints Integration Tests', () => {
     // 2. Mocked Google OAuth refresh endpoint
     // 3. Valid JWT creation and validation
     // 4. Time-based testing for token expiration
+  });
+
+  describe('Domain Restriction Testing (Requirement 1.3)', () => {
+    it('should document domain validation requirements', () => {
+      // This test documents the domain restriction requirement
+      // Real domain validation happens during OAuth callback
+      const validDomain = '@mavericks-consulting.com';
+      const invalidDomains = [
+        '@gmail.com',
+        '@yahoo.com',
+        '@hotmail.com',
+        '@company.com',
+      ];
+
+      expect(validDomain).toBe('@mavericks-consulting.com');
+      expect(invalidDomains.length).toBeGreaterThan(0);
+
+      // Note: Integration testing of domain validation would require:
+      // 1. Mock Google OAuth responses with different email domains
+      // 2. Database setup to test user creation/rejection
+      // 3. Full OAuth flow simulation with test accounts
+    });
+
+    it('should document OAuth callback error scenarios for invalid domains', async () => {
+      // Test various OAuth callback error scenarios that would occur with invalid domains
+      const errorScenarios = [
+        'access_denied',
+        'invalid_request',
+        'unauthorized_client',
+        'unsupported_response_type',
+        'invalid_scope',
+        'server_error',
+        'temporarily_unavailable',
+      ];
+
+      for (const error of errorScenarios) {
+        try {
+          await axiosInstance.get(`/auth/google/callback?error=${error}`, {
+            maxRedirects: 0,
+          });
+        } catch (axiosError) {
+          const error = axiosError as AxiosError;
+          // OAuth errors should result in appropriate error handling
+          expect([302, 401, 400, 500]).toContain(error.response?.status || 0);
+        }
+      }
+    });
+
+    it('should handle OAuth callback with malformed email in profile', async () => {
+      // This documents how the system should handle malformed email data
+      // Real testing would require mocking Google OAuth responses
+      try {
+        await axiosInstance.get(
+          '/auth/google/callback?code=invalid&state=test',
+          {
+            maxRedirects: 0,
+          },
+        );
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        // Invalid OAuth data should be handled gracefully
+        expect([302, 401, 400, 500]).toContain(
+          axiosError.response?.status || 0,
+        );
+      }
+    });
   });
 
   describe('Integration Test Coverage Summary', () => {

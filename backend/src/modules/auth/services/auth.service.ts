@@ -129,8 +129,11 @@ export class AuthService {
         process.env.GOOGLE_CLIENT_SECRET,
       );
 
+      const { refreshToken: decryptedRefreshToken } =
+        await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
+
       oauth2Client.setCredentials({
-        refresh_token: tokenEntity.refreshToken,
+        refresh_token: decryptedRefreshToken,
       });
 
       const { credentials } = await oauth2Client.refreshAccessToken();
@@ -149,7 +152,7 @@ export class AuthService {
             userId,
             provider: 'google',
             accessToken: credentials.access_token,
-            refreshToken: credentials.refresh_token || tokenEntity.refreshToken,
+            refreshToken: credentials.refresh_token || decryptedRefreshToken,
             expiresAt: new Date(
               Date.now() + (credentials.expiry_date || 3600 * 1000),
             ),

@@ -85,7 +85,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 1.3_
   - _Prompt: Role: QA Engineer with expertise in Passport.js testing and OAuth flows | Task: Create unit tests for GoogleStrategy covering requirements 1.1 and 1.3, testing domain validation and OAuth profile handling with mocked responses | Restrictions: Must mock Google OAuth API, test domain restriction thoroughly, ensure strategy isolation | Success: Domain validation tested thoroughly, OAuth profile handling verified, edge cases covered_
 
-- [ ] 10. Create authentication controller integration tests in api-test/src/tests/auth-endpoints.spec.ts
+- [x] 10. Create authentication controller integration tests in api-test/src/tests/auth-endpoints.spec.ts
   - File: api-test/src/tests/auth-endpoints.spec.ts (modify existing)
   - Add comprehensive tests for all OAuth endpoints
   - Test complete OAuth flow including callbacks and error scenarios
@@ -94,7 +94,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: All_
   - _Prompt: Role: Integration Test Engineer with expertise in API testing and OAuth flows | Task: Create comprehensive integration tests for OAuth endpoints covering all requirements, testing complete authentication flows including success and error scenarios | Restrictions: Must use existing API test patterns, test real HTTP endpoints, handle OAuth simulation properly | Success: All OAuth endpoints tested end-to-end, complete authentication flow verified, error scenarios covered_
 
-- [ ] 11. Add authentication error handling with Object.freeze pattern in backend/src/modules/auth/enums/auth-errors.ts
+- [x] 11. Add authentication error handling with Object.freeze pattern in backend/src/modules/auth/enums/auth-errors.ts
   - File: backend/src/modules/auth/enums/auth-errors.ts
   - Create authentication error codes using Object.freeze() pattern
   - Define user-friendly error messages for auth failures
