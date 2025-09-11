@@ -45,6 +45,16 @@ interface GoogleOAuthButtonProps
   className?: string;
   disabled?: boolean;
   onOAuthError?: (error: Error) => void;
+  /**
+   * Additional accessible description for the button
+   * Used with aria-describedby for extra context
+   */
+  accessibleDescription?: string;
+  /**
+   * ID for the live region that will announce status changes
+   * If not provided, a unique ID will be generated
+   */
+  liveRegionId?: string;
 }
 
 // Memoized GoogleIcon to prevent unnecessary re-renders
@@ -85,7 +95,9 @@ const LoadingSpinner = React.memo(() => (
       width: '18px',
       height: '18px',
     }}
-    aria-hidden="true"
+    role="status"
+    aria-label={A11Y_MESSAGES.LOADING_SPINNER_LABEL}
+    aria-live="polite"
   />
 ));
 
@@ -101,6 +113,28 @@ const OAUTH_ERROR_MESSAGES = Object.freeze({
 } as const);
 
 /**
+ * Accessibility constants for screen reader announcements
+ */
+const A11Y_MESSAGES = Object.freeze({
+  BUTTON_DEFAULT_LABEL: 'Sign in with Google',
+  BUTTON_LOADING_LABEL: 'Signing in with Google, please wait',
+  BUTTON_DESCRIPTION:
+    'Opens Google authentication in a new window or tab. Only @mavericks-consulting.com domain accounts are allowed.',
+  STATUS_LOADING: 'Authenticating with Google...',
+  STATUS_SUCCESS: 'Authentication successful. Redirecting to your account.',
+  STATUS_ERROR: 'Authentication failed. Please try again.',
+  STATUS_RATE_LIMITED: 'Too many login attempts. Please wait and try again.',
+  LOADING_SPINNER_LABEL: 'Loading authentication',
+} as const);
+
+/**
+ * Generate unique ID for accessibility elements
+ */
+const generateA11yId = (prefix: string): string => {
+  return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/**
  * Detects if an error is related to rate limiting based on status code
  */
 const isRateLimitError = (error: unknown): boolean => {
@@ -110,16 +144,29 @@ const isRateLimitError = (error: unknown): boolean => {
 
 /**
  * Handles OAuth-related errors with appropriate user feedback
+ * Enhanced with accessibility announcements
  */
 const handleOAuthError = (
   error: unknown,
   onOAuthError?: (error: Error) => void,
+  announceError?: (message: string) => void,
 ) => {
+  let errorMessage: string;
+  let a11yMessage: string;
+
   if (isRateLimitError(error)) {
-    toast.error(OAUTH_ERROR_MESSAGES.RATE_LIMITED);
+    errorMessage = OAUTH_ERROR_MESSAGES.RATE_LIMITED;
+    a11yMessage = A11Y_MESSAGES.STATUS_RATE_LIMITED;
   } else {
-    toast.error(OAUTH_ERROR_MESSAGES.GENERIC_ERROR);
+    errorMessage = OAUTH_ERROR_MESSAGES.GENERIC_ERROR;
+    a11yMessage = A11Y_MESSAGES.STATUS_ERROR;
   }
+
+  // Show toast notification
+  toast.error(errorMessage);
+
+  // Announce to screen readers
+  announceError?.(a11yMessage);
 
   // Call the optional error callback
   const errorObj = error instanceof Error ? error : new Error('OAuth failed');
@@ -133,10 +180,38 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
     disabled = false,
     onOAuthError,
     children = 'Sign in with Google',
+    accessibleDescription,
+    liveRegionId,
     ...props
   }) => {
     const renderStartTime = React.useRef(safePerformanceNow());
     const [isLoading, setIsLoading] = React.useState(false);
+    const [statusMessage, setStatusMessage] = React.useState<string>('');
+
+    // Generate stable IDs for accessibility elements
+    const descriptionId = React.useMemo(
+      () => generateA11yId('oauth-description'),
+      [],
+    );
+    const statusId = React.useMemo(
+      () => liveRegionId || generateA11yId('oauth-status'),
+      [liveRegionId],
+    );
+
+    // Accessibility announcement function
+    const announceStatus = React.useCallback((message: string) => {
+      setStatusMessage(message);
+      // Clear message after announcement to prevent repetition
+      setTimeout(() => setStatusMessage(''), 1000);
+    }, []);
+
+    // Enhanced error announcement function
+    const announceError = React.useCallback(
+      (message: string) => {
+        announceStatus(message);
+      },
+      [announceStatus],
+    );
 
     // Optimized click handler with mobile performance considerations
     const handleClick = React.useCallback(
@@ -153,6 +228,8 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
 
         try {
           setIsLoading(true);
+          // Announce loading state to screen readers
+          announceStatus(A11Y_MESSAGES.STATUS_LOADING);
 
           // Use AbortController for mobile network optimization
           const controller = new AbortController();
@@ -180,6 +257,8 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
 
           // If successful (302 redirect to Google), proceed with the redirect
           if (response.status === 302) {
+            // Announce success before redirect
+            announceStatus(A11Y_MESSAGES.STATUS_SUCCESS);
             window.location.href = '/api/auth/google';
             return;
           }
@@ -190,16 +269,44 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
           }
 
           // Fallback: redirect anyway if we get here
+          // Announce success before redirect
+          announceStatus(A11Y_MESSAGES.STATUS_SUCCESS);
           window.location.href = '/api/auth/google';
         } catch (error) {
           setIsLoading(false);
-          handleOAuthError(error, onOAuthError);
+          handleOAuthError(error, onOAuthError, announceError);
         } finally {
           // Monitor click handler performance
           monitorRenderPerformance(clickStartTime, 'click handler');
         }
       },
-      [disabled, isLoading, onOAuthError],
+      [disabled, isLoading, onOAuthError, announceStatus, announceError],
+    );
+
+    // Enhanced keyboard event handler for better accessibility
+    const handleKeyDown = React.useCallback(
+      (event: React.KeyboardEvent<HTMLButtonElement>) => {
+        // Handle Enter and Space keys for activation
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          if (!disabled && !isLoading) {
+            // Create a synthetic mouse event to trigger the same logic
+            const syntheticEvent = {
+              preventDefault: () => {},
+              stopPropagation: () => {},
+            } as React.MouseEvent<HTMLButtonElement>;
+            void handleClick(syntheticEvent);
+          }
+        }
+        // Handle Escape key to cancel if loading
+        else if (event.key === 'Escape' && isLoading) {
+          event.preventDefault();
+          // Cancel the loading state
+          setIsLoading(false);
+          announceStatus('Authentication cancelled');
+        }
+      },
+      [disabled, isLoading, handleClick, announceStatus],
     );
 
     // Memoized class name computation for performance
@@ -214,11 +321,24 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
       [className],
     );
 
-    // Memoized aria-label for performance
-    const ariaLabel = React.useMemo(
-      () => (typeof children === 'string' ? children : 'Sign in with Google'),
-      [children],
-    );
+    // Memoized aria-label for performance with loading state
+    const ariaLabel = React.useMemo(() => {
+      if (isLoading) {
+        return A11Y_MESSAGES.BUTTON_LOADING_LABEL;
+      }
+      return typeof children === 'string'
+        ? children
+        : A11Y_MESSAGES.BUTTON_DEFAULT_LABEL;
+    }, [children, isLoading]);
+
+    // Memoized aria-describedby for performance
+    const ariaDescribedBy = React.useMemo(() => {
+      const ids: string[] = [descriptionId];
+      if (statusMessage) {
+        ids.push(statusId);
+      }
+      return ids.join(' ');
+    }, [descriptionId, statusId, statusMessage]);
 
     // Monitor render performance
     React.useEffect(() => {
@@ -226,34 +346,84 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
     });
 
     return (
-      <Button
-        variant="outline"
-        size={size}
-        className={buttonClassName}
-        disabled={disabled || isLoading}
-        onClick={handleClick}
-        aria-label={ariaLabel}
-        // Mobile optimization props
-        style={{
-          WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none',
-          WebkitTapHighlightColor: 'transparent',
-        }}
-        {...props}
-      >
-        {isLoading ? <LoadingSpinner /> : <GoogleIcon />}
-        <span className="font-medium">{children}</span>
-      </Button>
+      <>
+        {/* Hidden description for screen readers */}
+        <div
+          id={descriptionId}
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: '0',
+          }}
+        >
+          {accessibleDescription || A11Y_MESSAGES.BUTTON_DESCRIPTION}
+        </div>
+
+        {/* Live region for status announcements */}
+        <div
+          id={statusId}
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: '0',
+          }}
+          aria-live="assertive"
+          aria-atomic="true"
+          role="status"
+        >
+          {statusMessage}
+        </div>
+
+        <Button
+          variant="outline"
+          size={size}
+          className={buttonClassName}
+          disabled={disabled || isLoading}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          aria-label={ariaLabel}
+          aria-describedby={ariaDescribedBy}
+          // Enhanced accessibility attributes
+          aria-busy={isLoading}
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          // Mobile optimization props
+          style={{
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          {...props}
+        >
+          {isLoading ? <LoadingSpinner /> : <GoogleIcon />}
+          <span className="font-medium">{children}</span>
+        </Button>
+      </>
     );
   },
   (prevProps, nextProps) => {
     // Custom comparison for React.memo to optimize re-renders
+    // Include new accessibility props
     return (
       prevProps.className === nextProps.className &&
       prevProps.size === nextProps.size &&
       prevProps.disabled === nextProps.disabled &&
       prevProps.children === nextProps.children &&
-      prevProps.onOAuthError === nextProps.onOAuthError
+      prevProps.onOAuthError === nextProps.onOAuthError &&
+      prevProps.accessibleDescription === nextProps.accessibleDescription &&
+      prevProps.liveRegionId === nextProps.liveRegionId
     );
   },
 );

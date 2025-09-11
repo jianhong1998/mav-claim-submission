@@ -30,31 +30,46 @@ vi.mock('@/components/ui/button', () => ({
     children,
     disabled,
     onClick,
+    onKeyDown,
     className,
     variant,
     size,
     style,
     'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedBy,
+    'aria-busy': ariaBusy,
+    role,
+    tabIndex,
     ...props
   }: {
     children?: React.ReactNode;
     disabled?: boolean;
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
     className?: string;
     variant?: string;
     size?: string;
     style?: React.CSSProperties;
     'aria-label'?: string;
+    'aria-describedby'?: string;
+    'aria-busy'?: boolean;
+    role?: string;
+    tabIndex?: number;
     [key: string]: unknown;
   }) => (
     <button
       disabled={disabled}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       className={className}
       data-variant={variant}
       data-size={size}
       style={style}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      aria-busy={ariaBusy}
+      role={role}
+      tabIndex={tabIndex}
       {...props}
     >
       {children}
