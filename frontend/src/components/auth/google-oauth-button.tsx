@@ -8,12 +8,22 @@ import { toast } from 'sonner';
 import { ErrorHandler } from '@/hooks/queries/helper/error-handler';
 
 /**
+ * Safe performance.now() wrapper
+ */
+const safePerformanceNow = (): number => {
+  if (typeof performance !== 'undefined' && performance.now) {
+    return performance.now();
+  }
+  return Date.now();
+};
+
+/**
  * Performance monitoring for mobile rendering optimization
  * Logs to console in development when rendering exceeds 200ms threshold
  */
 const monitorRenderPerformance = (startTime: number, operation: string) => {
   if (process.env.NODE_ENV === 'development') {
-    const duration = performance.now() - startTime;
+    const duration = safePerformanceNow() - startTime;
     if (duration > 200) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -125,13 +135,13 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
     children = 'Sign in with Google',
     ...props
   }) => {
-    const renderStartTime = React.useRef(performance.now());
+    const renderStartTime = React.useRef(safePerformanceNow());
     const [isLoading, setIsLoading] = React.useState(false);
 
     // Optimized click handler with mobile performance considerations
     const handleClick = React.useCallback(
       async (event: React.MouseEvent<HTMLButtonElement>) => {
-        const clickStartTime = performance.now();
+        const clickStartTime = safePerformanceNow();
 
         // Prevent double-clicks and improve touch responsiveness
         event.preventDefault();

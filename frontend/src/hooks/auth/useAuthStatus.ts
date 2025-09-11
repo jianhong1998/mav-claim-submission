@@ -210,6 +210,7 @@ export const useAuthStatus = () => {
 
     const result = {
       ...query,
+      queryKey, // Explicitly expose queryKey for testing and debugging
       // Add performance markers for monitoring (development only)
       ...(process.env.NODE_ENV === 'development' && {
         _performanceMetrics: {
@@ -234,5 +235,5 @@ export const useAuthStatus = () => {
     }
 
     return result;
-  }, [query]);
+  }, [query, queryKey]);
 };

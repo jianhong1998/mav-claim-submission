@@ -142,7 +142,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
 
 ## Phase 6: Component Testing
 
-- [ ] 13. Create useAuthStatus hook test in frontend/src/hooks/auth/__tests__/useAuthStatus.test.ts
+- [x] 13. Create useAuthStatus hook test in frontend/src/hooks/auth/__tests__/useAuthStatus.test.ts
   - File: frontend/src/hooks/auth/__tests__/useAuthStatus.test.ts
   - Write comprehensive tests for useAuthStatus hook with mocked API responses
   - Test loading states, success scenarios, and error handling
@@ -151,7 +151,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 2.1, 3.1_
   - _Prompt: Role: QA Engineer with expertise in React Testing Library and hook testing | Task: Create comprehensive tests for useAuthStatus hook following requirements 2.1 and 3.1, testing loading states, success scenarios, and error handling with proper API mocking | Restrictions: Must test hooks in isolation, use proper testing patterns, ensure test reliability and independence | Success: All hook behaviors tested thoroughly, error scenarios covered, tests run reliably and independently_
 
-- [ ] 14. Create GoogleOAuthButton test in frontend/src/components/auth/__tests__/google-oauth-button.test.tsx
+- [x] 14. Create GoogleOAuthButton test in frontend/src/components/auth/__tests__/google-oauth-button.test.tsx
   - File: frontend/src/components/auth/__tests__/google-oauth-button.test.tsx
   - Write tests for OAuth button rendering, click handling, and error states
   - Test button accessibility and Google branding
