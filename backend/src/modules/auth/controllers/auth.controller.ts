@@ -20,6 +20,10 @@ import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { IUser } from '@project/types';
 import { User, UserOptional } from '../decorators/user.decorator';
 import {
+  OAuthProtected,
+  AuthGeneralRateLimit,
+} from '../decorators/rate-limit.decorator';
+import {
   type AuthenticatedRequest,
   JwtAuthGuard,
 } from '../guards/jwt-auth.guard';
@@ -33,8 +37,10 @@ export class AuthController {
   /**
    * Initiate Google OAuth flow
    * Requirements: 4.1 - Authentication State API
+   * Security: Rate limited to prevent OAuth abuse
    */
   @Get('google')
+  @OAuthProtected('initiate')
   @UseGuards(AuthGuard('google'))
   initiateGoogleAuth(): void {
     // This endpoint initiates the OAuth flow
@@ -44,8 +50,10 @@ export class AuthController {
   /**
    * Handle Google OAuth callback
    * Requirements: 4.1 - Authentication State API
+   * Security: Rate limited to prevent OAuth callback abuse
    */
   @Get('google/callback')
+  @OAuthProtected('callback')
   @UseGuards(AuthGuard('google'))
   async handleGoogleCallback(
     @Req() req: AuthenticatedRequest,
@@ -96,6 +104,7 @@ export class AuthController {
   /**
    * Check authentication status
    * Requirements: 4.1 - Authentication State API
+   * Note: No rate limiting on status endpoint for integration tests
    */
   @Get('status')
   getAuthStatus(
@@ -118,8 +127,10 @@ export class AuthController {
   /**
    * Get current user profile
    * Requirements: 4.1 - Authentication State API
+   * Security: Rate limited for API protection
    */
   @Get('profile')
+  @AuthGeneralRateLimit()
   @UseGuards(JwtAuthGuard)
   getUserProfile(@User() user: UserEntity): AuthenticatedResponseDTO {
     const userDTO = this.mapUserEntityToDTO(user);
@@ -133,8 +144,10 @@ export class AuthController {
   /**
    * Logout user and clear session
    * Requirements: 4.1 - Authentication State API
+   * Security: Rate limited for API protection
    */
   @Post('logout')
+  @AuthGeneralRateLimit()
   async logout(
     @UserOptional() user: UserEntity | null,
     @Res() res: Response,

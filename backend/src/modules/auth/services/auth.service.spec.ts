@@ -15,10 +15,7 @@ import { AuthService, GoogleProfile, GoogleTokens } from './auth.service';
 import { JWTPayload, TokenService } from './token.service';
 import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 import { TokenDBUtil } from '../utils/token-db.util';
-import {
-  TokenEncryptionUtil,
-  type EncryptedToken,
-} from '../utils/token-encryption.util';
+import { type EncryptedToken } from '../utils/token-encryption.util';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { OAuthTokenEntity } from '../entities/oauth-token.entity';
 
@@ -47,10 +44,7 @@ describe('AuthService', () => {
     getOne: Mock;
     create: Mock;
     delete: Mock;
-  };
-  let mockTokenEncryptionUtil: {
-    encrypt: Mock;
-    decrypt: Mock;
+    getDecryptedTokens: Mock;
   };
   let mockTokenService: {
     generateJWT: Mock;
@@ -124,11 +118,10 @@ describe('AuthService', () => {
       getOne: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
-    };
-
-    mockTokenEncryptionUtil = {
-      encrypt: vi.fn().mockResolvedValue('encrypted-token'),
-      decrypt: vi.fn().mockResolvedValue('decrypted-token'),
+      getDecryptedTokens: vi.fn().mockResolvedValue({
+        accessToken: 'decrypted-access-token',
+        refreshToken: 'decrypted-refresh-token',
+      }),
     };
 
     mockTokenService = {
@@ -142,8 +135,8 @@ describe('AuthService', () => {
       refreshAccessToken: vi.fn(),
     };
 
-    (google.auth.OAuth2 as unknown as MockInstance).mockReturnValue(
-      mockOAuth2Client,
+    (google.auth.OAuth2 as unknown as MockInstance).mockImplementation(
+      () => mockOAuth2Client,
     );
 
     // Setup JWT mocks
@@ -157,7 +150,6 @@ describe('AuthService', () => {
     authService = new AuthService(
       mockUserDBUtil as unknown as UserDBUtil,
       mockTokenDBUtil as unknown as TokenDBUtil,
-      mockTokenEncryptionUtil as unknown as TokenEncryptionUtil,
       mockTokenService as unknown as TokenService,
     );
 
@@ -379,7 +371,7 @@ describe('AuthService', () => {
           criteria: { userId: 'user-123', provider: 'google' },
         });
         expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
-          refresh_token: 'decrypted-token',
+          refresh_token: 'decrypted-refresh-token',
         });
         expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
         expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
@@ -482,7 +474,7 @@ describe('AuthService', () => {
             userId: 'user-123',
             provider: 'google',
             accessToken: 'new-access-token',
-            refreshToken: 'decrypted-token', // Preserved original refresh token
+            refreshToken: 'decrypted-refresh-token', // Preserved original refresh token
             expiresAt: expect.any(Date),
             scope: 'profile email gmail.send drive.file',
           },
