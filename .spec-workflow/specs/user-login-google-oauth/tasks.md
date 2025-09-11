@@ -85,7 +85,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 1.3_
   - _Prompt: Role: QA Engineer with expertise in Passport.js testing and OAuth flows | Task: Create unit tests for GoogleStrategy covering requirements 1.1 and 1.3, testing domain validation and OAuth profile handling with mocked responses | Restrictions: Must mock Google OAuth API, test domain restriction thoroughly, ensure strategy isolation | Success: Domain validation tested thoroughly, OAuth profile handling verified, edge cases covered_
 
-- [x] 10. Create authentication controller integration tests in api-test/src/tests/auth-endpoints.spec.ts
+- [ ] 10. Create authentication controller integration tests in api-test/src/tests/auth-endpoints.spec.ts
   - File: api-test/src/tests/auth-endpoints.spec.ts (modify existing)
   - Add comprehensive tests for all OAuth endpoints
   - Test complete OAuth flow including callbacks and error scenarios

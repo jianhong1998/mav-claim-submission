@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TokenDBUtil } from './utils/token-db.util';
 import { UserEntity } from '../user/entities/user.entity';
 import { OAuthTokenEntity } from './entities/oauth-token.entity';
@@ -11,6 +11,7 @@ import { AuthService } from './services/auth.service';
 import { TokenService } from './services/token.service';
 import { AuthController } from './controllers/auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { TestModeThrottlerGuard } from './guards/test-mode-throttler.guard';
 import { EnvironmentVariableUtil } from '../common/utils/environment-variable.util';
 import { CommonModule } from '../common/common.module';
 
@@ -55,6 +56,8 @@ import { CommonModule } from '../common/common.module';
     AuthService,
     TokenService,
     JwtAuthGuard,
+    ThrottlerGuard,
+    TestModeThrottlerGuard,
   ],
   exports: [AuthService, TokenService, JwtAuthGuard],
 })

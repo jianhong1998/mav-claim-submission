@@ -1,5 +1,6 @@
 import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
+import { TestModeThrottlerGuard } from '../guards/test-mode-throttler.guard';
 
 /**
  * OAuth Rate Limiting Configuration
@@ -38,7 +39,7 @@ export const OAuthRateLimits = Object.freeze({
  */
 export const OAuthInitiateRateLimit = () =>
   applyDecorators(
-    UseGuards(ThrottlerGuard),
+    UseGuards(TestModeThrottlerGuard),
     Throttle({
       default: {
         ttl: OAuthRateLimits.OAUTH_INITIATE.ttl * 1000, // Convert to milliseconds
@@ -59,7 +60,7 @@ export const OAuthInitiateRateLimit = () =>
  */
 export const OAuthCallbackRateLimit = () =>
   applyDecorators(
-    UseGuards(ThrottlerGuard),
+    UseGuards(TestModeThrottlerGuard),
     Throttle({
       default: {
         ttl: OAuthRateLimits.OAUTH_CALLBACK.ttl * 1000, // Convert to milliseconds
@@ -79,7 +80,7 @@ export const OAuthCallbackRateLimit = () =>
  */
 export const AuthGeneralRateLimit = () =>
   applyDecorators(
-    UseGuards(ThrottlerGuard),
+    UseGuards(TestModeThrottlerGuard),
     Throttle({
       default: {
         ttl: OAuthRateLimits.AUTH_GENERAL.ttl * 1000, // Convert to milliseconds
