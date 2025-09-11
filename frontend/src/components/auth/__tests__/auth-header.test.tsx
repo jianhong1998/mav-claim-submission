@@ -309,7 +309,10 @@ describe('AuthHeader', () => {
 
       const avatarImage = screen.getByTestId('avatar-image');
       expect(avatarImage).toHaveAttribute('src', mockUser.picture);
-      expect(avatarImage).toHaveAttribute('alt', mockUser.name);
+      expect(avatarImage).toHaveAttribute(
+        'alt',
+        `${mockUser.name} profile picture`,
+      );
     });
 
     it('should display user initials when no picture', () => {
@@ -487,7 +490,10 @@ describe('AuthHeader', () => {
       render(<AuthHeader />);
 
       const avatarImage = screen.getByTestId('avatar-image');
-      expect(avatarImage).toHaveAttribute('alt', mockUser.name);
+      expect(avatarImage).toHaveAttribute(
+        'alt',
+        `${mockUser.name} profile picture`,
+      );
     });
 
     it('should have proper button roles and labels', () => {

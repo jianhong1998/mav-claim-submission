@@ -209,7 +209,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: Usability requirements_
   - _Prompt: Role: Accessibility Engineer with expertise in WCAG compliance and OAuth accessibility | Task: Enhance GoogleOAuthButton with comprehensive accessibility features covering usability requirements, implementing ARIA labels, keyboard navigation, and screen reader support | Restrictions: Must maintain existing functionality, ensure WCAG 2.1 compliance, test with screen readers | Success: OAuth button is fully accessible, WCAG 2.1 compliant, tested with screen readers and keyboard navigation_
 
-- [ ] 20. Add accessibility features to AuthHeader dropdown in frontend/src/components/auth/auth-header.tsx
+- [x] 20. Add accessibility features to AuthHeader dropdown in frontend/src/components/auth/auth-header.tsx
   - File: frontend/src/components/auth/auth-header.tsx (accessibility pass)
   - Add proper ARIA attributes for dropdown menu and focus management
   - Ensure keyboard navigation for user menu

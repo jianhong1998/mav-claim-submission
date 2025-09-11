@@ -47,7 +47,12 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
   if (isLoading) {
     return (
       <div className={cn('flex items-center', className)}>
-        <div className="size-8 animate-pulse rounded-full bg-muted" />
+        <div
+          className="size-8 animate-pulse rounded-full bg-muted"
+          role="status"
+          aria-label="Loading user authentication status"
+        />
+        <span className="sr-only">Loading authentication status...</span>
       </div>
     );
   }
@@ -61,7 +66,12 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
           variant="ghost"
           size="sm"
         >
-          <Link href="/auth/login">Sign In</Link>
+          <Link
+            href="/auth/login"
+            aria-label="Sign in to your account"
+          >
+            Sign In
+          </Link>
         </Button>
       </div>
     );
@@ -76,13 +86,20 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
             variant="ghost"
             className="relative h-8 w-8 rounded-full p-0 hover:bg-accent focus:ring-2 focus:ring-primary focus:ring-offset-2"
             disabled={isLoggingOut}
+            aria-label={`User menu for ${user.name}`}
+            aria-haspopup="menu"
+            aria-expanded="false"
+            title={`${user.name} - User menu`}
           >
             <Avatar className="size-8">
               <AvatarImage
                 src={user.picture || undefined}
-                alt={user.name}
+                alt={`${user.name} profile picture`}
               />
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              <AvatarFallback
+                className="bg-primary text-primary-foreground text-sm"
+                aria-label={`${user.name} initials`}
+              >
                 {userInitials}
               </AvatarFallback>
             </Avatar>
@@ -92,32 +109,65 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
           className="w-56"
           align="end"
           forceMount
+          role="menu"
+          aria-label="User account menu"
+          onCloseAutoFocus={(event) => {
+            // Prevent default behavior to maintain focus on trigger when closing via ESC
+            event.preventDefault();
+          }}
         >
-          <DropdownMenuLabel className="font-normal">
+          <DropdownMenuLabel
+            className="font-normal"
+            role="none"
+          >
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground">
+              <p
+                className="text-sm font-medium leading-none"
+                aria-label={`Signed in as ${user.name}`}
+              >
+                {user.name}
+              </p>
+              <p
+                className="text-xs leading-none text-muted-foreground"
+                aria-label={`Email: ${user.email}`}
+              >
                 {user.email}
               </p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
+          <DropdownMenuSeparator role="separator" />
+          <DropdownMenuItem
+            asChild
+            role="menuitem"
+          >
             <Link
               href="/profile"
               className="cursor-pointer"
+              aria-label="View and edit profile settings"
             >
-              <User className="mr-2 size-4" />
+              <User
+                className="mr-2 size-4"
+                aria-hidden="true"
+              />
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator role="separator" />
           <DropdownMenuItem
             onClick={handleLogout}
             disabled={isLoggingOut}
             className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+            role="menuitem"
+            aria-label={
+              isLoggingOut
+                ? 'Signing out, please wait'
+                : 'Sign out of your account'
+            }
           >
-            <LogOut className="mr-2 size-4" />
+            <LogOut
+              className="mr-2 size-4"
+              aria-hidden="true"
+            />
             <span>{isLoggingOut ? 'Signing out...' : 'Logout'}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
