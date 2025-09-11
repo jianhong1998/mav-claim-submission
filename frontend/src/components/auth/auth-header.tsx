@@ -20,8 +20,28 @@ interface AuthHeaderProps {
   className?: string;
 }
 
-const AuthHeader: React.FC<AuthHeaderProps> = ({ className }) => {
+// Extract getUserInitials to avoid recreation on every render
+const getUserInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
   const { user, isAuthenticated, isLoading, logout, isLoggingOut } = useAuth();
+
+  // Memoize user-derived computations to avoid recalculation on every render
+  const userInitials = React.useMemo(() => {
+    return user?.name ? getUserInitials(user.name) : '';
+  }, [user?.name]);
+
+  // Memoize logout handler to avoid recreation on every render
+  const handleLogout = React.useCallback(() => {
+    logout();
+  }, [logout]);
 
   // Loading state
   if (isLoading) {
@@ -47,20 +67,6 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({ className }) => {
     );
   }
 
-  // Get user initials for fallback
-  const getUserInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const handleLogout = () => {
-    logout();
-  };
-
   // Authenticated state
   return (
     <div className={cn('flex items-center', className)}>
@@ -77,7 +83,7 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({ className }) => {
                 alt={user.name}
               />
               <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {getUserInitials(user.name)}
+                {userInitials}
               </AvatarFallback>
             </Avatar>
           </Button>
@@ -119,6 +125,12 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({ className }) => {
     </div>
   );
 };
+
+// Apply React.memo with custom comparison for props optimization
+const AuthHeader = React.memo(AuthHeaderComponent, (prevProps, nextProps) => {
+  // Only re-render if className changes
+  return prevProps.className === nextProps.className;
+});
 
 AuthHeader.displayName = 'AuthHeader';
 
