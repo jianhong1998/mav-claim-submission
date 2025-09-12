@@ -58,6 +58,46 @@ export class TokenDBUtil extends BaseDBUtil<
     return createdToken;
   }
 
+  public async upsert(params: {
+    creationData: TokenCreationData;
+    entityManager?: EntityManager;
+  }): Promise<OAuthTokenEntity> {
+    const { creationData, entityManager } = params;
+
+    const repo = entityManager?.getRepository(OAuthTokenEntity) ?? this.repo;
+
+    const { encryptedAccessToken, encryptedRefreshToken } =
+      await this.encryptionUtil.encryptTokens(
+        creationData.accessToken,
+        creationData.refreshToken,
+      );
+
+    const encryptedTokenData = {
+      ...creationData,
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      deletedAt: null,
+    };
+
+    await repo.upsert(encryptedTokenData, {
+      conflictPaths: ['userId', 'provider'],
+      skipUpdateIfNoValuesChanged: false,
+    });
+
+    const savedToken = await repo.findOne({
+      where: {
+        userId: creationData.userId,
+        provider: creationData.provider,
+      },
+    });
+
+    if (!savedToken) {
+      throw new Error('Failed to upsert token');
+    }
+
+    return savedToken;
+  }
+
   public async getDecryptedTokens(tokenEntity: OAuthTokenEntity): Promise<{
     accessToken: string;
     refreshToken: string;

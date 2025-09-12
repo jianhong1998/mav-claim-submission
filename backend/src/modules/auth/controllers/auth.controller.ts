@@ -61,7 +61,9 @@ export class AuthController {
     try {
       if (!req.user) {
         this.logger.warn('OAuth callback received without user data');
-        return res.redirect('/login?error=auth_failed');
+        return res.redirect(
+          `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`,
+        );
       }
 
       const { user, jwt } = await this.authService.handleOAuthCallback(
@@ -90,13 +92,15 @@ export class AuthController {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
-      this.logger.log(`OAuth callback successful for user: ${user.email}`);
+      this.logger.log(`OAuth callback successful for user: ${user.id}`);
 
       // Redirect to frontend
       return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
     } catch (error) {
       this.logger.error('OAuth callback error:', error);
-      return res.redirect('/login?error=auth_failed');
+      return res.redirect(
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`,
+      );
     }
   }
 

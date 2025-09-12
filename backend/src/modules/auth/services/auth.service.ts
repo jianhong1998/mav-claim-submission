@@ -90,7 +90,7 @@ export class AuthService {
       // Generate JWT session token using TokenService
       const jwt = this.tokenService.generateJWT(user);
 
-      this.logger.log(`OAuth callback successful for user: ${email}`);
+      this.logger.log(`OAuth callback successful for user: ${user.id}`);
 
       return { user, jwt };
     } catch (error) {
@@ -139,12 +139,12 @@ export class AuthService {
       const { credentials } = await oauth2Client.refreshAccessToken();
 
       if (credentials.access_token) {
-        // Update token in database
-        await this.tokenDBUtil.delete({
+        // Hard delete existing token to avoid unique constraint issues
+        await this.tokenDBUtil.hardDelete({
           criteria: {
             userId,
             provider: 'google',
-          } as Parameters<TokenDBUtil['delete']>[0]['criteria'],
+          } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
         });
 
         await this.tokenDBUtil.create({
@@ -177,11 +177,11 @@ export class AuthService {
    */
   async logout(userId: string): Promise<void> {
     try {
-      // Soft delete OAuth tokens to invalidate them
-      await this.tokenDBUtil.delete({
+      // Hard delete OAuth tokens to invalidate them
+      await this.tokenDBUtil.hardDelete({
         criteria: {
           userId,
-        } as Parameters<TokenDBUtil['delete']>[0]['criteria'],
+        } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
       });
 
       this.logger.log(`User logged out successfully: ${userId}`);
@@ -242,12 +242,12 @@ export class AuthService {
     userId: string,
     tokens: GoogleTokens,
   ): Promise<void> {
-    // Delete existing tokens for this user/provider
-    await this.tokenDBUtil.delete({
+    // Hard delete existing tokens for this user/provider to avoid unique constraint issues
+    await this.tokenDBUtil.hardDelete({
       criteria: {
         userId,
         provider: 'google',
-      } as Parameters<TokenDBUtil['delete']>[0]['criteria'],
+      } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
     });
 
     // Calculate expiration time

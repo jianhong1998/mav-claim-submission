@@ -44,7 +44,9 @@ describe('AuthService', () => {
     getOne: Mock;
     create: Mock;
     delete: Mock;
+    hardDelete: Mock;
     getDecryptedTokens: Mock;
+    findByUserIdWithDecryptedTokens: Mock;
   };
   let mockTokenService: {
     generateJWT: Mock;
@@ -118,10 +120,12 @@ describe('AuthService', () => {
       getOne: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      hardDelete: vi.fn(),
       getDecryptedTokens: vi.fn().mockResolvedValue({
         accessToken: 'decrypted-access-token',
         refreshToken: 'decrypted-refresh-token',
       }),
+      findByUserIdWithDecryptedTokens: vi.fn(),
     };
 
     mockTokenService = {
@@ -175,7 +179,7 @@ describe('AuthService', () => {
         expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
           criteria: { email: 'test@mavericks-consulting.com' },
         });
-        expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
           criteria: { userId: 'user-123', provider: 'google' },
         });
         expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
@@ -374,7 +378,7 @@ describe('AuthService', () => {
           refresh_token: 'decrypted-refresh-token',
         });
         expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
-        expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
           criteria: { userId: 'user-123', provider: 'google' },
         });
         expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
@@ -491,13 +495,15 @@ describe('AuthService', () => {
 
         await authService.logout('user-123');
 
-        expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
           criteria: { userId: 'user-123' },
         });
       });
 
       it('should handle logout errors gracefully', async () => {
-        mockTokenDBUtil.delete.mockRejectedValue(new Error('Database error'));
+        mockTokenDBUtil.hardDelete.mockRejectedValue(
+          new Error('Database error'),
+        );
 
         await expect(authService.logout('user-123')).rejects.toThrow(
           'Database error',
@@ -505,7 +511,7 @@ describe('AuthService', () => {
       });
 
       it('should complete logout even when no tokens exist', async () => {
-        mockTokenDBUtil.delete.mockResolvedValue(null);
+        mockTokenDBUtil.hardDelete.mockResolvedValue(null);
 
         await expect(authService.logout('user-123')).resolves.toBeUndefined();
       });
@@ -606,7 +612,7 @@ describe('AuthService', () => {
 
       expect(oauthResult.user.email).toBe('test@mavericks-consulting.com');
       expect(sessionResult?.id).toBe('user-123');
-      expect(mockTokenDBUtil.delete).toHaveBeenLastCalledWith({
+      expect(mockTokenDBUtil.hardDelete).toHaveBeenLastCalledWith({
         criteria: { userId: 'user-123' },
       });
     });

@@ -49,6 +49,8 @@ describe('GoogleOAuthStrategy', () => {
     getOne: Mock;
     create: Mock;
     delete: Mock;
+    upsert: Mock;
+    findByUserIdWithDecryptedTokens: Mock;
   };
   let mockEnvironmentVariableUtil: {
     getVariables: Mock;
@@ -106,6 +108,8 @@ describe('GoogleOAuthStrategy', () => {
       getOne: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      upsert: vi.fn(),
+      findByUserIdWithDecryptedTokens: vi.fn(),
     };
 
     mockEnvironmentVariableUtil = {
@@ -192,8 +196,7 @@ describe('GoogleOAuthStrategy', () => {
   describe('Domain Validation - Requirement 1.3', () => {
     it('should accept valid @mavericks-consulting.com emails', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token',
@@ -471,8 +474,7 @@ describe('GoogleOAuthStrategy', () => {
 
     it('should handle existing users without creating duplicates', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token',
@@ -492,8 +494,7 @@ describe('GoogleOAuthStrategy', () => {
   describe('OAuth Token Management - Requirement 1.1', () => {
     it('should create OAuth tokens with correct parameters', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token-123',
@@ -502,7 +503,7 @@ describe('GoogleOAuthStrategy', () => {
         mockDone,
       );
 
-      expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+      expect(mockTokenDBUtil.upsert).toHaveBeenCalledWith({
         creationData: {
           userId: 'user-123',
           provider: 'google',
@@ -518,8 +519,7 @@ describe('GoogleOAuthStrategy', () => {
       const beforeTime = Date.now();
 
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token',
@@ -529,7 +529,7 @@ describe('GoogleOAuthStrategy', () => {
       );
 
       const afterTime = Date.now();
-      const callArgs = mockTokenDBUtil.create.mock.calls[0][0];
+      const callArgs = mockTokenDBUtil.upsert.mock.calls[0][0];
       const expiresAt = callArgs.creationData.expiresAt as Date;
       const expirationTime = expiresAt.getTime();
 
@@ -540,10 +540,9 @@ describe('GoogleOAuthStrategy', () => {
       expect(expirationTime).toBeLessThanOrEqual(afterTime + 3600000 + 1000);
     });
 
-    it('should delete existing tokens before creating new ones', async () => {
+    it('should upsert OAuth tokens (replace if exists)', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([mockOAuthTokenEntity]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token',
@@ -552,18 +551,21 @@ describe('GoogleOAuthStrategy', () => {
         mockDone,
       );
 
-      expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
-        criteria: { userId: 'user-123', provider: 'google' },
+      expect(mockTokenDBUtil.upsert).toHaveBeenCalledWith({
+        creationData: {
+          userId: 'user-123',
+          provider: 'google',
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          expiresAt: expect.any(Date),
+          scope: 'profile email gmail.send drive.file',
+        },
       });
-      expect(mockTokenDBUtil.delete).toHaveBeenCalledBefore(
-        mockTokenDBUtil.create,
-      );
     });
 
-    it('should handle token deletion errors gracefully', async () => {
+    it('should handle token upsert errors gracefully', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockRejectedValue(new Error('Delete failed'));
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockRejectedValue(new Error('Upsert failed'));
 
       await googleStrategy.validate(
         'access-token',
@@ -606,11 +608,10 @@ describe('GoogleOAuthStrategy', () => {
       expect(mockDone).toHaveBeenCalledWith(expect.any(Error), false);
     });
 
-    it('should handle token creation database errors', async () => {
+    it('should handle token upsert database errors', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockRejectedValue(
-        new Error('Token creation failed'),
+      mockTokenDBUtil.upsert.mockRejectedValue(
+        new Error('Token upsert failed'),
       );
 
       await googleStrategy.validate(
@@ -693,8 +694,7 @@ describe('GoogleOAuthStrategy', () => {
     it('should handle complete OAuth flow for new user', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(null);
       mockUserDBUtil.create.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'access-token',
@@ -715,10 +715,7 @@ describe('GoogleOAuthStrategy', () => {
           googleId: 'google-123',
         },
       });
-      expect(mockTokenDBUtil.delete).toHaveBeenCalledWith({
-        criteria: { userId: 'user-123', provider: 'google' },
-      });
-      expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+      expect(mockTokenDBUtil.upsert).toHaveBeenCalledWith({
         creationData: {
           userId: 'user-123',
           provider: 'google',
@@ -733,8 +730,7 @@ describe('GoogleOAuthStrategy', () => {
 
     it('should handle complete OAuth flow for existing user', async () => {
       mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
-      mockTokenDBUtil.delete.mockResolvedValue([mockOAuthTokenEntity]);
-      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+      mockTokenDBUtil.upsert.mockResolvedValue(mockOAuthTokenEntity);
 
       await googleStrategy.validate(
         'new-access-token',
@@ -744,8 +740,7 @@ describe('GoogleOAuthStrategy', () => {
       );
 
       expect(mockUserDBUtil.create).not.toHaveBeenCalled(); // Should not create new user
-      expect(mockTokenDBUtil.delete).toHaveBeenCalled(); // Should delete old tokens
-      expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+      expect(mockTokenDBUtil.upsert).toHaveBeenCalledWith({
         creationData: {
           userId: 'user-123',
           provider: 'google',
