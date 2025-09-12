@@ -43,8 +43,7 @@ export class AuthController {
   @OAuthProtected('initiate')
   @UseGuards(AuthGuard('google'))
   initiateGoogleAuth(): void {
-    // This endpoint initiates the OAuth flow
-    // The actual handling is done by the GoogleOAuthStrategy
+    // This will be handled by the GoogleOAuthStrategy with custom options
   }
 
   /**

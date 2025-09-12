@@ -152,3 +152,4 @@ Managed from root `.env` file:
 - Always use agents if suitable for the task
 - Always run `make format` and `make lint` after code changes
 - always format code with command `make format` before running lint check
+- Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.

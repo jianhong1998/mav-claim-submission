@@ -5,6 +5,7 @@ import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 import { TokenDBUtil } from '../utils/token-db.util';
 import { IUserCreationData } from 'src/modules/user/types/user-creation-data.type';
 import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
+import { Request } from 'express';
 
 interface GoogleProfile {
   id: string;
@@ -35,6 +36,16 @@ export class GoogleOAuthStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
+  authenticate(req: Request, options?: Record<string, unknown>): void {
+    const authenticateOptions = {
+      ...options,
+      accessType: 'offline',
+      prompt: 'consent',
+    };
+
+    return super.authenticate(req, authenticateOptions);
+  }
+
   async validate(
     accessToken: string,
     refreshToken: string,
@@ -42,6 +53,10 @@ export class GoogleOAuthStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<void> {
     try {
+      console.log('OAuth tokens received:', {
+        accessToken: accessToken ? 'present' : 'missing',
+        refreshToken: refreshToken ? 'present' : 'missing',
+      });
       const email = profile.emails?.[0]?.value;
 
       if (!email) {
@@ -82,6 +97,16 @@ export class GoogleOAuthStrategy extends PassportStrategy(Strategy, 'google') {
           TokenDBUtil['delete']
         >[0]['criteria'],
       });
+
+      if (!accessToken) {
+        throw new UnauthorizedException('No access token received from Google');
+      }
+
+      if (!refreshToken) {
+        throw new UnauthorizedException(
+          'No refresh token received from Google',
+        );
+      }
 
       const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
 

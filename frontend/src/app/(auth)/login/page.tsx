@@ -34,12 +34,6 @@ const LoginContent = () => {
     }
   }, [error]);
 
-  const handleOAuthError = (error: Error) => {
-    toast.error(
-      error.message || 'OAuth authentication failed. Please try again.',
-    );
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 space-y-8">
@@ -59,7 +53,6 @@ const LoginContent = () => {
           <GoogleOAuthButton
             size="lg"
             className="w-full max-w-sm py-3 text-lg"
-            onOAuthError={handleOAuthError}
             aria-label="Sign in with Google using your @mavericks-consulting.com account"
           >
             Sign in with Google

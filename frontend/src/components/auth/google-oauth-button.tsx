@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { VariantProps } from 'class-variance-authority';
 import { toast } from 'sonner';
 import { ErrorHandler } from '@/hooks/queries/helper/error-handler';
+import type { VariantProps } from 'class-variance-authority';
 
 /**
  * Safe performance.now() wrapper
@@ -44,7 +44,6 @@ interface GoogleOAuthButtonProps
     Pick<VariantProps<typeof buttonVariants>, 'size'> {
   className?: string;
   disabled?: boolean;
-  onOAuthError?: (error: Error) => void;
   /**
    * Additional accessible description for the button
    * Used with aria-describedby for extra context
@@ -55,6 +54,10 @@ interface GoogleOAuthButtonProps
    * If not provided, a unique ID will be generated
    */
   liveRegionId?: string;
+  /**
+   * Callback for OAuth errors
+   */
+  onOAuthError?: (error: Error) => void;
 }
 
 // Memoized GoogleIcon to prevent unnecessary re-renders
@@ -104,15 +107,6 @@ const LoadingSpinner = React.memo(() => (
 LoadingSpinner.displayName = 'LoadingSpinner';
 
 /**
- * Error messages for OAuth rate limiting and other failures
- */
-const OAUTH_ERROR_MESSAGES = Object.freeze({
-  RATE_LIMITED:
-    'Too many login attempts. Please wait 60 seconds and try again.',
-  GENERIC_ERROR: 'Sign in failed. Please try again.',
-} as const);
-
-/**
  * Accessibility constants for screen reader announcements
  */
 const A11Y_MESSAGES = Object.freeze({
@@ -127,76 +121,29 @@ const A11Y_MESSAGES = Object.freeze({
   LOADING_SPINNER_LABEL: 'Loading authentication',
 } as const);
 
-/**
- * Generate unique ID for accessibility elements
- */
-const generateA11yId = (prefix: string): string => {
-  return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
-};
-
-/**
- * Detects if an error is related to rate limiting based on status code
- */
-const isRateLimitError = (error: unknown): boolean => {
-  const statusCode = ErrorHandler.extractStatusCodeFromError(error);
-  return statusCode === 429;
-};
-
-/**
- * Handles OAuth-related errors with appropriate user feedback
- * Enhanced with accessibility announcements
- */
-const handleOAuthError = (
-  error: unknown,
-  onOAuthError?: (error: Error) => void,
-  announceError?: (message: string) => void,
-) => {
-  let errorMessage: string;
-  let a11yMessage: string;
-
-  if (isRateLimitError(error)) {
-    errorMessage = OAUTH_ERROR_MESSAGES.RATE_LIMITED;
-    a11yMessage = A11Y_MESSAGES.STATUS_RATE_LIMITED;
-  } else {
-    errorMessage = OAUTH_ERROR_MESSAGES.GENERIC_ERROR;
-    a11yMessage = A11Y_MESSAGES.STATUS_ERROR;
-  }
-
-  // Show toast notification
-  toast.error(errorMessage);
-
-  // Announce to screen readers
-  announceError?.(a11yMessage);
-
-  // Call the optional error callback
-  const errorObj = error instanceof Error ? error : new Error('OAuth failed');
-  onOAuthError?.(errorObj);
-};
+// Removed generateA11yId function - now using React.useId() for SSR-safe ID generation
 
 const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
   ({
     className,
     size = 'default',
     disabled = false,
-    onOAuthError,
     children = 'Sign in with Google',
     accessibleDescription,
     liveRegionId,
+    onOAuthError,
     ...props
   }) => {
     const renderStartTime = React.useRef(safePerformanceNow());
-    const [isLoading, setIsLoading] = React.useState(false);
     const [statusMessage, setStatusMessage] = React.useState<string>('');
 
-    // Generate stable IDs for accessibility elements
-    const descriptionId = React.useMemo(
-      () => generateA11yId('oauth-description'),
-      [],
-    );
-    const statusId = React.useMemo(
-      () => liveRegionId || generateA11yId('oauth-status'),
-      [liveRegionId],
-    );
+    // OAuth state management without React Query (OAuth requires redirect, not API call)
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    // Generate stable IDs for accessibility elements using React.useId()
+    const baseId = React.useId();
+    const descriptionId = `oauth-description-${baseId}`;
+    const statusId = liveRegionId || `oauth-status-${baseId}`;
 
     // Accessibility announcement function
     const announceStatus = React.useCallback((message: string) => {
@@ -205,20 +152,11 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
       setTimeout(() => setStatusMessage(''), 1000);
     }, []);
 
-    // Enhanced error announcement function
-    const announceError = React.useCallback(
-      (message: string) => {
-        announceStatus(message);
-      },
-      [announceStatus],
-    );
-
-    // Optimized click handler with mobile performance considerations
+    // OAuth click handler using API-based flow
     const handleClick = React.useCallback(
       async (event: React.MouseEvent<HTMLButtonElement>) => {
         const clickStartTime = safePerformanceNow();
 
-        // Prevent double-clicks and improve touch responsiveness
         event.preventDefault();
         event.stopPropagation();
 
@@ -226,61 +164,34 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
           return;
         }
 
+        setIsLoading(true);
+        announceStatus(A11Y_MESSAGES.STATUS_LOADING);
+
         try {
-          setIsLoading(true);
-          // Announce loading state to screen readers
-          announceStatus(A11Y_MESSAGES.STATUS_LOADING);
-
-          // Use AbortController for mobile network optimization
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-          // Check if the OAuth endpoint is available and not rate limited
-          const response = await fetch('/api/auth/google', {
-            method: 'GET',
-            redirect: 'manual', // Don't follow redirects automatically
-            credentials: 'include',
-            signal: controller.signal,
-            // Mobile optimization headers
-            headers: {
-              'Cache-Control': 'no-cache',
-              Pragma: 'no-cache',
-            },
-          });
-
-          clearTimeout(timeoutId);
-
-          // If rate limited, handle the error
-          if (response.status === 429) {
-            throw new Error('Rate limited');
-          }
-
-          // If successful (302 redirect to Google), proceed with the redirect
-          if (response.status === 302) {
-            // Announce success before redirect
-            announceStatus(A11Y_MESSAGES.STATUS_SUCCESS);
-            window.location.href = '/api/auth/google';
-            return;
-          }
-
-          // Handle other error status codes
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          // Fallback: redirect anyway if we get here
-          // Announce success before redirect
-          announceStatus(A11Y_MESSAGES.STATUS_SUCCESS);
-          window.location.href = '/api/auth/google';
+          // Direct navigation to backend OAuth endpoint - no CORS issues
+          window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/auth/google`;
         } catch (error) {
           setIsLoading(false);
-          handleOAuthError(error, onOAuthError, announceError);
-        } finally {
-          // Monitor click handler performance
-          monitorRenderPerformance(clickStartTime, 'click handler');
+
+          const statusCode = ErrorHandler.extractStatusCodeFromError(error);
+          let errorMessage = 'Sign in failed. Please try again.';
+
+          if (statusCode === 429) {
+            errorMessage =
+              'Too many login attempts. Please wait 60 seconds and try again.';
+          }
+
+          toast.error(errorMessage);
+          announceStatus(A11Y_MESSAGES.STATUS_ERROR);
+
+          const errorObj =
+            error instanceof Error ? error : new Error('OAuth failed');
+          onOAuthError?.(errorObj);
         }
+
+        monitorRenderPerformance(clickStartTime, 'click handler');
       },
-      [disabled, isLoading, onOAuthError, announceStatus, announceError],
+      [disabled, isLoading, announceStatus, onOAuthError],
     );
 
     // Enhanced keyboard event handler for better accessibility
@@ -290,7 +201,6 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           if (!disabled && !isLoading) {
-            // Create a synthetic mouse event to trigger the same logic
             const syntheticEvent = {
               preventDefault: () => {},
               stopPropagation: () => {},
@@ -301,8 +211,6 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
         // Handle Escape key to cancel if loading
         else if (event.key === 'Escape' && isLoading) {
           event.preventDefault();
-          // Cancel the loading state
-          setIsLoading(false);
           announceStatus('Authentication cancelled');
         }
       },
@@ -421,9 +329,9 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
       prevProps.size === nextProps.size &&
       prevProps.disabled === nextProps.disabled &&
       prevProps.children === nextProps.children &&
-      prevProps.onOAuthError === nextProps.onOAuthError &&
       prevProps.accessibleDescription === nextProps.accessibleDescription &&
-      prevProps.liveRegionId === nextProps.liveRegionId
+      prevProps.liveRegionId === nextProps.liveRegionId &&
+      prevProps.onOAuthError === nextProps.onOAuthError
     );
   },
 );

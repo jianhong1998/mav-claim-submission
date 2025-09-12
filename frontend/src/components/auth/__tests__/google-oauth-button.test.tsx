@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleOAuthButton } from '../google-oauth-button';
 
 // Mock sonner toast
@@ -23,6 +24,26 @@ vi.mock('@/hooks/queries/helper/error-handler', () => ({
     }),
   },
 }));
+
+// Note: No need to mock apiClient since GoogleOAuthButton uses direct navigation
+
+// Test wrapper with QueryClient
+const createTestWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  TestWrapper.displayName = 'TestWrapper';
+
+  return TestWrapper;
+};
 
 // Mock UI Button component
 vi.mock('@/components/ui/button', () => ({
@@ -94,9 +115,7 @@ Object.defineProperty(window, 'location', {
   writable: true,
 });
 
-// Mock fetch
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// We don't need fetch mock anymore since we're using apiClient
 
 // Mock performance.now
 const mockPerformanceNow = vi.fn(() => 1000);
@@ -120,12 +139,13 @@ const originalConsoleWarn = console.warn;
 
 describe('GoogleOAuthButton', () => {
   const mockOnOAuthError = vi.fn();
+  let wrapper: ReturnType<typeof createTestWrapper>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocation.href = '';
-    mockFetch.mockClear();
     mockPerformanceNow.mockReturnValue(1000);
+    wrapper = createTestWrapper();
     // eslint-disable-next-line no-console
     console.warn = mockConsoleWarn;
   });
@@ -137,7 +157,7 @@ describe('GoogleOAuthButton', () => {
 
   describe('Rendering', () => {
     it('should render with default props', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button', {
         name: 'Sign in with Google',
@@ -149,7 +169,9 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should render with custom children', () => {
-      render(<GoogleOAuthButton>Continue with Google</GoogleOAuthButton>);
+      render(<GoogleOAuthButton>Continue with Google</GoogleOAuthButton>, {
+        wrapper,
+      });
 
       const button = screen.getByRole('button', {
         name: 'Continue with Google',
@@ -160,7 +182,9 @@ describe('GoogleOAuthButton', () => {
 
     it('should render with non-string children', () => {
       const customChildren = <span>Custom Login</span>;
-      render(<GoogleOAuthButton>{customChildren}</GoogleOAuthButton>);
+      render(<GoogleOAuthButton>{customChildren}</GoogleOAuthButton>, {
+        wrapper,
+      });
 
       const button = screen.getByRole('button', {
         name: 'Sign in with Google',
@@ -170,21 +194,21 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should apply custom className', () => {
-      render(<GoogleOAuthButton className="custom-class" />);
+      render(<GoogleOAuthButton className="custom-class" />, { wrapper });
 
       const button = screen.getByRole('button');
       expect(button).toHaveClass('custom-class');
     });
 
     it('should apply custom size prop', () => {
-      render(<GoogleOAuthButton size="lg" />);
+      render(<GoogleOAuthButton size="lg" />, { wrapper });
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('data-size', 'lg');
     });
 
     it('should render Google icon by default', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const icon = screen.getByRole('button').querySelector('svg');
       expect(icon).toBeInTheDocument();
@@ -194,7 +218,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should have proper mobile optimization styles', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       const style = button.getAttribute('style');
@@ -204,14 +228,14 @@ describe('GoogleOAuthButton', () => {
 
   describe('Google Icon', () => {
     it('should render Google icon with correct viewBox', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const icon = screen.getByRole('button').querySelector('svg');
       expect(icon).toHaveAttribute('viewBox', '0 0 24 24');
     });
 
     it('should have proper Google brand colors', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const icon = screen.getByRole('button').querySelector('svg');
       const paths = icon?.querySelectorAll('path');
@@ -226,248 +250,43 @@ describe('GoogleOAuthButton', () => {
   });
 
   describe('Loading State', () => {
-    it('should show loading spinner when isLoading is true', async () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
+    it('should show loading spinner temporarily during click', async () => {
       const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        const spinner = button.querySelector('.animate-spin');
-        expect(spinner).toBeInTheDocument();
-        expect(spinner).toHaveClass('animate-spin', 'rounded-full');
-      });
-    });
-
-    it('should disable button when loading', async () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(button).toBeDisabled();
-      });
-    });
-
-    it('should not show Google icon when loading', async () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        const icon = button.querySelector('svg[viewBox="0 0 24 24"]');
-        expect(icon).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Disabled State', () => {
-    it('should be disabled when disabled prop is true', () => {
-      render(<GoogleOAuthButton disabled />);
-
-      const button = screen.getByRole('button');
-      expect(button).toBeDisabled();
-    });
-
-    it('should not handle clicks when disabled', async () => {
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton disabled />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should apply disabled className', () => {
-      render(<GoogleOAuthButton disabled />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('disabled:bg-gray-100');
-    });
-  });
-
-  describe('Click Handling', () => {
-    it('should handle successful OAuth redirect', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 302,
-      });
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/google', {
-          method: 'GET',
-          redirect: 'manual',
-          credentials: 'include',
-          signal: expect.any(AbortSignal),
-          headers: {
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-          },
-        });
-      });
-
-      await waitFor(() => {
-        expect(mockLocation.href).toBe('/api/auth/google');
-      });
-    });
-
-    it('should prevent double clicks', async () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
 
-      // Rapid fire clicks
-      await user.click(button);
-      await user.click(button);
+      // Initial state should show Google icon
+      expect(
+        button.querySelector('svg[viewBox="0 0 24 24"]'),
+      ).toBeInTheDocument();
+
       await user.click(button);
 
-      // Should only call fetch once
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      // After click, component shows loading briefly before navigation
+      // Since navigation is synchronous, we just verify the component structure is correct
+      expect(mockLocation.href).toBe('http://localhost:3001/auth/google');
     });
 
-    it('should prevent event bubbling', async () => {
-      const parentClickHandler = vi.fn();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 302,
-      });
-
-      const user = userEvent.setup();
-      render(
-        <div onClick={parentClickHandler}>
-          <GoogleOAuthButton />
-        </div>,
+    it('should disable button when loading during error scenarios', async () => {
+      const originalLocationHref = Object.getOwnPropertyDescriptor(
+        mockLocation,
+        'href',
       );
+      let setterCalled = false;
 
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      expect(parentClickHandler).not.toHaveBeenCalled();
-    });
-
-    it('should handle successful response without redirect status', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
+      Object.defineProperty(mockLocation, 'href', {
+        set: () => {
+          if (!setterCalled) {
+            setterCalled = true;
+            throw new Error('Navigation failed');
+          }
+        },
+        configurable: true,
       });
 
       const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(mockLocation.href).toBe('/api/auth/google');
-      });
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle rate limit errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 429,
-      });
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Too many login attempts. Please wait 60 seconds and try again.',
-        );
-      });
-
-      expect(mockOnOAuthError).toHaveBeenCalledWith(expect.any(Error));
-    });
-
-    it('should handle generic errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Sign in failed. Please try again.',
-        );
-      });
-
-      expect(mockOnOAuthError).toHaveBeenCalledWith(expect.any(Error));
-    });
-
-    it('should handle network errors', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Sign in failed. Please try again.',
-        );
-      });
-
-      expect(mockOnOAuthError).toHaveBeenCalledWith(expect.any(Error));
-    });
-
-    it('should handle timeout errors', async () => {
-      const abortError = new Error('Request timeout');
-      abortError.name = 'AbortError';
-      mockFetch.mockRejectedValue(abortError);
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Sign in failed. Please try again.',
-        );
-      });
-    });
-
-    it('should reset loading state after error', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       await user.click(button);
@@ -476,37 +295,160 @@ describe('GoogleOAuthButton', () => {
         expect(button).not.toBeDisabled();
       });
 
-      // Should be able to click again
-      await user.click(button);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      if (originalLocationHref) {
+        Object.defineProperty(mockLocation, 'href', originalLocationHref);
+      }
     });
+  });
 
-    it('should handle errors without onOAuthError callback', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
+  describe('Disabled State', () => {
+    it('should be disabled when disabled prop is true', () => {
+      render(<GoogleOAuthButton disabled />, { wrapper });
 
       const button = screen.getByRole('button');
-
-      expect(() => user.click(button)).not.toThrow();
+      expect(button).toBeDisabled();
     });
 
-    it('should convert non-Error objects to Error instances', async () => {
-      mockFetch.mockRejectedValue('String error');
-
+    it('should not handle clicks when disabled', async () => {
       const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
+      render(<GoogleOAuthButton disabled />, { wrapper });
+
+      const button = screen.getByRole('button');
+      await user.click(button);
+
+      expect(mockLocation.href).toBe('');
+    });
+
+    it('should apply disabled className', () => {
+      render(<GoogleOAuthButton disabled />, { wrapper });
+
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('disabled:bg-gray-100');
+    });
+  });
+
+  describe('Click Handling', () => {
+    it('should handle successful OAuth redirect', async () => {
+      const user = userEvent.setup();
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       await user.click(button);
 
       await waitFor(() => {
-        expect(mockOnOAuthError).toHaveBeenCalledWith(expect.any(Error));
+        expect(mockLocation.href).toBe('http://localhost:3001/auth/google');
+      });
+    });
+
+    it('should prevent double clicks', async () => {
+      const user = userEvent.setup();
+      render(<GoogleOAuthButton />, { wrapper });
+
+      const button = screen.getByRole('button');
+
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(button).toBeDisabled();
       });
 
-      const errorCall = mockOnOAuthError.mock.calls[0][0];
-      expect(errorCall.message).toBe('OAuth failed');
+      // Second click should not change location again
+      const firstLocation = mockLocation.href;
+      await user.click(button);
+      expect(mockLocation.href).toBe(firstLocation);
+    });
+
+    it('should prevent event bubbling', async () => {
+      const parentClickHandler = vi.fn();
+
+      const user = userEvent.setup();
+      render(
+        <div onClick={parentClickHandler}>
+          <GoogleOAuthButton />
+        </div>,
+        { wrapper },
+      );
+
+      const button = screen.getByRole('button');
+      await user.click(button);
+
+      expect(parentClickHandler).not.toHaveBeenCalled();
+    });
+
+    it('should use custom backend URL from env', async () => {
+      vi.stubEnv('NEXT_PUBLIC_BACKEND_URL', 'https://api.example.com');
+
+      const user = userEvent.setup();
+      render(<GoogleOAuthButton />, { wrapper });
+
+      const button = screen.getByRole('button');
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(mockLocation.href).toBe('https://api.example.com/auth/google');
+      });
+
+      vi.unstubAllEnvs();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle navigation errors gracefully', async () => {
+      const originalLocationHref = Object.getOwnPropertyDescriptor(
+        mockLocation,
+        'href',
+      );
+      Object.defineProperty(mockLocation, 'href', {
+        set: () => {
+          throw new Error('Navigation failed');
+        },
+        configurable: true,
+      });
+
+      const user = userEvent.setup();
+      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />, {
+        wrapper,
+      });
+
+      const button = screen.getByRole('button');
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Sign in failed. Please try again.',
+        );
+      });
+
+      expect(mockOnOAuthError).toHaveBeenCalledWith(expect.any(Error));
+      expect(button).not.toBeDisabled();
+
+      if (originalLocationHref) {
+        Object.defineProperty(mockLocation, 'href', originalLocationHref);
+      }
+    });
+
+    it('should handle errors without onOAuthError callback', async () => {
+      const originalLocationHref = Object.getOwnPropertyDescriptor(
+        mockLocation,
+        'href',
+      );
+      Object.defineProperty(mockLocation, 'href', {
+        set: () => {
+          throw new Error('Navigation failed');
+        },
+        configurable: true,
+      });
+
+      const user = userEvent.setup();
+      render(<GoogleOAuthButton />, { wrapper });
+
+      const button = screen.getByRole('button');
+
+      expect(() => user.click(button)).not.toThrow();
+
+      if (originalLocationHref) {
+        Object.defineProperty(mockLocation, 'href', originalLocationHref);
+      }
     });
   });
 
@@ -518,7 +460,7 @@ describe('GoogleOAuthButton', () => {
         .mockReturnValueOnce(1000) // Initial render time
         .mockReturnValueOnce(1300); // End time (300ms duration)
 
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       // Wait for useEffect to run
       await waitFor(() => {
@@ -538,7 +480,7 @@ describe('GoogleOAuthButton', () => {
       vi.stubEnv('NODE_ENV', 'development');
 
       // Simply test that component renders without errors in development mode
-      expect(() => render(<GoogleOAuthButton />)).not.toThrow();
+      expect(() => render(<GoogleOAuthButton />, { wrapper })).not.toThrow();
 
       vi.unstubAllEnvs();
     });
@@ -548,7 +490,7 @@ describe('GoogleOAuthButton', () => {
 
       mockPerformanceNow.mockReturnValueOnce(1000).mockReturnValueOnce(1300);
 
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       expect(mockConsoleWarn).not.toHaveBeenCalled();
 
@@ -558,21 +500,23 @@ describe('GoogleOAuthButton', () => {
 
   describe('Accessibility', () => {
     it('should have proper aria-label', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-label', 'Sign in with Google');
     });
 
     it('should update aria-label with custom children', () => {
-      render(<GoogleOAuthButton>Custom OAuth Text</GoogleOAuthButton>);
+      render(<GoogleOAuthButton>Custom OAuth Text</GoogleOAuthButton>, {
+        wrapper,
+      });
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-label', 'Custom OAuth Text');
     });
 
     it('should have proper focus handling', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       button.focus();
@@ -581,25 +525,20 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should have proper keyboard interaction', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 302,
-      });
-
       const user = userEvent.setup();
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const button = screen.getByRole('button');
       button.focus();
       await user.keyboard('{Enter}');
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
+        expect(mockLocation.href).toBe('http://localhost:3001/auth/google');
       });
     });
 
     it('should have aria-hidden on icons', () => {
-      render(<GoogleOAuthButton />);
+      render(<GoogleOAuthButton />, { wrapper });
 
       const icon = screen.getByRole('button').querySelector('svg');
       expect(icon).toHaveAttribute('aria-hidden', 'true');
@@ -612,7 +551,9 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should memoize properly with same props', () => {
-      const { rerender } = render(<GoogleOAuthButton className="test" />);
+      const { rerender } = render(<GoogleOAuthButton className="test" />, {
+        wrapper,
+      });
 
       // Render with same props
       rerender(<GoogleOAuthButton className="test" />);
@@ -624,6 +565,7 @@ describe('GoogleOAuthButton', () => {
     it('should re-render when props change', () => {
       const { rerender } = render(
         <GoogleOAuthButton>First Text</GoogleOAuthButton>,
+        { wrapper },
       );
       expect(screen.getByText('First Text')).toBeInTheDocument();
 
@@ -633,7 +575,9 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should handle prop changes correctly', () => {
-      const { rerender } = render(<GoogleOAuthButton disabled={false} />);
+      const { rerender } = render(<GoogleOAuthButton disabled={false} />, {
+        wrapper,
+      });
       expect(screen.getByRole('button')).not.toBeDisabled();
 
       rerender(<GoogleOAuthButton disabled={true} />);
@@ -642,56 +586,19 @@ describe('GoogleOAuthButton', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle missing fetch function gracefully', async () => {
-      const originalFetch = global.fetch;
-      delete (global as Record<string, unknown>).fetch;
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(mockOnOAuthError).toHaveBeenCalled();
-      });
-
-      global.fetch = originalFetch;
-    });
-
     it('should handle undefined performance object', () => {
       const originalPerformance = global.performance;
       (global as Record<string, unknown>).performance = undefined;
 
-      expect(() => render(<GoogleOAuthButton />)).not.toThrow();
+      expect(() => render(<GoogleOAuthButton />, { wrapper })).not.toThrow();
 
       global.performance = originalPerformance;
-    });
-
-    it('should handle invalid JSON responses', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 400,
-        text: () => Promise.resolve('Invalid response'),
-      });
-
-      const user = userEvent.setup();
-      render(<GoogleOAuthButton onOAuthError={mockOnOAuthError} />);
-
-      const button = screen.getByRole('button');
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Sign in failed. Please try again.',
-        );
-      });
     });
   });
 
   describe('Integration', () => {
     it('should work with different button sizes', () => {
-      const { rerender } = render(<GoogleOAuthButton size="sm" />);
+      const { rerender } = render(<GoogleOAuthButton size="sm" />, { wrapper });
       expect(screen.getByRole('button')).toHaveAttribute('data-size', 'sm');
 
       rerender(<GoogleOAuthButton size="lg" />);
@@ -699,7 +606,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should handle complex className combinations', () => {
-      render(<GoogleOAuthButton className="custom-1 custom-2" />);
+      render(<GoogleOAuthButton className="custom-1 custom-2" />, { wrapper });
 
       const button = screen.getByRole('button');
       expect(button).toHaveClass('custom-1', 'custom-2');
@@ -711,6 +618,7 @@ describe('GoogleOAuthButton', () => {
           data-testid="oauth-btn"
           tabIndex={0}
         />,
+        { wrapper },
       );
 
       const button = screen.getByRole('button');

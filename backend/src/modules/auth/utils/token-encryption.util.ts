@@ -25,6 +25,9 @@ export class TokenEncryptionUtil {
   }
 
   public async encrypt(plaintext: string): Promise<EncryptedToken> {
+    if (!plaintext || typeof plaintext !== 'string') {
+      throw new Error(`Invalid plaintext provided: ${typeof plaintext}`);
+    }
     const salt = randomBytes(TokenEncryptionUtil.SALT_LENGTH);
     const iv = randomBytes(TokenEncryptionUtil.IV_LENGTH);
 
@@ -73,6 +76,12 @@ export class TokenEncryptionUtil {
     encryptedAccessToken: EncryptedToken;
     encryptedRefreshToken: EncryptedToken;
   }> {
+    if (!accessToken || typeof accessToken !== 'string') {
+      throw new Error(`Invalid accessToken provided: ${typeof accessToken}`);
+    }
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      throw new Error(`Invalid refreshToken provided: ${typeof refreshToken}`);
+    }
     const [encryptedAccessToken, encryptedRefreshToken] = await Promise.all([
       this.encrypt(accessToken),
       this.encrypt(refreshToken),

@@ -256,7 +256,7 @@ describe('AuthHeader', () => {
 
       const signInLink = screen.getByRole('link', { name: /sign in/i });
       expect(signInLink).toBeInTheDocument();
-      expect(signInLink).toHaveAttribute('href', '/auth/login');
+      expect(signInLink).toHaveAttribute('href', '/login');
     });
 
     it('should display Sign In button when user is null', () => {

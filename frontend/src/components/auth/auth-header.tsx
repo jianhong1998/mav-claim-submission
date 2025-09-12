@@ -67,7 +67,7 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
           size="sm"
         >
           <Link
-            href="/auth/login"
+            href="/login"
             aria-label="Sign in to your account"
           >
             Sign In
