@@ -6,6 +6,7 @@ import { CommonModule } from '../common/common.module';
 import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
 import { DriveModule } from '../drive/drive.module';
+import { ClaimsModule } from '../claims/claims.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DriveModule } from '../drive/drive.module';
     AuthModule,
     EmailModule,
     DriveModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

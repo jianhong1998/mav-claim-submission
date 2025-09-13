@@ -21,3 +21,6 @@ postgres-data
 **/temp
 **/tmp
 .playwright-mcp/
+
+# Spec Workflow
+.spec-workflow/session.json

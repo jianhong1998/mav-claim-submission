@@ -1,414 +1,354 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager } from 'typeorm';
-import CryptoJS from 'crypto-js';
-import { TokenService } from './token.service';
-import { TokenDBUtil, TokenCreationData } from '../utils/token-db.util';
-import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
-import { CommonModule } from 'src/modules/common/common.module';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { TokenService, JWTPayload } from './token.service';
+import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import type { Request } from 'express';
+import * as jwt from 'jsonwebtoken';
+import { vi, describe, it, expect, beforeEach, MockInstance } from 'vitest';
+import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
 
-const mockRepository = Object.freeze({
-  create: vi.fn(),
-  save: vi.fn(),
-  findOne: vi.fn(),
-  find: vi.fn(),
-  count: vi.fn(),
-  softRemove: vi.fn(),
-});
-
-const mockTokenDBUtil = Object.freeze({
-  create: vi.fn(),
-  getOne: vi.fn(),
-  updateWithSave: vi.fn(),
-  delete: vi.fn(),
-});
-
-const mockToken: OAuthTokenEntity = Object.freeze({
-  id: 'token-1',
-  userId: 'user-1',
-  provider: 'google',
-  accessToken: 'encrypted-access-token',
-  refreshToken: 'encrypted-refresh-token',
-  expiresAt: new Date('2024-12-31T23:59:59Z'),
-  scope: 'email profile',
-  user: undefined,
-  createdAt: new Date('2024-01-01T00:00:00Z'),
-  updatedAt: new Date('2024-01-01T00:00:00Z'),
-  deletedAt: null,
-});
-
-const mockTokenCreationData = Object.freeze({
-  userId: 'user-1',
-  provider: 'google',
-  accessToken: 'raw-access-token',
-  refreshToken: 'raw-refresh-token',
-  expiresAt: new Date('2024-12-31T23:59:59Z'),
-  scope: 'email profile',
-} as TokenCreationData);
+vi.mock('jsonwebtoken', () => ({
+  sign: vi.fn(),
+  verify: vi.fn(),
+  decode: vi.fn(),
+}));
 
 describe('TokenService', () => {
-  let service: TokenService;
-  let tokenDBUtil: {
-    create: ReturnType<typeof vi.fn>;
-    getOne: ReturnType<typeof vi.fn>;
-    updateWithSave: ReturnType<typeof vi.fn>;
-    delete: ReturnType<typeof vi.fn>;
+  let tokenService: TokenService;
+  let userDBUtil: UserDBUtil;
+  let environmentVariableUtil: EnvironmentVariableUtil;
+
+  // Test data
+  const mockUser: UserEntity = {
+    id: 'user-123',
+    email: 'test@mavericks-consulting.com',
+    name: 'Test User',
+    picture: 'https://example.com/photo.jpg',
+    googleId: 'google-123',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
-  let repository: {
-    create: ReturnType<typeof vi.fn>;
-    save: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-    find: ReturnType<typeof vi.fn>;
-    count: ReturnType<typeof vi.fn>;
-    softRemove: ReturnType<typeof vi.fn>;
-  };
 
-  beforeEach(async () => {
-    // Set environment variable BEFORE creating the service
-    process.env.BACKEND_TOKEN_ENCRYPTION_KEY = 'test-encryption-key';
+  const mockJWTSecret = 'test-jwt-secret';
+  const mockJWTToken = 'mock.jwt.token';
 
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [CommonModule],
-      providers: [
-        TokenService,
-        {
-          provide: TokenDBUtil,
-          useValue: mockTokenDBUtil,
-        },
-        {
-          provide: getRepositoryToken(OAuthTokenEntity),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    // Create real instances directly
+    const mockConfigService = {
+      get: vi.fn().mockImplementation((key: string, defaultValue: unknown) => {
+        if (key === 'BACKEND_JWT_SECRET') return mockJWTSecret;
+        return defaultValue as string;
+      }),
+      getOrThrow: vi.fn().mockReturnValue(''),
+    } as unknown as ConfigService;
 
-    service = module.get<TokenService>(TokenService);
-    tokenDBUtil = module.get(TokenDBUtil);
-    repository = module.get(getRepositoryToken(OAuthTokenEntity));
-  });
+    const mockRepository = {
+      findOne: vi.fn(),
+      find: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      softRemove: vi.fn(),
+    } as unknown as Repository<UserEntity>;
 
-  afterEach(() => {
+    environmentVariableUtil = new EnvironmentVariableUtil(mockConfigService);
+    userDBUtil = new UserDBUtil(mockRepository);
+    tokenService = new TokenService(userDBUtil, environmentVariableUtil);
+
+    // Clear all mocks
     vi.clearAllMocks();
-    delete process.env.BACKEND_TOKEN_ENCRYPTION_KEY;
   });
 
-  describe('create', () => {
-    it('should create and save a new token with encrypted values', async () => {
-      const createdToken = { ...mockToken };
-      tokenDBUtil.create.mockResolvedValue(createdToken);
+  describe('generateJWT', () => {
+    it('should generate JWT token with correct payload', () => {
+      (jwt.sign as unknown as MockInstance).mockReturnValue(mockJWTToken);
 
-      const result = await service.create({
-        creationData: mockTokenCreationData,
-      });
+      const result = tokenService.generateJWT(mockUser);
 
-      expect(tokenDBUtil.create).toHaveBeenCalledWith({
-        creationData: {
-          userId: mockTokenCreationData.userId,
-          provider: mockTokenCreationData.provider,
-          accessToken: expect.any(String) as string,
-          refreshToken: expect.any(String) as string,
-          expiresAt: mockTokenCreationData.expiresAt,
-          scope: mockTokenCreationData.scope,
+      expect(jwt.sign).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          email: mockUser.email,
         },
-      });
-      expect(result).toEqual(createdToken);
-    });
-
-    it('should use entity manager when provided', async () => {
-      const mockEntityManager = {
-        getRepository: vi.fn().mockReturnValue(repository),
-      } as unknown as EntityManager;
-
-      const createdToken = { ...mockToken };
-      tokenDBUtil.create.mockResolvedValue(createdToken);
-
-      await service.create({
-        creationData: mockTokenCreationData,
-        entityManager: mockEntityManager,
-      });
-
-      expect(tokenDBUtil.create).toHaveBeenCalledWith({
-        creationData: expect.objectContaining({
-          userId: mockTokenCreationData.userId,
-          provider: mockTokenCreationData.provider,
-          accessToken: expect.any(String),
-          refreshToken: expect.any(String),
-          expiresAt: mockTokenCreationData.expiresAt,
-          scope: mockTokenCreationData.scope,
-        }),
-        entityManager: mockEntityManager,
-      });
-    });
-  });
-
-  describe('getTokenForUser', () => {
-    it('should find token for user with default provider', async () => {
-      tokenDBUtil.getOne.mockResolvedValue(mockToken);
-
-      const result = await service.getTokenForUser('user-1');
-
-      expect(tokenDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { userId: 'user-1', provider: 'google' },
-        relation: { user: true },
-      });
-      expect(result).toEqual(mockToken);
-    });
-
-    it('should find token for user with specified provider', async () => {
-      tokenDBUtil.getOne.mockResolvedValue(mockToken);
-
-      const result = await service.getTokenForUser('user-1', 'google');
-
-      expect(tokenDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { userId: 'user-1', provider: 'google' },
-        relation: { user: true },
-      });
-      expect(result).toEqual(mockToken);
-    });
-
-    it('should return null when token not found', async () => {
-      tokenDBUtil.getOne.mockResolvedValue(null);
-
-      const result = await service.getTokenForUser('user-1');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('updateToken', () => {
-    it('should update existing token', async () => {
-      const existingToken = { ...mockToken };
-      const updatedToken = { ...mockToken, scope: 'updated-scope' };
-
-      tokenDBUtil.getOne.mockResolvedValue(existingToken);
-      tokenDBUtil.updateWithSave.mockResolvedValue([updatedToken]);
-
-      const result = await service.updateToken({
-        userId: 'user-1',
-        provider: 'google',
-        accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
-        expiresAt: new Date('2025-01-01T00:00:00Z'),
-        scope: 'updated-scope',
-      });
-
-      expect(tokenDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { userId: 'user-1', provider: 'google' },
-        withDeleted: true,
-      });
-      expect(tokenDBUtil.updateWithSave).toHaveBeenCalledWith({
-        dataArray: [
-          expect.objectContaining({
-            accessToken: expect.any(String),
-            refreshToken: expect.any(String),
-            expiresAt: new Date('2025-01-01T00:00:00Z'),
-            scope: 'email profile updated-scope', // Merged scopes
-          }),
-        ],
-      });
-      expect(result).toEqual(updatedToken);
-    });
-
-    it('should create new token when none exists', async () => {
-      tokenDBUtil.getOne.mockResolvedValue(null);
-      vi.spyOn(service, 'create').mockResolvedValue(mockToken);
-
-      const result = await service.updateToken({
-        userId: 'user-1',
-        provider: 'google',
-        accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
-        expiresAt: new Date('2025-01-01T00:00:00Z'),
-        scope: 'new-scope',
-      });
-
-      expect(service.create).toHaveBeenCalledWith({
-        creationData: {
-          userId: 'user-1',
-          provider: 'google',
-          accessToken: 'new-access-token',
-          refreshToken: 'new-refresh-token',
-          expiresAt: new Date('2025-01-01T00:00:00Z'),
-          scope: 'new-scope',
+        mockJWTSecret,
+        {
+          expiresIn: '24h',
         },
-      });
-      expect(result).toEqual(mockToken);
-    });
-  });
-
-  describe('deleteTokenForUser', () => {
-    it('should delete token and return true when successful', async () => {
-      tokenDBUtil.delete.mockResolvedValue([mockToken]);
-
-      const result = await service.deleteTokenForUser('user-1');
-
-      expect(tokenDBUtil.delete).toHaveBeenCalledWith({
-        criteria: { userId: 'user-1', provider: 'google' },
-      });
-      expect(result).toBe(true);
-    });
-
-    it('should return false when token not found', async () => {
-      tokenDBUtil.delete.mockResolvedValue(null);
-
-      const result = await service.deleteTokenForUser('user-1');
-
-      expect(result).toBe(false);
-    });
-
-    it('should use specified provider', async () => {
-      tokenDBUtil.delete.mockResolvedValue([mockToken]);
-
-      await service.deleteTokenForUser('user-1', 'google');
-
-      expect(tokenDBUtil.delete).toHaveBeenCalledWith({
-        criteria: { userId: 'user-1', provider: 'google' },
-      });
-    });
-  });
-
-  describe('isTokenExpired', () => {
-    it('should return true when token is expired', () => {
-      const expiredToken = {
-        ...mockToken,
-        expiresAt: new Date('2020-01-01T00:00:00Z'),
-      };
-
-      const result = service.isTokenExpired(expiredToken);
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when token is not expired', () => {
-      const validToken = {
-        ...mockToken,
-        expiresAt: new Date('2030-01-01T00:00:00Z'),
-      };
-
-      const result = service.isTokenExpired(validToken);
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('token encryption/decryption', () => {
-    it('should decrypt access token correctly', () => {
-      const originalToken = 'original-access-token';
-      const encryptedToken = CryptoJS.AES.encrypt(
-        originalToken,
-        'test-encryption-key',
-      ).toString();
-
-      const tokenWithEncrypted = {
-        ...mockToken,
-        accessToken: encryptedToken,
-      };
-
-      const result = service.getDecryptedAccessToken(tokenWithEncrypted);
-
-      expect(result).toBe(originalToken);
-    });
-
-    it('should decrypt refresh token correctly', () => {
-      const originalToken = 'original-refresh-token';
-      const encryptedToken = CryptoJS.AES.encrypt(
-        originalToken,
-        'test-encryption-key',
-      ).toString();
-
-      const tokenWithEncrypted = {
-        ...mockToken,
-        refreshToken: encryptedToken,
-      };
-
-      const result = service.getDecryptedRefreshToken(tokenWithEncrypted);
-
-      expect(result).toBe(originalToken);
-    });
-  });
-
-  describe('getValidTokenForUser', () => {
-    it('should return decrypted tokens for valid user', async () => {
-      const originalAccessToken = 'original-access-token';
-      const originalRefreshToken = 'original-refresh-token';
-
-      const encryptedAccessToken = CryptoJS.AES.encrypt(
-        originalAccessToken,
-        'test-encryption-key',
-      ).toString();
-      const encryptedRefreshToken = CryptoJS.AES.encrypt(
-        originalRefreshToken,
-        'test-encryption-key',
-      ).toString();
-
-      const tokenWithEncrypted = {
-        ...mockToken,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-      };
-
-      vi.spyOn(service, 'getTokenForUser').mockResolvedValue(
-        tokenWithEncrypted,
       );
-
-      const result = await service.getValidTokenForUser('user-1');
-
-      expect(result).toEqual({
-        accessToken: originalAccessToken,
-        refreshToken: originalRefreshToken,
-      });
+      expect(result).toBe(mockJWTToken);
     });
 
-    it('should return null when user has no token', async () => {
-      vi.spyOn(service, 'getTokenForUser').mockResolvedValue(null);
+    it('should use environment JWT secret for signing', () => {
+      (jwt.sign as unknown as MockInstance).mockReturnValue(mockJWTToken);
 
-      const result = await service.getValidTokenForUser('user-1');
+      tokenService.generateJWT(mockUser);
+
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.any(Object),
+        mockJWTSecret,
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('validateJWT', () => {
+    const mockJWTPayload: JWTPayload = {
+      userId: mockUser.id,
+      email: mockUser.email,
+      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+    };
+
+    it('should validate JWT and return user when token is valid', async () => {
+      (jwt.verify as unknown as MockInstance).mockReturnValue(mockJWTPayload);
+      const userSpy = vi
+        .spyOn(userDBUtil, 'getOne')
+        .mockResolvedValue(mockUser);
+
+      const result = await tokenService.validateJWT(mockJWTToken);
+
+      expect(jwt.verify).toHaveBeenCalledWith(mockJWTToken, mockJWTSecret);
+      expect(userSpy).toHaveBeenCalledWith({
+        criteria: { id: mockUser.id },
+      });
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should return null when JWT verification fails', async () => {
+      (jwt.verify as unknown as MockInstance).mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+      const userSpy = vi.spyOn(userDBUtil, 'getOne');
+
+      const result = await tokenService.validateJWT(mockJWTToken);
+
+      expect(result).toBeNull();
+      expect(userSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return null when JWT payload has no userId', async () => {
+      (jwt.verify as unknown as MockInstance).mockReturnValue({
+        email: mockUser.email,
+      } as JWTPayload);
+      const userSpy = vi.spyOn(userDBUtil, 'getOne');
+
+      const result = await tokenService.validateJWT(mockJWTToken);
+
+      expect(result).toBeNull();
+      expect(userSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return null when user is not found in database', async () => {
+      (jwt.verify as unknown as MockInstance).mockReturnValue(mockJWTPayload);
+      const userSpy = vi.spyOn(userDBUtil, 'getOne').mockResolvedValue(null);
+
+      const result = await tokenService.validateJWT(mockJWTToken);
+
+      expect(result).toBeNull();
+      expect(userSpy).toHaveBeenCalled();
+    });
+
+    it('should handle database errors gracefully', async () => {
+      (jwt.verify as unknown as MockInstance).mockReturnValue(mockJWTPayload);
+      const userSpy = vi
+        .spyOn(userDBUtil, 'getOne')
+        .mockRejectedValue(new Error('Database error'));
+
+      const result = await tokenService.validateJWT(mockJWTToken);
+
+      expect(result).toBeNull();
+      expect(userSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('extractJWTFromRequest', () => {
+    it('should extract JWT from cookie when present', () => {
+      const mockRequest = {
+        cookies: { jwt: mockJWTToken },
+        headers: {},
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBe(mockJWTToken);
+    });
+
+    it('should extract JWT from Authorization header when cookie not present', () => {
+      const mockRequest = {
+        cookies: {},
+        headers: { authorization: `Bearer ${mockJWTToken}` },
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBe(mockJWTToken);
+    });
+
+    it('should prioritize cookie over Authorization header', () => {
+      const cookieToken = 'cookie-token';
+      const headerToken = 'header-token';
+      const mockRequest = {
+        cookies: { jwt: cookieToken },
+        headers: { authorization: `Bearer ${headerToken}` },
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBe(cookieToken);
+    });
+
+    it('should return null when no token is present', () => {
+      const mockRequest = {
+        cookies: {},
+        headers: {},
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when Authorization header has invalid format', () => {
+      const mockRequest = {
+        cookies: {},
+        headers: { authorization: 'InvalidFormat token' },
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle missing cookies object', () => {
+      const mockRequest = {
+        headers: {},
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle non-string cookie values', () => {
+      const mockRequest = {
+        cookies: { jwt: 123 }, // Non-string value
+        headers: {},
+      } as unknown as Request;
+
+      const result = tokenService.extractJWTFromRequest(mockRequest);
 
       expect(result).toBeNull();
     });
   });
 
-  describe('toDTO', () => {
-    it('should return DTO with masked tokens', () => {
-      const result = service.toDTO(mockToken);
+  describe('validateSessionFromRequest', () => {
+    it('should validate session from request with valid token', async () => {
+      const mockRequest = {
+        cookies: { jwt: mockJWTToken },
+        headers: {},
+      } as unknown as Request;
 
-      expect(result).toEqual({
-        id: mockToken.id,
-        userId: mockToken.userId,
-        provider: mockToken.provider,
-        accessToken: '***',
-        refreshToken: '***',
-        expiresAt: mockToken.expiresAt.toISOString(),
-        scope: mockToken.scope,
-        createdAt: mockToken.createdAt.toISOString(),
-        updatedAt: mockToken.updatedAt.toISOString(),
+      const mockJWTPayload: JWTPayload = {
+        userId: mockUser.id,
+        email: mockUser.email,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      };
+
+      (jwt.verify as unknown as MockInstance).mockReturnValue(mockJWTPayload);
+      vi.spyOn(userDBUtil, 'getOne').mockResolvedValue(mockUser);
+
+      const result = await tokenService.validateSessionFromRequest(mockRequest);
+
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should return null when no token in request', async () => {
+      const mockRequest = {
+        cookies: {},
+        headers: {},
+      } as unknown as Request;
+
+      const result = await tokenService.validateSessionFromRequest(mockRequest);
+
+      expect(result).toBeNull();
+      expect(jwt.verify).not.toHaveBeenCalled();
+    });
+
+    it('should return null when token is invalid', async () => {
+      const mockRequest = {
+        cookies: { jwt: 'invalid-token' },
+        headers: {},
+      } as unknown as Request;
+
+      (jwt.verify as unknown as MockInstance).mockImplementation(() => {
+        throw new Error('Invalid token');
       });
+
+      const result = await tokenService.validateSessionFromRequest(mockRequest);
+
+      expect(result).toBeNull();
     });
   });
 
-  describe('encryption key handling', () => {
-    it('should use default key when environment variable not set', async () => {
-      delete process.env.BACKEND_TOKEN_ENCRYPTION_KEY;
+  describe('decodeJWT', () => {
+    it('should decode JWT without validation', () => {
+      const mockPayload = { userId: mockUser.id, email: mockUser.email };
+      (jwt.decode as unknown as MockInstance).mockReturnValue(mockPayload);
 
-      const module = await Test.createTestingModule({
-        imports: [CommonModule],
-        providers: [
-          TokenService,
-          {
-            provide: TokenDBUtil,
-            useValue: mockTokenDBUtil,
-          },
-          {
-            provide: getRepositoryToken(OAuthTokenEntity),
-            useValue: repository,
-          },
-        ],
-      }).compile();
+      const result = tokenService.decodeJWT(mockJWTToken);
 
-      expect(module).toBeTruthy();
+      expect(jwt.decode).toHaveBeenCalledWith(mockJWTToken);
+      expect(result).toEqual(mockPayload);
+    });
+
+    it('should return null when decode fails', () => {
+      (jwt.decode as unknown as MockInstance).mockImplementation(() => {
+        throw new Error('Decode error');
+      });
+
+      const result = tokenService.decodeJWT(mockJWTToken);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('isJWTExpired', () => {
+    it('should return false for non-expired token', () => {
+      const futureExp = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+      (jwt.decode as unknown as MockInstance).mockReturnValue({
+        exp: futureExp,
+      });
+
+      const result = tokenService.isJWTExpired(mockJWTToken);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true for expired token', () => {
+      const pastExp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+      (jwt.decode as unknown as MockInstance).mockReturnValue({ exp: pastExp });
+
+      const result = tokenService.isJWTExpired(mockJWTToken);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true for token without exp claim', () => {
+      vi.mocked(jwt.decode).mockReturnValue({ userId: 'test' });
+
+      const result = tokenService.isJWTExpired(mockJWTToken);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true when decode fails', () => {
+      (jwt.decode as unknown as MockInstance).mockImplementation(() => {
+        throw new Error('Decode error');
+      });
+
+      const result = tokenService.isJWTExpired(mockJWTToken);
+
+      expect(result).toBe(true);
     });
   });
 });

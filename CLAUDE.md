@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Overview
 
-**Mavericks Claim Submission System** - A TurboRepo monorepo for digital expense claim processing that replaces manual email workflows. Built with NestJS backend, Next.js frontend, Google Drive file storage, and RabbitMQ job processing.
+**Mavericks Claim Submission System** - A TurboRepo monorepo for digital expense claim processing that replaces manual email workflows. Built with NestJS backend, Next.js frontend, Google Drive file storage, and synchronous Gmail email processing.
 
 ## Architecture & Requirements
 
@@ -55,11 +55,11 @@ make test/api          # API integration tests
 
 ### Critical Implementation Notes
 
-**Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata and verification.
+**Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata.
 
-**Async Email Processing**: RabbitMQ jobs send emails with Google Drive shareable URLs instead of file attachments. Jobs run in separate Docker container.
+**Synchronous Email Processing**: Gmail API sends emails immediately with Google Drive shareable URLs instead of file attachments.
 
-**Claim Status Flow**: `draft → sent ↔ paid` or `draft → failed → sent ↔ paid`
+**Claim Status Flow**: `draft → sent ↔ paid`
 
 **Dark Mode Only**: UI exclusively uses dark theme with mobile-responsive design.
 
@@ -110,25 +110,57 @@ Managed from root `.env` file:
 
 - `DATABASE_*`: PostgreSQL settings
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth credentials
-- `RABBITMQ_*`: Job queue settings
 - **Required**: Gmail API and Google Drive API enabled in Google Cloud Console
 
 ## Special App Requirements
 
 - For claim features, refer to detailed requirements in `docs/specifications/002/`
 - Google Drive integration must use client-side uploads with OAuth tokens
-- Email processing must be asynchronous using RabbitMQ
+- Email processing must be synchronous using Gmail API
 - UI must support dark mode and mobile responsiveness only
 
 ## Current Status
 
-✅ **Implemented**: Google OAuth authentication, Gmail API integration, user management, database foundation
+✅ **Implemented**:
+- **Google OAuth Authentication**: Complete OAuth 2.0 flow with JWT sessions
+  - Domain restriction to @mavericks-consulting.com accounts
+  - Passport.js Google OAuth strategy with automatic token refresh
+  - JWT tokens in HttpOnly cookies (24-hour expiry)
+  - Encrypted OAuth token storage in PostgreSQL
+  - Rate limiting on OAuth endpoints (10/min initiate, 20/min callback)
+- **Frontend Authentication**:
+  - AuthProvider with React Context for global auth state
+  - Google OAuth button with accessibility features
+  - Auth status hook with React Query (30s stale time)
+  - OAuth callback page for session refresh
+  - Performance optimized for <100ms auth checks
+- **Database Layer**: Complete entity models with proper relationships:
+  - User entity with Google OAuth integration
+  - Claims entity with categories, status flow, and validation constraints
+  - Attachments entity with Google Drive file metadata
+  - OAuth tokens entity with encryption and auto-refresh
+- **Database Utilities**: Full CRUD operations for all entities with TypeORM
+- **Business Logic**: Claim categories, status enums using Object.freeze() pattern
+- **Architecture**: TurboRepo monorepo with NestJS backend, Next.js frontend
+- **Testing**: Vitest unit testing setup with coverage reporting
+- **Development Tools**: ESLint, Prettier, TypeScript strict mode across workspaces
 
-🚧 **In Development**: Claim submission system, Google Drive integration, RabbitMQ job processing
+🚧 **In Development**:
+- **API Endpoints**: Implementing remaining endpoints:
+  - Drive token endpoint for client-side uploads
+  - Claims management endpoints (create, list, update)
+  - Email send endpoint with Gmail API integration
+- **Swagger Integration**: API documentation with OpenAPI specifications
 
-📋 **Next Phase**: Frontend claim forms, attachment uploads, email templates, status management
+📋 **Next Phase**:
+- Complete claim management API endpoints
+- Google Drive client-side upload implementation
+- Frontend claim submission and management interfaces
+- Email notification templates with Drive URLs
 
 ## Development Practices
 
 - Always use agents if suitable for the task
 - Always run `make format` and `make lint` after code changes
+- always format code with command `make format` before running lint check
+- Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.

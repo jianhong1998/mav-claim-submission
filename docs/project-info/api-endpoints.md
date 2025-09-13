@@ -1,14 +1,72 @@
 # API Endpoints
 
-## Existing Endpoints
+## Implemented Endpoints
 
 ### Authentication (`/auth`)
-- `GET /auth/google` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - Handle Google OAuth callback
-- `GET /auth/profile` - Get authenticated user profile
-- `POST /auth/logout` - Logout and clear session
-- `GET /auth/status` - Check authentication status
-- `POST /auth/refresh` - Refresh OAuth tokens
+
+#### `GET /auth/google`
+- **Purpose**: Initiate Google OAuth flow with domain restriction
+- **Rate Limit**: 10 requests per minute (OAuth initiate protection)
+- **Scopes**: profile, email, gmail.send, drive.file
+- **Domain**: Only @mavericks-consulting.com accounts allowed
+- **Response**: Redirect to Google OAuth consent screen
+
+#### `GET /auth/google/callback`
+- **Purpose**: Handle OAuth callback and generate JWT session
+- **Rate Limit**: 20 requests per minute (OAuth callback protection)
+- **Process**:
+  - Validates Google OAuth response
+  - Creates/updates user in database
+  - Stores encrypted OAuth tokens
+  - Generates JWT and sets HttpOnly cookie
+- **Success**: Redirect to `/callback` page
+- **Failure**: Redirect to `/login?error=auth_failed`
+
+#### `GET /auth/profile`
+- **Purpose**: Get authenticated user profile
+- **Authentication**: Required (JWT)
+- **Rate Limit**: Standard API rate limit
+- **Response**:
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "user@mavericks-consulting.com",
+    "name": "User Name",
+    "picture": "url",
+    "googleId": "google-id",
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:00Z"
+  },
+  "message": "Profile retrieved successfully"
+}
+```
+
+#### `POST /auth/logout`
+- **Purpose**: Logout user and clear JWT cookie
+- **Authentication**: Optional (graceful handling)
+- **Rate Limit**: Standard API rate limit
+- **Process**:
+  - Deletes OAuth tokens from database
+  - Clears JWT cookie
+- **Response**:
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+#### `GET /auth/status`
+- **Purpose**: Check authentication status
+- **Authentication**: Optional (uses JwtOptionalGuard)
+- **Rate Limit**: None (for integration tests)
+- **Response**:
+```json
+{
+  "isAuthenticated": true,
+  "user": { /* user object if authenticated */ }
+}
+```
 
 ### Email (`/email`)
 - `POST /email/send` - Send email via Gmail API (requires authentication)
@@ -101,19 +159,28 @@ Response: { jobId: string }
 
 ## Authentication Requirements
 
-All endpoints support session-based authentication and include test bypass headers for development.
+### JWT Authentication
+Protected endpoints require JWT token in HttpOnly cookie:
+```
+Cookie: jwt=<token>
+```
 
-### Required Headers
-```
-Cookie: session-cookie-from-login
-```
+### JWT Token Details
+- **Type**: JWT with HS256 signing
+- **Storage**: HttpOnly cookie with SameSite=lax
+- **Expiry**: 24 hours
+- **Payload**: Contains user ID and email
+- **Secure Flag**: Enabled in production
 
-### Development Test Headers
-For bypassing authentication in development:
-```
-X-Test-User-Email: user@mavericks-consulting.com
-X-Test-User-Id: uuid-string
-```
+### Guards
+- **JwtAuthGuard**: Requires valid JWT token
+- **JwtOptionalGuard**: Allows both authenticated and unauthenticated access
+
+### OAuth Token Management
+- **Storage**: Encrypted in PostgreSQL
+- **Refresh**: Automatic when expired
+- **Scopes**: profile, email, gmail.send, drive.file
+- **Provider**: Google OAuth 2.0
 
 ## Request/Response Formats
 
@@ -157,10 +224,18 @@ X-Test-User-Id: uuid-string
 
 ## Rate Limiting
 
-Standard rate limiting applied:
-- 100 requests per minute per user
-- 1000 requests per hour per IP
-- Special limits for file upload endpoints
+### OAuth Endpoints
+- **`/auth/google`**: 10 requests per minute (initiate protection)
+- **`/auth/google/callback`**: 20 requests per minute (callback protection)
+
+### Standard API Endpoints
+- **Authenticated endpoints**: Standard rate limit
+- **`/auth/status`**: No rate limit (for integration tests)
+
+### Implementation
+- Uses custom decorators: `@OAuthProtected()` and `@AuthGeneralRateLimit()`
+- Rate limiting by IP address
+- Returns 429 Too Many Requests when exceeded
 
 ## CORS Configuration
 

@@ -1,374 +1,652 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
-import { TokenService } from './token.service';
-import { OAuthTokenEntity } from 'src/modules/auth/entities/oauth-token.entity';
-import { UserEntity } from 'src/modules/user/entities/user.entity';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { UnauthorizedException } from '@nestjs/common';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  Mock,
+  MockInstance,
+} from 'vitest';
+import * as jwt from 'jsonwebtoken';
+import { google } from 'googleapis';
+import { AuthService, GoogleProfile, GoogleTokens } from './auth.service';
+import { JWTPayload, TokenService } from './token.service';
 import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { TokenDBUtil } from '../utils/token-db.util';
+import { type EncryptedToken } from '../utils/token-encryption.util';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { OAuthTokenEntity } from '../entities/oauth-token.entity';
+
+// Mock Google APIs
+vi.mock('googleapis', () => ({
+  google: {
+    auth: {
+      OAuth2: vi.fn(),
+    },
+  },
+}));
+
+// Mock JWT
+vi.mock('jsonwebtoken', () => ({
+  sign: vi.fn(),
+  verify: vi.fn(),
+}));
 
 describe('AuthService', () => {
-  let service: AuthService;
-  let userDBUtil: {
-    create: ReturnType<typeof vi.fn>;
-    getOne: ReturnType<typeof vi.fn>;
-    updateWithSave: ReturnType<typeof vi.fn>;
-    delete: ReturnType<typeof vi.fn>;
+  let authService: AuthService;
+  let mockUserDBUtil: {
+    getOne: Mock;
+    create: Mock;
   };
-  let tokenService: {
-    updateToken: ReturnType<typeof vi.fn>;
-    deleteTokenForUser: ReturnType<typeof vi.fn>;
-    getValidTokenForUser: ReturnType<typeof vi.fn>;
-    getTokenForUser: ReturnType<typeof vi.fn>;
+  let mockTokenDBUtil: {
+    getOne: Mock;
+    create: Mock;
+    delete: Mock;
+    hardDelete: Mock;
+    getDecryptedTokens: Mock;
+    findByUserIdWithDecryptedTokens: Mock;
+  };
+  let mockTokenService: {
+    generateJWT: Mock;
+    validateJWT: Mock;
+  };
+  let mockOAuth2Client: {
+    setCredentials: Mock;
+    refreshAccessToken: Mock;
   };
 
-  const mockUser: UserEntity = {
-    id: 'user-1',
-    email: 'test@example.com',
-    name: 'Test User',
-    picture: 'https://example.com/picture.jpg',
+  const mockGoogleProfile: GoogleProfile = {
+    id: 'google-123',
+    emails: [{ value: 'test@mavericks-consulting.com', verified: true }],
+    name: { familyName: 'Doe', givenName: 'John' },
+    photos: [{ value: 'https://example.com/photo.jpg' }],
+  };
+
+  const mockGoogleTokens: GoogleTokens = {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    expires_in: 3600,
+    scope: 'profile email gmail.send drive.file',
+  };
+
+  const mockUserEntity: UserEntity = {
+    id: 'user-123',
+    email: 'test@mavericks-consulting.com',
+    name: 'John Doe',
+    picture: 'https://example.com/photo.jpg',
     googleId: 'google-123',
-    oauthTokens: [],
-    createdAt: new Date('2024-01-01T00:00:00Z'),
-    updatedAt: new Date('2024-01-01T00:00:00Z'),
-    deletedAt: undefined,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as UserEntity;
+
+  const mockEncryptedAccessToken: EncryptedToken = {
+    data: 'encrypted-access-token-data',
+    iv: 'mock-iv-123',
+    salt: 'mock-salt-456',
   };
 
-  const mockOAuthData = {
-    googleId: 'google-123',
-    email: 'test@example.com',
-    name: 'Test User',
-    picture: 'https://example.com/picture.jpg',
-    accessToken: 'access-token',
-    refreshToken: 'refresh-token',
-    expiresAt: new Date('2024-12-31T23:59:59Z'),
-    scope: 'email profile',
+  const mockEncryptedRefreshToken: EncryptedToken = {
+    data: 'encrypted-refresh-token-data',
+    iv: 'mock-iv-789',
+    salt: 'mock-salt-abc',
   };
 
-  beforeEach(async () => {
-    const mockUserDBUtil = {
-      create: vi.fn(),
-      getOne: vi.fn(),
-      updateWithSave: vi.fn(),
-      delete: vi.fn(),
-    };
+  const mockOAuthTokenEntity = {
+    id: 'token-123',
+    userId: 'user-123',
+    provider: 'google',
+    accessToken: mockEncryptedAccessToken,
+    refreshToken: mockEncryptedRefreshToken,
+    expiresAt: new Date(Date.now() + 3600 * 1000),
+    scope: 'profile email gmail.send drive.file',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+  } as OAuthTokenEntity;
 
-    const mockTokenService = {
-      updateToken: vi.fn(),
-      deleteTokenForUser: vi.fn(),
-      getValidTokenForUser: vi.fn(),
-      getTokenForUser: vi.fn(),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        {
-          provide: UserDBUtil,
-          useValue: mockUserDBUtil,
-        },
-        {
-          provide: TokenService,
-          useValue: mockTokenService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
-    userDBUtil = module.get(UserDBUtil);
-    tokenService = module.get(TokenService);
-  });
-
-  afterEach(() => {
+  beforeEach(() => {
+    // Reset all mocks
     vi.clearAllMocks();
-  });
 
-  describe('getUserByGoogleId', () => {
-    it('should find user by Google ID using UserDBUtil', async () => {
-      userDBUtil.getOne.mockResolvedValue(mockUser);
+    // Setup utility mocks
+    mockUserDBUtil = {
+      getOne: vi.fn(),
+      create: vi.fn(),
+    };
 
-      const result = await service.getUserByGoogleId('google-123');
+    mockTokenDBUtil = {
+      getOne: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      hardDelete: vi.fn(),
+      getDecryptedTokens: vi.fn().mockResolvedValue({
+        accessToken: 'decrypted-access-token',
+        refreshToken: 'decrypted-refresh-token',
+      }),
+      findByUserIdWithDecryptedTokens: vi.fn(),
+    };
 
-      expect(userDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { googleId: 'google-123' },
-      });
-      expect(result).toEqual(mockUser);
-    });
+    mockTokenService = {
+      generateJWT: vi.fn().mockReturnValue('mock-jwt-token'),
+      validateJWT: vi.fn(),
+    };
 
-    it('should return null when user not found', async () => {
-      userDBUtil.getOne.mockResolvedValue(null);
+    // Setup OAuth2Client mock
+    mockOAuth2Client = {
+      setCredentials: vi.fn(),
+      refreshAccessToken: vi.fn(),
+    };
 
-      const result = await service.getUserByGoogleId('nonexistent-id');
+    (google.auth.OAuth2 as unknown as MockInstance).mockImplementation(
+      () => mockOAuth2Client,
+    );
 
-      expect(result).toBeNull();
-    });
-  });
+    // Setup JWT mocks
+    (jwt.sign as Mock).mockReturnValue('mock-jwt-token');
+    (jwt.verify as Mock).mockReturnValue({
+      userId: 'user-123',
+      email: 'test@mavericks-consulting.com',
+    } as JWTPayload);
 
-  describe('getUserByEmail', () => {
-    it('should find user by email using UserDBUtil', async () => {
-      userDBUtil.getOne.mockResolvedValue(mockUser);
+    // Instantiate AuthService directly with mocked dependencies
+    authService = new AuthService(
+      mockUserDBUtil as unknown as UserDBUtil,
+      mockTokenDBUtil as unknown as TokenDBUtil,
+      mockTokenService as unknown as TokenService,
+    );
 
-      const result = await service.getUserByEmail('test@example.com');
-
-      expect(userDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { email: 'test@example.com' },
-      });
-      expect(result).toEqual(mockUser);
-    });
-
-    it('should return null when user not found', async () => {
-      userDBUtil.getOne.mockResolvedValue(null);
-
-      const result = await service.getUserByEmail('nonexistent@example.com');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('getUserById', () => {
-    it('should find user by ID with OAuth tokens relation using UserDBUtil', async () => {
-      const userWithTokens = { ...mockUser, oauthTokens: [] };
-      userDBUtil.getOne.mockResolvedValue(userWithTokens);
-
-      const result = await service.getUserById('user-1');
-
-      expect(userDBUtil.getOne).toHaveBeenCalledWith({
-        criteria: { id: 'user-1' },
-        relation: { oauthTokens: true },
-      });
-      expect(result).toEqual(userWithTokens);
-    });
-  });
-
-  describe('findOrCreateUser', () => {
-    it('should return existing user when found', async () => {
-      vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(mockUser);
-      userDBUtil.updateWithSave.mockResolvedValue([mockUser]);
-
-      const userData = {
-        googleId: 'google-123',
-        email: 'updated@example.com',
-        name: 'Updated Name',
-        picture: 'https://example.com/new-picture.jpg',
-      };
-
-      const result = await service.findOrCreateUser(userData);
-
-      expect(service.getUserByGoogleId).toHaveBeenCalledWith('google-123');
-      expect(userDBUtil.updateWithSave).toHaveBeenCalledWith({
-        dataArray: [
-          expect.objectContaining({
-            email: 'updated@example.com',
-            name: 'Updated Name',
-            picture: 'https://example.com/new-picture.jpg',
-          }),
-        ],
-      });
-      expect(result).toEqual(mockUser);
-    });
-
-    it('should create new user when not found', async () => {
-      vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(null);
-      userDBUtil.create.mockResolvedValue(mockUser);
-
-      const userData = {
-        googleId: 'google-456',
-        email: 'new@example.com',
-        name: 'New User',
-      };
-
-      const result = await service.findOrCreateUser(userData);
-
-      expect(service.getUserByGoogleId).toHaveBeenCalledWith('google-456');
-      expect(userDBUtil.create).toHaveBeenCalledWith({
-        creationData: userData,
-      });
-      expect(result).toEqual(mockUser);
-    });
+    // Mock logger to avoid console output during tests
+    vi.spyOn(authService['logger'], 'log').mockImplementation(() => {});
+    vi.spyOn(authService['logger'], 'warn').mockImplementation(() => {});
+    vi.spyOn(authService['logger'], 'error').mockImplementation(() => {});
+    vi.spyOn(authService['logger'], 'debug').mockImplementation(() => {});
   });
 
   describe('handleOAuthCallback', () => {
-    it('should handle new user OAuth callback', async () => {
-      vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(null);
-      vi.spyOn(service, 'findOrCreateUser').mockResolvedValue(mockUser);
-      tokenService.updateToken.mockResolvedValue({});
+    describe('OAuth Token Handling - Requirement 2.1', () => {
+      it('should handle OAuth callback with valid Google profile for existing user', async () => {
+        mockUserDBUtil.getOne.mockResolvedValue(mockUserEntity);
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
 
-      const result = await service.handleOAuthCallback(mockOAuthData);
+        const result = await authService.handleOAuthCallback(
+          mockGoogleProfile,
+          mockGoogleTokens,
+        );
 
-      expect(service.getUserByGoogleId).toHaveBeenCalledWith('google-123');
-      expect(service.findOrCreateUser).toHaveBeenCalledWith({
-        googleId: mockOAuthData.googleId,
-        email: mockOAuthData.email,
-        name: mockOAuthData.name,
-        picture: mockOAuthData.picture,
+        expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
+          criteria: { email: 'test@mavericks-consulting.com' },
+        });
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
+          criteria: { userId: 'user-123', provider: 'google' },
+        });
+        expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+          creationData: {
+            userId: 'user-123',
+            provider: 'google',
+            accessToken: 'mock-access-token',
+            refreshToken: 'mock-refresh-token',
+            expiresAt: expect.any(Date),
+            scope: 'profile email gmail.send drive.file',
+          },
+        });
+        expect(mockTokenService.generateJWT).toHaveBeenCalledWith(
+          mockUserEntity,
+        );
+        expect(result).toEqual({
+          user: mockUserEntity,
+          jwt: 'mock-jwt-token',
+        });
       });
-      expect(tokenService.updateToken).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        provider: 'google',
-        accessToken: mockOAuthData.accessToken,
-        refreshToken: mockOAuthData.refreshToken,
-        expiresAt: mockOAuthData.expiresAt,
-        scope: mockOAuthData.scope,
+
+      it('should create new user when user does not exist', async () => {
+        mockUserDBUtil.getOne.mockResolvedValue(null);
+        mockUserDBUtil.create.mockResolvedValue(mockUserEntity);
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+
+        const result = await authService.handleOAuthCallback(
+          mockGoogleProfile,
+          mockGoogleTokens,
+        );
+
+        expect(mockUserDBUtil.create).toHaveBeenCalledWith({
+          creationData: {
+            email: 'test@mavericks-consulting.com',
+            name: 'John Doe',
+            picture: 'https://example.com/photo.jpg',
+            googleId: 'google-123',
+          },
+        });
+        expect(result.user).toEqual(mockUserEntity);
       });
-      expect(result).toEqual({
-        user: mockUser,
-        isNewUser: true,
+
+      it('should handle profile without picture', async () => {
+        const profileWithoutPhoto: GoogleProfile = {
+          ...mockGoogleProfile,
+          photos: [],
+        };
+        mockUserDBUtil.getOne.mockResolvedValue(null);
+        mockUserDBUtil.create.mockResolvedValue({
+          ...mockUserEntity,
+          picture: null,
+        });
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+
+        await authService.handleOAuthCallback(
+          profileWithoutPhoto,
+          mockGoogleTokens,
+        );
+
+        expect(mockUserDBUtil.create).toHaveBeenCalledWith({
+          creationData: {
+            email: 'test@mavericks-consulting.com',
+            name: 'John Doe',
+            picture: undefined,
+            googleId: 'google-123',
+          },
+        });
       });
-    });
 
-    it('should handle existing user OAuth callback', async () => {
-      vi.spyOn(service, 'getUserByGoogleId').mockResolvedValue(mockUser);
-      vi.spyOn(service, 'findOrCreateUser').mockResolvedValue(mockUser);
-      tokenService.updateToken.mockResolvedValue({});
+      it('should throw UnauthorizedException when no email in profile', async () => {
+        const profileWithoutEmail: GoogleProfile = {
+          ...mockGoogleProfile,
+          emails: [],
+        };
 
-      const result = await service.handleOAuthCallback(mockOAuthData);
+        await expect(
+          authService.handleOAuthCallback(
+            profileWithoutEmail,
+            mockGoogleTokens,
+          ),
+        ).rejects.toThrow(UnauthorizedException);
+      });
 
-      expect(result).toEqual({
-        user: mockUser,
-        isNewUser: false,
+      it('should throw UnauthorizedException for non-Mavericks domain', async () => {
+        const profileWithWrongDomain: GoogleProfile = {
+          ...mockGoogleProfile,
+          emails: [{ value: 'test@gmail.com', verified: true }],
+        };
+
+        await expect(
+          authService.handleOAuthCallback(
+            profileWithWrongDomain,
+            mockGoogleTokens,
+          ),
+        ).rejects.toThrow(
+          'Access denied: Only @mavericks-consulting.com accounts are allowed',
+        );
+      });
+
+      it('should handle database errors gracefully', async () => {
+        mockUserDBUtil.getOne.mockRejectedValue(new Error('Database error'));
+
+        await expect(
+          authService.handleOAuthCallback(mockGoogleProfile, mockGoogleTokens),
+        ).rejects.toThrow('Database error');
       });
     });
   });
 
-  describe('getUserProfile', () => {
-    it('should return user profile when user exists', async () => {
-      vi.spyOn(service, 'getUserById').mockResolvedValue(mockUser);
+  describe('validateSession', () => {
+    describe('Session Validation - Requirement 2.1', () => {
+      it('should validate session with valid JWT token', async () => {
+        mockTokenService.validateJWT.mockResolvedValue(mockUserEntity);
 
-      const result = await service.getUserProfile('user-1');
+        const result = await authService.validateSession('valid-jwt-token');
 
-      expect(service.getUserById).toHaveBeenCalledWith('user-1');
-      expect(result).toEqual({
-        user: {
-          id: mockUser.id,
-          email: mockUser.email,
-          name: mockUser.name,
-          picture: mockUser.picture,
-          googleId: mockUser.googleId,
-          createdAt: mockUser.createdAt.toISOString(),
-          updatedAt: mockUser.updatedAt.toISOString(),
-        },
-        isAuthenticated: true,
+        expect(mockTokenService.validateJWT).toHaveBeenCalledWith(
+          'valid-jwt-token',
+        );
+        expect(result).toEqual(mockUserEntity);
+      });
+
+      it('should return null for invalid JWT token', async () => {
+        mockTokenService.validateJWT.mockResolvedValue(null);
+
+        const result = await authService.validateSession('invalid-jwt-token');
+
+        expect(mockTokenService.validateJWT).toHaveBeenCalledWith(
+          'invalid-jwt-token',
+        );
+        expect(result).toBeNull();
+      });
+
+      it('should return null when JWT payload lacks userId', async () => {
+        mockTokenService.validateJWT.mockResolvedValue(null);
+
+        const result = await authService.validateSession('jwt-without-userid');
+
+        expect(mockTokenService.validateJWT).toHaveBeenCalledWith(
+          'jwt-without-userid',
+        );
+        expect(result).toBeNull();
+      });
+
+      it('should return null when user not found in database', async () => {
+        mockTokenService.validateJWT.mockResolvedValue(null);
+
+        const result = await authService.validateSession('valid-jwt-token');
+
+        expect(mockTokenService.validateJWT).toHaveBeenCalledWith(
+          'valid-jwt-token',
+        );
+        expect(result).toBeNull();
+      });
+
+      it('should handle expired JWT tokens', async () => {
+        mockTokenService.validateJWT.mockResolvedValue(null);
+
+        const result = await authService.validateSession('expired-jwt-token');
+
+        expect(mockTokenService.validateJWT).toHaveBeenCalledWith(
+          'expired-jwt-token',
+        );
+        expect(result).toBeNull();
       });
     });
+  });
 
-    it('should return unauthenticated response when user not found', async () => {
-      vi.spyOn(service, 'getUserById').mockResolvedValue(null);
+  describe('refreshTokens', () => {
+    describe('Token Lifecycle Management - Requirement 3.1', () => {
+      it('should refresh expired access tokens successfully', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000), // Expired
+        };
 
-      const result = await service.getUserProfile('nonexistent-user');
+        mockTokenDBUtil.getOne.mockResolvedValue(expiredTokenEntity);
+        mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+          credentials: {
+            access_token: 'new-access-token',
+            refresh_token: 'new-refresh-token',
+            expiry_date: Date.now() + 3600 * 1000,
+          },
+        });
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
 
-      expect(result).toEqual({
-        user: null,
-        isAuthenticated: false,
-        message: 'User not found',
+        const result = await authService.refreshTokens('user-123');
+
+        expect(mockTokenDBUtil.getOne).toHaveBeenCalledWith({
+          criteria: { userId: 'user-123', provider: 'google' },
+        });
+        expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
+          refresh_token: 'decrypted-refresh-token',
+        });
+        expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
+          criteria: { userId: 'user-123', provider: 'google' },
+        });
+        expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+          creationData: {
+            userId: 'user-123',
+            provider: 'google',
+            accessToken: 'new-access-token',
+            refreshToken: 'new-refresh-token',
+            expiresAt: expect.any(Date),
+            scope: 'profile email gmail.send drive.file',
+          },
+        });
+        expect(result).toBe(true);
+      });
+
+      it('should return true for non-expired tokens', async () => {
+        mockTokenDBUtil.getOne.mockResolvedValue(mockOAuthTokenEntity);
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(mockOAuth2Client.refreshAccessToken).not.toHaveBeenCalled();
+        expect(result).toBe(true);
+      });
+
+      it('should return false when no refresh token found', async () => {
+        mockTokenDBUtil.getOne.mockResolvedValue(null);
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('should return false when token entity has no refresh token', async () => {
+        const tokenWithoutRefreshToken = {
+          ...mockOAuthTokenEntity,
+          refreshToken: null,
+        };
+        mockTokenDBUtil.getOne.mockResolvedValue(tokenWithoutRefreshToken);
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('should handle OAuth refresh errors', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000),
+        };
+        mockTokenDBUtil.getOne.mockResolvedValue(expiredTokenEntity);
+        mockOAuth2Client.refreshAccessToken.mockRejectedValue(
+          new Error('OAuth refresh failed'),
+        );
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('should handle missing access_token in refresh response', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000),
+        };
+        mockTokenDBUtil.getOne.mockResolvedValue(expiredTokenEntity);
+        mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+          credentials: {
+            // No access_token
+          },
+        });
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('should preserve existing refresh token when new one not provided', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000),
+        };
+        mockTokenDBUtil.getOne.mockResolvedValue(expiredTokenEntity);
+        mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+          credentials: {
+            access_token: 'new-access-token',
+            // No refresh_token in response
+            expiry_date: Date.now() + 3600 * 1000,
+          },
+        });
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+
+        const result = await authService.refreshTokens('user-123');
+
+        expect(mockTokenDBUtil.create).toHaveBeenCalledWith({
+          creationData: {
+            userId: 'user-123',
+            provider: 'google',
+            accessToken: 'new-access-token',
+            refreshToken: 'decrypted-refresh-token', // Preserved original refresh token
+            expiresAt: expect.any(Date),
+            scope: 'profile email gmail.send drive.file',
+          },
+        });
+        expect(result).toBe(true);
       });
     });
   });
 
   describe('logout', () => {
-    it('should delete user tokens and return success', async () => {
-      tokenService.deleteTokenForUser.mockResolvedValue(true);
+    describe('Logout Functionality - Requirement 2.1', () => {
+      it('should logout user and clean up tokens successfully', async () => {
+        mockTokenDBUtil.delete.mockResolvedValue([mockOAuthTokenEntity]);
 
-      const result = await service.logout('user-1');
+        await authService.logout('user-123');
 
-      expect(tokenService.deleteTokenForUser).toHaveBeenCalledWith('user-1');
-      expect(result).toBe(true);
-    });
-
-    it('should return false when token deletion fails', async () => {
-      tokenService.deleteTokenForUser.mockResolvedValue(false);
-
-      const result = await service.logout('user-1');
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('hasValidToken', () => {
-    it('should return true when user has valid token', async () => {
-      tokenService.getValidTokenForUser.mockResolvedValue({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
+        expect(mockTokenDBUtil.hardDelete).toHaveBeenCalledWith({
+          criteria: { userId: 'user-123' },
+        });
       });
 
-      const result = await service.hasValidToken('user-1');
+      it('should handle logout errors gracefully', async () => {
+        mockTokenDBUtil.hardDelete.mockRejectedValue(
+          new Error('Database error'),
+        );
 
-      expect(tokenService.getValidTokenForUser).toHaveBeenCalledWith('user-1');
-      expect(result).toBe(true);
-    });
+        await expect(authService.logout('user-123')).rejects.toThrow(
+          'Database error',
+        );
+      });
 
-    it('should return false when user has no valid token', async () => {
-      tokenService.getValidTokenForUser.mockResolvedValue(null);
+      it('should complete logout even when no tokens exist', async () => {
+        mockTokenDBUtil.hardDelete.mockResolvedValue(null);
 
-      const result = await service.hasValidToken('user-1');
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('refreshUserToken', () => {
-    it('should return true when user and token exist', async () => {
-      vi.spyOn(service, 'getUserById').mockResolvedValue(mockUser);
-      tokenService.getTokenForUser.mockResolvedValue({} as OAuthTokenEntity);
-
-      const result = await service.refreshUserToken('user-1');
-
-      expect(service.getUserById).toHaveBeenCalledWith('user-1');
-      expect(tokenService.getTokenForUser).toHaveBeenCalledWith('user-1');
-      expect(result).toBe(true);
-    });
-
-    it('should return false when user not found', async () => {
-      vi.spyOn(service, 'getUserById').mockResolvedValue(null);
-
-      const result = await service.refreshUserToken('user-1');
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false when token not found', async () => {
-      vi.spyOn(service, 'getUserById').mockResolvedValue(mockUser);
-      tokenService.getTokenForUser.mockResolvedValue(null);
-
-      const result = await service.refreshUserToken('user-1');
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('toDTO', () => {
-    it('should convert user entity to DTO', () => {
-      const result = service.toDTO(mockUser);
-
-      expect(result).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name,
-        picture: mockUser.picture,
-        googleId: mockUser.googleId,
-        createdAt: mockUser.createdAt.toISOString(),
-        updatedAt: mockUser.updatedAt.toISOString(),
+        await expect(authService.logout('user-123')).resolves.toBeUndefined();
       });
     });
   });
 
-  describe('deleteUser', () => {
-    it('should delete user and return true when successful', async () => {
-      userDBUtil.delete.mockResolvedValue([mockUser]);
+  describe('getUserTokens', () => {
+    describe('Token Lifecycle Management - Requirement 3.1', () => {
+      it('should return valid tokens when not expired', async () => {
+        mockTokenDBUtil.getOne.mockResolvedValue(mockOAuthTokenEntity);
 
-      const result = await service.deleteUser('user-1');
+        const result = await authService.getUserTokens('user-123');
 
-      expect(userDBUtil.delete).toHaveBeenCalledWith({
-        criteria: { id: 'user-1' },
+        expect(mockTokenDBUtil.getOne).toHaveBeenCalledWith({
+          criteria: { userId: 'user-123', provider: 'google' },
+        });
+        expect(result).toEqual(mockOAuthTokenEntity);
       });
-      expect(result).toBe(true);
+
+      it('should auto-refresh expired tokens and return updated tokens', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000),
+        };
+
+        const refreshedTokenEntity = {
+          ...mockOAuthTokenEntity,
+          accessToken: 'new-access-token',
+        };
+
+        mockTokenDBUtil.getOne
+          .mockResolvedValueOnce(expiredTokenEntity) // First call in getUserTokens
+          .mockResolvedValueOnce(expiredTokenEntity) // First call in refreshTokens
+          .mockResolvedValueOnce(refreshedTokenEntity); // Second call in getUserTokens after refresh
+
+        mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+          credentials: {
+            access_token: 'new-access-token',
+            refresh_token: 'new-refresh-token',
+            expiry_date: Date.now() + 3600 * 1000,
+          },
+        });
+        mockTokenDBUtil.delete.mockResolvedValue([]);
+        mockTokenDBUtil.create.mockResolvedValue(refreshedTokenEntity);
+
+        const result = await authService.getUserTokens('user-123');
+
+        expect(mockTokenDBUtil.getOne).toHaveBeenCalledTimes(3);
+        expect(result).toEqual(refreshedTokenEntity);
+      });
+
+      it('should return null when no tokens exist', async () => {
+        mockTokenDBUtil.getOne.mockResolvedValue(null);
+
+        const result = await authService.getUserTokens('user-123');
+
+        expect(result).toBeNull();
+      });
+
+      it('should return null when refresh fails for expired tokens', async () => {
+        const expiredTokenEntity = {
+          ...mockOAuthTokenEntity,
+          expiresAt: new Date(Date.now() - 1000),
+        };
+
+        mockTokenDBUtil.getOne.mockResolvedValue(expiredTokenEntity);
+        mockOAuth2Client.refreshAccessToken.mockRejectedValue(
+          new Error('Refresh failed'),
+        );
+
+        const result = await authService.getUserTokens('user-123');
+
+        expect(result).toBeNull();
+      });
+    });
+  });
+
+  describe('Integration scenarios', () => {
+    it('should handle complete OAuth flow correctly', async () => {
+      // OAuth callback
+      mockUserDBUtil.getOne.mockResolvedValue(null);
+      mockUserDBUtil.create.mockResolvedValue(mockUserEntity);
+      mockTokenDBUtil.delete.mockResolvedValue([]);
+      mockTokenDBUtil.create.mockResolvedValue(mockOAuthTokenEntity);
+
+      const oauthResult = await authService.handleOAuthCallback(
+        mockGoogleProfile,
+        mockGoogleTokens,
+      );
+
+      // Session validation
+      mockTokenService.validateJWT.mockResolvedValue(mockUserEntity);
+      const sessionResult = await authService.validateSession(oauthResult.jwt);
+
+      // Logout
+      mockTokenDBUtil.delete.mockResolvedValue([mockOAuthTokenEntity]);
+      await authService.logout(mockUserEntity.id);
+
+      expect(oauthResult.user.email).toBe('test@mavericks-consulting.com');
+      expect(sessionResult?.id).toBe('user-123');
+      expect(mockTokenDBUtil.hardDelete).toHaveBeenLastCalledWith({
+        criteria: { userId: 'user-123' },
+      });
     });
 
-    it('should return false when user not found', async () => {
-      userDBUtil.delete.mockResolvedValue(null);
+    it('should handle token refresh during getUserTokens call', async () => {
+      const expiredTokenEntity = {
+        ...mockOAuthTokenEntity,
+        expiresAt: new Date(Date.now() - 1000),
+      };
 
-      const result = await service.deleteUser('user-1');
+      const refreshedTokenEntity = {
+        ...mockOAuthTokenEntity,
+        accessToken: 'refreshed-access-token',
+      };
 
-      expect(result).toBe(false);
+      mockTokenDBUtil.getOne
+        .mockResolvedValueOnce(expiredTokenEntity)
+        .mockResolvedValueOnce(expiredTokenEntity) // First call in refreshTokens
+        .mockResolvedValueOnce(refreshedTokenEntity); // Second call after refresh
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+        credentials: {
+          access_token: 'refreshed-access-token',
+          refresh_token: 'refreshed-refresh-token',
+          expiry_date: Date.now() + 3600 * 1000,
+        },
+      });
+      mockTokenDBUtil.delete.mockResolvedValue([]);
+      mockTokenDBUtil.create.mockResolvedValue(refreshedTokenEntity);
+
+      const result = await authService.getUserTokens('user-123');
+
+      expect(result?.accessToken).toBe('refreshed-access-token');
+      expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
     });
   });
 });
