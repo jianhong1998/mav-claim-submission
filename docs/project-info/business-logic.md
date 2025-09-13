@@ -77,10 +77,10 @@ Example: `jason_lee_company_dinner_2025_09_1725456123000.pdf`
 
 ## Email Processing Workflow
 
-### Asynchronous Job Processing
-- RabbitMQ queue manages email sending jobs
-- Jobs processed in separate Docker container
-- 3 retry attempts with exponential backoff
+### Synchronous Email Processing
+- Gmail API sends emails immediately upon claim submission
+- No queue system - direct API call using user's OAuth tokens
+- Email success/failure determines claim status (sent/failed)
 - Email templates include Google Drive shareable URLs (no attachments)
 
 ### Email Template Requirements
@@ -97,12 +97,14 @@ Example: `jason_lee_company_dinner_2025_09_1725456123000.pdf`
 - **Navigation**: Claims list, new claim form, claim details
 
 ### User Experience Flow
-1. **Authentication**: Google OAuth with Drive API scope
+1. **Authentication**: Google OAuth with @mavericks-consulting.com domain restriction
+   - Scopes: profile, email, gmail.send, drive.file
+   - JWT session stored in HttpOnly cookie (24-hour expiry)
 2. **Form Entry**: Claim form with real-time validation
 3. **File Selection**: Client-side file validation
 4. **Preview**: Review claim and attachments before submission
-5. **Upload**: Direct Google Drive upload from browser
-6. **Confirmation**: Backend verification and job creation
+5. **Upload**: Direct Google Drive upload from browser using OAuth token
+6. **Confirmation**: Backend creates claim and sends email synchronously
 7. **Management**: List view with filtering and status updates
 
 ### List Features

@@ -30,7 +30,7 @@ clean-image:
 	@docker image prune -f
 
 clean/dist:
-	@rm -rf **/dist
+	@rm -rf **/**/dist
 
 # TurboRepo delegated commands
 build:

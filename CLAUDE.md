@@ -121,31 +121,42 @@ Managed from root `.env` file:
 
 ## Current Status
 
-✅ **Implemented**: 
+✅ **Implemented**:
+- **Google OAuth Authentication**: Complete OAuth 2.0 flow with JWT sessions
+  - Domain restriction to @mavericks-consulting.com accounts
+  - Passport.js Google OAuth strategy with automatic token refresh
+  - JWT tokens in HttpOnly cookies (24-hour expiry)
+  - Encrypted OAuth token storage in PostgreSQL
+  - Rate limiting on OAuth endpoints (10/min initiate, 20/min callback)
+- **Frontend Authentication**:
+  - AuthProvider with React Context for global auth state
+  - Google OAuth button with accessibility features
+  - Auth status hook with React Query (30s stale time)
+  - OAuth callback page for session refresh
+  - Performance optimized for <100ms auth checks
 - **Database Layer**: Complete entity models with proper relationships:
   - User entity with Google OAuth integration
   - Claims entity with categories, status flow, and validation constraints
   - Attachments entity with Google Drive file metadata
-  - OAuth tokens entity for Google API access
+  - OAuth tokens entity with encryption and auto-refresh
 - **Database Utilities**: Full CRUD operations for all entities with TypeORM
 - **Business Logic**: Claim categories, status enums using Object.freeze() pattern
 - **Architecture**: TurboRepo monorepo with NestJS backend, Next.js frontend
 - **Testing**: Vitest unit testing setup with coverage reporting
 - **Development Tools**: ESLint, Prettier, TypeScript strict mode across workspaces
 
-🚧 **In Development**: 
-- **API Endpoints Refactor**: New standardized DTO structure across all modules:
-  - Auth endpoints with proper response DTOs (logout, profile, refresh, status)
-  - Drive endpoints with structured response DTOs (access check, file operations, permissions)
-  - Email endpoints with request/response DTOs (access check, send operations)
+🚧 **In Development**:
+- **API Endpoints**: Implementing remaining endpoints:
+  - Drive token endpoint for client-side uploads
+  - Claims management endpoints (create, list, update)
+  - Email send endpoint with Gmail API integration
 - **Swagger Integration**: API documentation with OpenAPI specifications
-- **Controllers & Services**: Implementation of business logic layers
 
-📋 **Next Phase**: 
-- Complete API endpoint implementations and testing
-- Google Drive client-side integration with OAuth flow  
+📋 **Next Phase**:
+- Complete claim management API endpoints
+- Google Drive client-side upload implementation
 - Frontend claim submission and management interfaces
-- Email notification templates and workflows
+- Email notification templates with Drive URLs
 
 ## Development Practices
 

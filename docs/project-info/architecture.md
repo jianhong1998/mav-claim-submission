@@ -41,7 +41,12 @@ The Mavericks Claim Submission system is a comprehensive web application built o
 Uses NestJS modules with feature-based organization:
 
 - `src/modules/app/`: Main application module with health checks
-- `src/modules/auth/`: Google OAuth authentication with session management
+- `src/modules/auth/`: Google OAuth authentication with JWT session management
+  - `strategies/google-oauth.strategy.ts` - Passport Google OAuth 2.0 strategy
+  - `services/auth.service.ts` - OAuth flow processing and token management
+  - `services/token.service.ts` - JWT generation and validation
+  - `guards/jwt-auth.guard.ts` - JWT authentication guard
+  - `utils/token-db.util.ts` - OAuth token database operations with encryption
 - `src/modules/email/`: Gmail API integration for sending emails
 - `src/modules/drive/`: Google Drive API integration
 - `src/modules/claims/`: Claim entities and database utilities
@@ -140,13 +145,12 @@ All tables use:
 
 ## API Design
 
-### Authentication Endpoints (Existing)
-- `GET /auth/google` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - Handle OAuth callback
-- `GET /auth/profile` - Get user profile
-- `POST /auth/logout` - Logout user
-- `GET /auth/status` - Check auth status
-- `POST /auth/refresh` - Refresh OAuth tokens
+### Authentication Endpoints (Implemented)
+- `GET /auth/google` - Initiate Google OAuth flow with domain restriction
+- `GET /auth/google/callback` - Handle OAuth callback and generate JWT session
+- `GET /auth/profile` - Get authenticated user profile
+- `POST /auth/logout` - Logout user and clear JWT cookie
+- `GET /auth/status` - Check authentication status without rate limiting
 
 ### Email Endpoints (Existing)
 - `POST /email/send` - Send email via Gmail API
@@ -239,11 +243,13 @@ frontend/src/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx      # Claim details
 │   │   └── layout.tsx            # Authenticated layout
-│   ├── auth/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   │   └── page.tsx          # Login page with Google OAuth button
 │   │   └── callback/
-│   │       └── page.tsx          # OAuth callback
+│   │       └── page.tsx          # OAuth callback handler
 │   ├── globals.css
-│   ├── layout.tsx                # Root layout
+│   ├── layout.tsx                # Root layout with AuthProvider
 │   └── page.tsx                  # Landing page
 ├── components/
 │   ├── ui/ (Base components)
@@ -274,9 +280,11 @@ frontend/src/
 │   ├── queries/
 │   │   ├── useClaimsQuery.ts
 │   │   ├── useClaimMutation.ts
-│   │   ├── useAuthQuery.ts
 │   │   └── useGoogleDriveUpload.ts
-│   └── useAuth.ts
+│   ├── auth/
+│   │   ├── useAuthStatus.ts      # Auth status with React Query
+│   │   ├── useLogout.ts          # Logout mutation
+│   │   └── useAuth.ts            # Auth context consumer
 └── lib/
     ├── api-client.ts
     ├── auth.ts
@@ -287,16 +295,22 @@ frontend/src/
 
 ### State Management Strategy
 - **TanStack Query**: Server state management, caching, and synchronization
+  - Auth status polling with 30-second stale time
+  - Automatic retry for network errors
+  - Performance optimized for <100ms auth checks
 - **React Hook Form**: Form state and validation
-- **React Context**: Authentication state and user context
+- **React Context (AuthProvider)**: Authentication state and user context
+  - Provides user, isAuthenticated, logout functionality
+  - Wraps entire application for global auth access
 - **Local State**: Component-specific UI state
 
 ## Technology Stack
 
 - **Framework**: NestJS 11 with TypeScript
 - **Database**: PostgreSQL with TypeORM
-- **Authentication**: Passport.js with Google OAuth 2.0 strategy  
-- **Session Management**: express-session with PostgreSQL store
+- **Authentication**: Passport.js with Google OAuth 2.0 strategy (@mavericks-consulting.com domain restriction)
+- **Session Management**: JWT tokens with HttpOnly cookies (24-hour expiry)
+- **OAuth Token Storage**: Encrypted OAuth tokens in PostgreSQL with automatic refresh
 - **Email Integration**: Google Gmail API with OAuth 2.0 (synchronous)
 - **File Storage**: Google Drive API v3 with per-employee storage
 - **Validation**: class-validator and class-transformer
@@ -381,10 +395,22 @@ const emailTemplate = `
 ## Security Considerations
 
 ### Authentication & Authorization
-- **Google OAuth 2.0**: Secure authentication with domain restriction (@mavericks-consulting.com)
-- **Session Management**: Secure session cookies with HttpOnly and SameSite flags
-- **Token Management**: Encrypted OAuth tokens in database
-- **API Security**: Session-based authentication for all protected endpoints
+- **Google OAuth 2.0**: Secure authentication with hard domain restriction (@mavericks-consulting.com)
+  - Scopes: `profile`, `email`, `gmail.send`, `drive.file`
+  - Offline access with refresh tokens for long-term API access
+  - Automatic token refresh when expired
+- **JWT Session Management**:
+  - JWT tokens stored in HttpOnly cookies with SameSite=lax
+  - 24-hour session expiry
+  - Secure flag enabled in production
+- **OAuth Token Management**:
+  - Encrypted OAuth tokens stored in PostgreSQL
+  - Automatic refresh token reuse when not provided by Google
+  - Token upsert strategy to handle re-authentication
+- **API Security**:
+  - JWT-based authentication for protected endpoints
+  - Rate limiting on OAuth endpoints (initiate: 10/min, callback: 20/min)
+  - Optional JWT guard for flexible auth status checking
 
 ### File Security
 - **Upload Validation**: File type, size, and content validation (client and server-side)
