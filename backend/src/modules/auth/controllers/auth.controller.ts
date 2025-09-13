@@ -27,6 +27,7 @@ import {
   type AuthenticatedRequest,
   JwtAuthGuard,
 } from '../guards/jwt-auth.guard';
+import { JwtOptionalGuard } from '../guards/jwt-optional.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -94,8 +95,10 @@ export class AuthController {
 
       this.logger.log(`OAuth callback successful for user: ${user.id}`);
 
-      // Redirect to frontend
-      return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
+      // Redirect to frontend callback page to refresh auth state
+      return res.redirect(
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/callback`,
+      );
     } catch (error) {
       this.logger.error('OAuth callback error:', error);
       return res.redirect(
@@ -110,6 +113,7 @@ export class AuthController {
    * Note: No rate limiting on status endpoint for integration tests
    */
   @Get('status')
+  @UseGuards(JwtOptionalGuard)
   getAuthStatus(
     @UserOptional() user: UserEntity | null,
   ): AuthStatusResponseDTO {
@@ -151,6 +155,7 @@ export class AuthController {
    */
   @Post('logout')
   @AuthGeneralRateLimit()
+  @UseGuards(JwtOptionalGuard)
   async logout(
     @UserOptional() user: UserEntity | null,
     @Res() res: Response,

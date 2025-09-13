@@ -11,6 +11,7 @@ import { AuthService } from './services/auth.service';
 import { TokenService } from './services/token.service';
 import { AuthController } from './controllers/auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtOptionalGuard } from './guards/jwt-optional.guard';
 import { TestModeThrottlerGuard } from './guards/test-mode-throttler.guard';
 import { EnvironmentVariableUtil } from '../common/utils/environment-variable.util';
 import { CommonModule } from '../common/common.module';
@@ -56,9 +57,10 @@ import { CommonModule } from '../common/common.module';
     AuthService,
     TokenService,
     JwtAuthGuard,
+    JwtOptionalGuard,
     ThrottlerGuard,
     TestModeThrottlerGuard,
   ],
-  exports: [AuthService, TokenService, JwtAuthGuard],
+  exports: [AuthService, TokenService, JwtAuthGuard, JwtOptionalGuard],
 })
 export class AuthModule {}

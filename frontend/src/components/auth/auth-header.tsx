@@ -84,7 +84,7 @@ const AuthHeaderComponent: React.FC<AuthHeaderProps> = ({ className }) => {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="relative h-8 w-8 rounded-full p-0 hover:bg-accent focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            className="relative h-8 w-8 rounded-full p-0 hover:bg-accent focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
             disabled={isLoggingOut}
             aria-label={`User menu for ${user.name}`}
             aria-haspopup="menu"

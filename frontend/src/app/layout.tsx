@@ -5,6 +5,7 @@ import { AuthHeader } from '@/components/auth/auth-header';
 import { Toaster } from 'sonner';
 import React from 'react';
 import './globals.css';
+import { AppTitle } from '@/components/headers/app-title';
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -27,9 +28,7 @@ const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
             <div className="min-h-screen bg-background">
               <header className="border-b border-border bg-card">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                  <div className="flex items-center space-x-4">
-                    <h1 className="text-xl font-semibold">Mavericks Claims</h1>
-                  </div>
+                  <AppTitle />
                   <AuthHeader />
                 </div>
               </header>
