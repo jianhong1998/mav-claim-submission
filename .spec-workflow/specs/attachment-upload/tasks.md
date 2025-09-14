@@ -158,7 +158,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 4.1_
   - _Prompt: Role: API Documentation Specialist with expertise in OpenAPI/Swagger | Task: Add comprehensive Swagger documentation for attachment endpoints following requirement 4.1, including schemas, examples, and error codes | Restrictions: Must follow existing documentation patterns, ensure accuracy with implementation, maintain consistency | Success: All endpoints properly documented, examples are accurate, documentation is complete and helpful_
 
-- [ ] 18. Update database migrations for any schema changes
+- [x] 18. Update database migrations for any schema changes
   - File: backend/src/database/migrations/ (create new migration if needed)
   - Create migration for any AttachmentEntity changes
   - Ensure proper rollback procedures
