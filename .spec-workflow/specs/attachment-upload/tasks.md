@@ -67,7 +67,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: All backend requirements_
   - _Prompt: Role: NestJS Developer with expertise in module architecture and dependency injection | Task: Create AttachmentModule following all backend requirements, configuring proper DI, imports, and exports using existing module patterns | Restrictions: Must follow NestJS module patterns, ensure proper service registration, maintain clean dependencies | Success: Module is properly configured, all dependencies resolved, integrates seamlessly with existing modules_
 
-- [ ] 8. Add attachment query keys to frontend query management
+- [x] 8. Add attachment query keys to frontend query management
   - File: frontend/src/hooks/queries/keys/key.ts
   - Extend QueryGroup enum with ATTACHMENTS group
   - Add attachment-specific query key generators
@@ -76,7 +76,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 4.1, 5.1_
   - _Prompt: Role: Frontend Developer with expertise in React Query and state management | Task: Extend query key management following requirements 4.1 and 5.1, adding ATTACHMENTS group and key generators using existing patterns | Restrictions: Must follow existing query key patterns, maintain type safety, ensure proper cache invalidation | Success: Query keys properly configured, follows existing patterns, supports all attachment operations_
 
-- [ ] 9. Create useAttachmentUpload hook with progress tracking
+- [x] 9. Create useAttachmentUpload hook with progress tracking
   - File: frontend/src/hooks/attachments/useAttachmentUpload.ts
   - Implement upload hook with file validation, progress, and error handling
   - Follow existing React Query and performance patterns
@@ -85,7 +85,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 4.1, 4.2, 4.3_
   - _Prompt: Role: React Developer with expertise in custom hooks and file upload | Task: Create useAttachmentUpload hook following requirements 4.1, 4.2, and 4.3, implementing file validation, progress tracking, and error handling using existing hook patterns | Restrictions: Must follow existing hook patterns, handle all error scenarios, ensure proper cleanup | Success: Hook provides complete upload functionality, proper error handling, follows performance patterns from existing hooks_
 
-- [ ] 10. Create FileUploadComponent with drag-and-drop support
+- [x] 10. Create FileUploadComponent with drag-and-drop support
   - File: frontend/src/components/attachments/FileUploadComponent.tsx
   - Implement file selection UI with validation feedback and progress display
   - Add drag-and-drop functionality for desktop users
@@ -94,7 +94,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 4.2, 4.3, 5.3_
   - _Prompt: Role: Frontend Developer with expertise in React components and file handling | Task: Create FileUploadComponent following requirements 4.2, 4.3, and 5.3, implementing drag-and-drop, validation feedback, and progress display using existing form patterns | Restrictions: Must use existing UI components, ensure mobile responsiveness, maintain accessibility standards | Success: Component provides excellent user experience, proper validation feedback, mobile-responsive design_
 
-- [ ] 11. Create AttachmentList component for display and management
+- [x] 11. Create AttachmentList component for display and management
   - File: frontend/src/components/attachments/AttachmentList.tsx
   - Implement component to display uploaded attachments with status
   - Add delete functionality and error state handling
@@ -103,7 +103,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 5.1, 5.2_
   - _Prompt: Role: React Developer with expertise in list components and state management | Task: Create AttachmentList component following requirements 5.1 and 5.2, displaying attachments with status, delete functionality, and error handling | Restrictions: Must use existing component patterns, handle loading states properly, ensure proper user feedback | Success: Component displays attachments correctly, proper status indication, delete functionality works reliably_
 
-- [ ] 12. Integrate attachment components with claims forms
+- [x] 12. Integrate attachment components with claims forms
   - File: frontend/src/components/claims/ (modify existing claim forms)
   - Add FileUploadComponent and AttachmentList to claim creation/editing
   - Ensure proper state synchronization with claim workflow
