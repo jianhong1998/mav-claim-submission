@@ -411,11 +411,17 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                     )}
 
                     {uploadStatus?.isCompleted && (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <CheckCircle2
+                        className="w-4 h-4 text-green-500"
+                        data-testid="CheckCircle2"
+                      />
                     )}
 
                     {uploadStatus?.isFailed && (
-                      <AlertCircle className="w-4 h-4 text-destructive" />
+                      <AlertCircle
+                        className="w-4 h-4 text-destructive"
+                        data-testid="AlertCircle"
+                      />
                     )}
 
                     {!uploadStatus && (
@@ -427,6 +433,7 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                           void removeFilePreview(preview.id);
                         }}
                         className="h-6 w-6 p-0 hover:bg-destructive/10"
+                        aria-label="Remove file"
                       >
                         <X className="w-3 h-3" />
                         <span className="sr-only">Remove file</span>

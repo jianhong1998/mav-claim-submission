@@ -46,14 +46,24 @@ const getFileTypeInfo = (mimeType: string) => {
 
   if (mimeType === 'application/pdf') {
     return {
-      icon: <FileText className="w-5 h-5" />,
+      icon: (
+        <FileText
+          className="w-5 h-5"
+          aria-label="Document file"
+        />
+      ),
       color: 'text-red-500',
       bgColor: 'bg-red-500/10',
     };
   }
 
   return {
-    icon: <FileText className="w-5 h-5" />,
+    icon: (
+      <FileText
+        className="w-5 h-5"
+        aria-label="Document file"
+      />
+    ),
     color: 'text-gray-500',
     bgColor: 'bg-gray-500/10',
   };
@@ -230,33 +240,33 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
             onClick={handleView}
             className="h-8 w-8 p-0"
             title="View attachment"
+            aria-label="View attachment"
           >
             <Eye className="w-4 h-4" />
             <span className="sr-only">View attachment</span>
           </Button>
-
           <Button
             variant="ghost"
             size="sm"
             onClick={handleDownload}
             className="h-8 w-8 p-0"
             title="Download attachment"
+            aria-label="Download attachment"
           >
             <Download className="w-4 h-4" />
             <span className="sr-only">Download attachment</span>
           </Button>
-
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(attachment.driveShareableUrl, '_blank')}
             className="h-8 w-8 p-0"
             title="Open in Google Drive"
+            aria-label="Open in Google Drive"
           >
             <ExternalLink className="w-4 h-4" />
             <span className="sr-only">Open in Google Drive</span>
           </Button>
-
           <Button
             variant="ghost"
             size="sm"
@@ -264,6 +274,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
             disabled={isDeleting || isDeletingAttachment}
             className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
             title="Delete attachment"
+            aria-label="Delete attachment"
           >
             {isDeleting ? (
               <div className="w-4 h-4 border border-destructive border-t-transparent rounded-full animate-spin" />
