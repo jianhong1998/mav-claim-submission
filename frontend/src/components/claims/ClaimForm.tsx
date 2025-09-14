@@ -216,7 +216,12 @@ export const ClaimForm: React.FC<ClaimFormProps> = ({
                 {getStatusInfo(claim.status).label}
               </div>
               <span className="text-xs text-muted-foreground">
-                Created {new Date(claim.createdAt).toLocaleDateString()}
+                Created{' '}
+                {new Date(claim.createdAt).toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })}
               </span>
             </div>
           )}
@@ -314,7 +319,7 @@ export const ClaimForm: React.FC<ClaimFormProps> = ({
                   key={month}
                   value={month}
                 >
-                  {new Date(0, month - 1).toLocaleString('default', {
+                  {new Date(0, month - 1).toLocaleString('en-US', {
                     month: 'long',
                   })}
                 </option>
