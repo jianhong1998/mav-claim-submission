@@ -4,7 +4,7 @@
 _Prompt: Role: [specialized developer role] | Task: [clear task description with context references] | Restrictions: [what not to do, constraints] | Success: [specific completion criteria]_
 This helps provide better AI agent guidance beyond simple "work on this task" prompts. -->
 
-- [ ] 1. Create attachment DTOs in shared types package
+- [x] 1. Create attachment DTOs in shared types package
   - File: packages/types/src/dtos/attachments/index.ts
   - Define request/response DTOs for attachment upload operations
   - Extend existing DTO patterns from auth and drive modules
@@ -13,7 +13,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 2.1, 5.1_
   - _Prompt: Role: TypeScript Developer specializing in API contract design | Task: Create comprehensive attachment DTOs following requirements 2.1 and 5.1, extending existing patterns from auth and drive DTOs, including upload request, response, and status types | Restrictions: Do not modify existing DTO structures, maintain backward compatibility, follow Object.freeze() enum pattern | Success: All DTOs compile without errors, proper inheritance from existing patterns, full type coverage for attachment operations_
 
-- [ ] 2. Extend AttachmentEntity with missing fields
+- [x] 2. Extend AttachmentEntity with missing fields
   - File: backend/src/modules/claims/entities/attachment.entity.ts
   - Add storedFilename field for Google Drive naming convention
   - Verify all required fields match design specification
@@ -22,7 +22,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 2.2_
   - _Prompt: Role: Database Developer with expertise in TypeORM and entity design | Task: Extend AttachmentEntity following requirements 1.1 and 2.2, adding storedFilename field and verifying all design-specified fields are present | Restrictions: Must maintain existing relationships, do not break existing migrations, follow TypeORM patterns | Success: Entity has all required fields, relationships work correctly, database operations succeed_
 
-- [ ] 3. Create AttachmentDBUtil extending BaseDBUtil
+- [x] 3. Create AttachmentDBUtil extending BaseDBUtil
   - File: backend/src/modules/claims/utils/attachment-db.util.ts
   - Implement database utility following existing BaseDBUtil patterns
   - Add attachment-specific query methods
@@ -31,7 +31,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 2.2, 5.2_
   - _Prompt: Role: Backend Developer with expertise in database utilities and TypeORM | Task: Create AttachmentDBUtil extending BaseDBUtil following requirements 2.2 and 5.2, implementing CRUD operations and attachment-specific queries | Restrictions: Must follow existing BaseDBUtil patterns, do not duplicate base functionality, maintain transaction safety | Success: All CRUD operations work correctly, follows established patterns, attachment queries are efficient and reliable_
 
-- [ ] 4. Create GoogleDriveClient service
+- [x] 4. Create GoogleDriveClient service
   - File: backend/src/modules/attachments/services/google-drive-client.service.ts
   - Implement Google Drive API operations with proper error handling
   - Add file upload, folder creation, and permission management
@@ -40,7 +40,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 3.1_
   - _Prompt: Role: API Integration Developer with expertise in Google APIs and Node.js | Task: Create GoogleDriveClient service following requirements 1.1 and 3.1, implementing file upload, folder creation, and permission setting with proper error handling and token refresh | Restrictions: Must use existing OAuth token patterns, implement exponential backoff for retries, do not expose Google API internals | Success: All Google Drive operations work reliably, proper error handling implemented, integrates seamlessly with existing auth service_
 
-- [ ] 5. Create AttachmentService orchestrating upload workflow
+- [x] 5. Create AttachmentService orchestrating upload workflow
   - File: backend/src/modules/attachments/services/attachment.service.ts
   - Implement main service coordinating Google Drive upload and database operations
   - Add file validation, naming convention, and status management
@@ -49,7 +49,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 1.2, 3.1_
   - _Prompt: Role: Backend Developer with expertise in service orchestration and business logic | Task: Create AttachmentService following requirements 1.1, 1.2, and 3.1, orchestrating Google Drive uploads with database persistence, file validation, and status management | Restrictions: Must use existing validation patterns, maintain transaction integrity, follow established service patterns | Success: Complete upload workflow implemented, proper validation and error handling, status tracking works correctly_
 
-- [ ] 6. Create AttachmentController with upload endpoints
+- [x] 6. Create AttachmentController with upload endpoints
   - File: backend/src/modules/attachments/controllers/attachment.controller.ts
   - Implement REST endpoints for file upload and attachment management
   - Add request validation and proper HTTP status codes
@@ -58,7 +58,7 @@ This helps provide better AI agent guidance beyond simple "work on this task" pr
   - _Requirements: 1.1, 4.1_
   - _Prompt: Role: API Developer with expertise in NestJS controllers and REST design | Task: Create AttachmentController following requirements 1.1 and 4.1, implementing upload endpoints with proper validation, status codes, and error handling | Restrictions: Must follow existing controller patterns, validate all inputs, ensure proper HTTP semantics | Success: All endpoints work correctly, proper validation implemented, follows REST conventions and existing patterns_
 
-- [ ] 7. Create AttachmentModule with proper dependency injection
+- [x] 7. Create AttachmentModule with proper dependency injection
   - File: backend/src/modules/attachments/attachment.module.ts
   - Set up NestJS module with all services and controllers
   - Configure dependency injection and imports
