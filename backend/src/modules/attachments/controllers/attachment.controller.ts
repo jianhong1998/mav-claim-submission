@@ -40,11 +40,7 @@ import {
 } from '@project/types';
 import { AuthGeneralRateLimit } from 'src/modules/auth/decorators/rate-limit.decorator';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
-
-export class AttachmentUploadDto {
-  claimId: string;
-  parentFolderId?: string;
-}
+import { AttachmentUploadDto } from '../dtos/attachment-upload.dto';
 
 export class AttachmentResponseDto {
   success: boolean;

@@ -26,32 +26,17 @@ import { AttachmentController } from './controllers/attachment.controller';
  */
 @Module({
   imports: [
-    // TypeORM entities for attachment operations
     TypeOrmModule.forFeature([AttachmentEntity, ClaimEntity]),
-
-    // Auth module for Google OAuth and token management
     AuthModule,
-
-    // Common utilities and base classes
     CommonModule,
   ],
   controllers: [AttachmentController],
   providers: [
-    // Database utilities
     AttachmentDBUtil,
     ClaimDBUtil,
-
-    // Google Drive integration
     GoogleDriveClient,
-
-    // Business logic service
     AttachmentService,
   ],
-  exports: [
-    // Export services for use by other modules (e.g., ClaimsModule)
-    AttachmentService,
-    GoogleDriveClient,
-    AttachmentDBUtil,
-  ],
+  exports: [AttachmentService, GoogleDriveClient, AttachmentDBUtil],
 })
 export class AttachmentModule {}
