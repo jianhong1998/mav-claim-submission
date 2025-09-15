@@ -7,10 +7,12 @@ import {
   Res,
   HttpStatus,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from '../services/auth.service';
+import { TokenDBUtil } from '../utils/token-db.util';
 import {
   AuthenticatedResponseDTO,
   UnauthenticatedResponseDTO,
@@ -33,7 +35,10 @@ import { JwtOptionalGuard } from '../guards/jwt-optional.guard';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly tokenDBUtil: TokenDBUtil,
+  ) {}
 
   /**
    * Initiate Google OAuth flow
@@ -77,12 +82,7 @@ export class AuthController {
           },
           photos: req.user.picture ? [{ value: req.user.picture }] : [],
         },
-        {
-          access_token: 'handled_by_strategy',
-          refresh_token: 'handled_by_strategy',
-          expires_in: 3600,
-          scope: 'profile email gmail.send drive.file',
-        },
+        null, // OAuth tokens are already handled by the strategy
       );
 
       // Set JWT cookie
@@ -146,6 +146,159 @@ export class AuthController {
       user: userDTO,
       message: 'Profile retrieved successfully',
     });
+  }
+
+  /**
+   * Get Google Drive access token for client-side uploads
+   * Requirements: 2.0 - Drive Token Management Endpoint
+   * Security: Rate limited, JWT authenticated, minimal scope validation
+   */
+  @Get('drive-token')
+  @AuthGeneralRateLimit()
+  @UseGuards(JwtAuthGuard)
+  async getDriveToken(@User() user: UserEntity): Promise<{
+    success: boolean;
+    access_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    error?: string;
+    errorCode?: string;
+    retryAfter?: number;
+  }> {
+    try {
+      // Get user's OAuth tokens using existing AuthService method
+      const tokenEntity = await this.authService.getUserTokens(user.id);
+
+      if (!tokenEntity) {
+        this.logger.warn(
+          `No valid Google Drive tokens found for user: ${user.id}`,
+        );
+        return {
+          success: false,
+          error:
+            'No valid Google Drive tokens found. Please re-authenticate with Google.',
+          errorCode: 'TOKEN_NOT_FOUND',
+        };
+      }
+
+      // Validate token scope includes drive.file
+      if (!tokenEntity.scope.includes('drive.file')) {
+        this.logger.warn(
+          `Insufficient Google Drive scope for user: ${user.id}, scope: ${tokenEntity.scope}`,
+        );
+        return {
+          success: false,
+          error:
+            'Insufficient permissions. Google Drive access required. Please re-authenticate.',
+          errorCode: 'INSUFFICIENT_SCOPE',
+        };
+      }
+
+      // Check if token is expiring soon (within 5 minutes)
+      const expiresInMs = tokenEntity.expiresAt.getTime() - Date.now();
+      if (expiresInMs < 300000) {
+        // 5 minutes
+        this.logger.log(
+          `Token expiring soon for user: ${user.id}, attempting refresh`,
+        );
+
+        const refreshSuccess = await this.authService.refreshTokens(user.id);
+        if (!refreshSuccess) {
+          this.logger.warn(`Token refresh failed for user: ${user.id}`);
+          return {
+            success: false,
+            error:
+              'Access token expired and refresh failed. Please re-authenticate with Google.',
+            errorCode: 'TOKEN_REFRESH_FAILED',
+          };
+        }
+
+        // Fetch the refreshed token
+        const refreshedTokenEntity = await this.authService.getUserTokens(
+          user.id,
+        );
+        if (!refreshedTokenEntity) {
+          return {
+            success: false,
+            error:
+              'Token refresh succeeded but could not retrieve new token. Please try again.',
+            errorCode: 'TOKEN_REFRESH_RETRIEVAL_FAILED',
+          };
+        }
+
+        // Decrypt refreshed tokens
+        const { accessToken } =
+          await this.tokenDBUtil.getDecryptedTokens(refreshedTokenEntity);
+        const expiresIn = Math.floor(
+          (refreshedTokenEntity.expiresAt.getTime() - Date.now()) / 1000,
+        );
+
+        this.logger.log(
+          `Drive token refreshed and retrieved successfully for user: ${user.id}`,
+        );
+
+        return {
+          success: true,
+          access_token: accessToken,
+          expires_in: expiresIn,
+          token_type: 'Bearer',
+        };
+      }
+
+      // Decrypt tokens using existing TokenDBUtil method
+      const { accessToken } =
+        await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
+      const expiresIn = Math.floor(
+        (tokenEntity.expiresAt.getTime() - Date.now()) / 1000,
+      );
+
+      this.logger.log(
+        `Drive token retrieved successfully for user: ${user.id}`,
+      );
+
+      return {
+        success: true,
+        access_token: accessToken,
+        expires_in: expiresIn,
+        token_type: 'Bearer',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get Drive token for user ${user.id}:`,
+        error,
+      );
+
+      // Handle specific error types
+      if (error instanceof BadRequestException) {
+        return {
+          success: false,
+          error: error.message,
+          errorCode: 'BAD_REQUEST',
+        };
+      }
+
+      // Check for database/network errors that might be temporary
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('connection')
+      ) {
+        return {
+          success: false,
+          error: 'Temporary service unavailable. Please try again in a moment.',
+          errorCode: 'SERVICE_TEMPORARILY_UNAVAILABLE',
+          retryAfter: 30, // seconds
+        };
+      }
+
+      return {
+        success: false,
+        error:
+          'Unable to retrieve Google Drive access token. Please try again or re-authenticate.',
+        errorCode: 'INTERNAL_ERROR',
+      };
+    }
   }
 
   /**

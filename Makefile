@@ -30,7 +30,10 @@ clean-image:
 	@docker image prune -f
 
 clean/dist:
-	@rm -rf **/**/dist
+	@rm -rf **/dist **/**/dist
+
+clean/turbo:
+	@rm -rf ./.turbo **/.turbo **/**/.turbo 
 
 # TurboRepo delegated commands
 build:
@@ -92,3 +95,12 @@ db/migration/generate:
 	@cd backend && \
 		chmod +x ./scripts/generate-migration.sh && \
 		./scripts/generate-migration.sh ${name}
+
+check-implementation/frontend:
+	@$(MAKE) format lint build/frontend test/ui
+
+check-implementation/backend:
+	@$(MAKE) format lint build/backend test/unit
+
+check-implementation/backend/with-api-test:
+	@$(MAKE) format lint build/backend test/unit test/api

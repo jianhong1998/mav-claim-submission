@@ -61,6 +61,14 @@ import { CommonModule } from '../common/common.module';
     ThrottlerGuard,
     TestModeThrottlerGuard,
   ],
-  exports: [AuthService, TokenService, JwtAuthGuard, JwtOptionalGuard],
+  exports: [
+    AuthService,
+    TokenService,
+    JwtAuthGuard,
+    JwtOptionalGuard,
+    TokenDBUtil,
+    ThrottlerGuard,
+    TestModeThrottlerGuard,
+  ],
 })
 export class AuthModule {}
