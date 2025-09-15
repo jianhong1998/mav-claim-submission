@@ -49,7 +49,7 @@ export class AuthService {
    */
   async handleOAuthCallback(
     profile: GoogleProfile,
-    tokens: GoogleTokens,
+    tokens?: GoogleTokens | null,
   ): Promise<{ user: UserEntity; jwt: string }> {
     try {
       const email = profile.emails?.[0]?.value;
@@ -84,8 +84,10 @@ export class AuthService {
         });
       }
 
-      // Store/update OAuth tokens
-      await this.storeTokens(user.id, tokens);
+      // Store/update OAuth tokens (skip if already handled by strategy)
+      if (tokens) {
+        await this.storeTokens(user.id, tokens);
+      }
 
       // Generate JWT session token using TokenService
       const jwt = this.tokenService.generateJWT(user);

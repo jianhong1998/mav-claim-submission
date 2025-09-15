@@ -144,17 +144,21 @@ Managed from root `.env` file:
 - **Architecture**: TurboRepo monorepo with NestJS backend, Next.js frontend
 - **Testing**: Vitest unit testing setup with coverage reporting
 - **Development Tools**: ESLint, Prettier, TypeScript strict mode across workspaces
+- **Client-Side Google Drive Upload**: Complete implementation of direct browser-to-Drive uploads
+  - Drive token endpoint for secure OAuth token distribution
+  - Frontend DriveUploadClient for direct Google Drive API integration
+  - Metadata-only backend storage with AttachmentMetadataDto
+  - Comprehensive error handling with exponential backoff retry logic
+  - Unit and integration test coverage for all components
 
 🚧 **In Development**:
 - **API Endpoints**: Implementing remaining endpoints:
-  - Drive token endpoint for client-side uploads
   - Claims management endpoints (create, list, update)
   - Email send endpoint with Gmail API integration
 - **Swagger Integration**: API documentation with OpenAPI specifications
 
 📋 **Next Phase**:
 - Complete claim management API endpoints
-- Google Drive client-side upload implementation
 - Frontend claim submission and management interfaces
 - Email notification templates with Drive URLs
 

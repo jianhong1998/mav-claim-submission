@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { attachmentQueryKeys } from '../queries/keys/key';
 import { apiClient } from '@/lib/api-client';
 import {
-  IAttachmentUploadRequest,
   IAttachmentUploadResponse,
   AttachmentMimeType,
   AttachmentStatus,
@@ -11,6 +10,12 @@ import {
 } from '@project/types';
 import { ErrorHandler } from '../queries/helper/error-handler';
 import { toast } from 'sonner';
+import { DriveUploadClient } from '@/lib/google-drive-client';
+import {
+  DriveUploadProgress,
+  DriveFile,
+  DriveApiError,
+} from '@/types/google-drive.types';
 
 /**
  * File validation constants
@@ -36,6 +41,16 @@ interface UploadProgress {
   uploadedBytes: number;
   totalBytes: number;
   estimatedTimeRemaining?: number;
+}
+
+/**
+ * Client-side upload workflow state
+ */
+interface ClientUploadState {
+  phase: 'token' | 'drive' | 'metadata' | 'complete' | 'error';
+  driveFileId?: string;
+  driveUrl?: string;
+  error?: string;
 }
 
 /**
@@ -99,53 +114,44 @@ const validateFile = (file: File): IAttachmentValidation => {
 };
 
 /**
- * Simulates XMLHttpRequest upload progress tracking
- * In real implementation, this would integrate with actual upload progress
+ * Maps Google Drive progress to our progress interface
  */
-const createProgressTracker = (
-  fileName: string,
-  totalSize: number,
-  onProgress: (progress: UploadProgress) => void,
-) => {
-  let uploadedBytes = 0;
-  const startTime = Date.now();
+const mapDriveProgress = (
+  driveProgress: DriveUploadProgress,
+): UploadProgress => ({
+  progress: driveProgress.percentage,
+  status:
+    driveProgress.percentage < 100
+      ? AttachmentStatus.PENDING
+      : AttachmentStatus.UPLOADED,
+  uploadedBytes: driveProgress.loaded,
+  totalBytes: driveProgress.total,
+  estimatedTimeRemaining: driveProgress.estimatedTimeRemaining,
+});
 
-  const updateProgress = (loaded: number) => {
-    uploadedBytes = loaded;
-    const progress = Math.round((loaded / totalSize) * 100);
-    const elapsed = Date.now() - startTime;
-    const rate = loaded / elapsed; // bytes per ms
-    const remaining = totalSize - loaded;
-    const estimatedTimeRemaining = remaining > 0 ? remaining / rate : 0;
+/**
+ * Creates a singleton Drive client instance
+ */
+const createDriveClient = (() => {
+  let driveClient: DriveUploadClient | null = null;
 
-    onProgress({
-      progress,
-      status:
-        progress < 100 ? AttachmentStatus.PENDING : AttachmentStatus.UPLOADED,
-      uploadedBytes: loaded,
-      totalBytes: totalSize,
-      estimatedTimeRemaining: Math.ceil(estimatedTimeRemaining / 1000), // convert to seconds
-    });
+  const factory = () => {
+    if (!driveClient) {
+      driveClient = new DriveUploadClient({ enableDebugLogging: false });
+    }
+    return driveClient;
   };
 
-  // Simulate progress updates for demo
-  const simulateProgress = () => {
-    const interval = setInterval(() => {
-      uploadedBytes += Math.random() * (totalSize * 0.1);
-      if (uploadedBytes >= totalSize) {
-        uploadedBytes = totalSize;
-        updateProgress(uploadedBytes);
-        clearInterval(interval);
-      } else {
-        updateProgress(uploadedBytes);
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
+  // Add reset function for testing
+  factory.reset = () => {
+    driveClient = null;
   };
 
-  return { updateProgress, simulateProgress };
-};
+  return factory;
+})();
+
+// Export for testing
+export { createDriveClient };
 
 /**
  * Enhanced attachment upload hook with comprehensive progress tracking and validation
@@ -207,7 +213,7 @@ export const useAttachmentUpload = (claimId: string) => {
     toast.error(`Upload failed for ${fileName}: ${errorMessage}`);
   }, []);
 
-  // Memoized upload mutation
+  // Memoized client-side upload mutation
   const uploadMutation = useMutation<
     IAttachmentUploadResponse,
     unknown,
@@ -222,44 +228,62 @@ export const useAttachmentUpload = (claimId: string) => {
         );
       }
 
-      // Initialize progress tracking
       const fileName = file.name;
-      const progressTracker = createProgressTracker(
-        fileName,
-        file.size,
-        (progress) => {
-          setUploadState((prev) => ({
-            ...prev,
-            currentUploads: new Map(
-              prev.currentUploads.set(fileName, progress),
-            ),
-          }));
-          onProgress?.(progress);
-        },
-      );
-
-      // Start progress simulation (in real implementation, this would be actual progress)
-      const cleanup = progressTracker.simulateProgress();
+      const uploadState: ClientUploadState = { phase: 'token' };
 
       try {
-        // Prepare upload request
-        const uploadRequest: IAttachmentUploadRequest = {
+        // Phase 1: Initialize Drive client and get token
+        uploadState.phase = 'token';
+        const driveClient = createDriveClient();
+        await driveClient.initialize();
+
+        // Phase 2: Upload to Google Drive
+        uploadState.phase = 'drive';
+        const driveResult = await driveClient.uploadFile(file, {
           fileName: file.name,
-          fileSize: file.size,
           mimeType: validation.mimeType!,
-          claimId,
-        };
+          onProgress: (driveProgress) => {
+            const progress = mapDriveProgress(driveProgress);
+            setUploadState((prev) => ({
+              ...prev,
+              currentUploads: new Map(
+                prev.currentUploads.set(fileName, progress),
+              ),
+            }));
+            onProgress?.(progress);
+          },
+        });
 
-        // Create FormData for file upload
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('metadata', JSON.stringify(uploadRequest));
+        if (!driveResult.success || !driveResult.data) {
+          throw new Error(
+            driveClient.getUserFriendlyErrorMessage(
+              driveResult.error as DriveApiError,
+            ),
+          );
+        }
 
-        // Make API call with file data
-        const response = await apiClient.post<IAttachmentUploadResponse>(
-          '/attachments/upload',
-          formData,
-        );
+        const driveFile = driveResult.data as DriveFile;
+        uploadState.driveFileId = driveFile.id;
+        uploadState.driveUrl = driveFile.webViewLink;
+
+        // Phase 3: Store metadata in backend
+        uploadState.phase = 'metadata';
+        const metadataResponse =
+          await apiClient.post<IAttachmentUploadResponse>(
+            '/attachments/metadata',
+            {
+              claimId,
+              originalFilename: file.name,
+              storedFilename: driveFile.name,
+              googleDriveFileId: driveFile.id,
+              googleDriveUrl: driveFile.webViewLink,
+              fileSize: file.size,
+              mimeType: validation.mimeType!,
+            },
+          );
+
+        // Phase 4: Complete
+        uploadState.phase = 'complete';
 
         // Update state with success
         setUploadState((prev) => ({
@@ -274,10 +298,11 @@ export const useAttachmentUpload = (claimId: string) => {
           ],
         }));
 
-        cleanup();
-        return response;
+        return metadataResponse;
       } catch (error) {
-        cleanup();
+        uploadState.phase = 'error';
+        uploadState.error =
+          error instanceof Error ? error.message : 'Upload failed';
 
         // Update progress with failed status
         setUploadState((prev) => ({

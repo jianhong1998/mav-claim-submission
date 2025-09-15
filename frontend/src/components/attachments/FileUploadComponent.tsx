@@ -64,8 +64,9 @@ const formatFileSize = (bytes: number): string => {
 };
 
 /**
- * Enhanced file upload component with drag-and-drop support
+ * Enhanced file upload component with drag-and-drop support and client-side Google Drive integration
  * Follows existing UI patterns and accessibility standards
+ * Supports direct Drive uploads with comprehensive progress tracking
  */
 export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
   claimId,
@@ -323,6 +324,9 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
             <p className="text-xs text-muted-foreground">
               {allowedTypes.join(', ')} up to {formatFileSize(maxFileSize)}
             </p>
+            <p className="text-xs text-muted-foreground/80">
+              Files upload directly to your Google Drive
+            </p>
             {multiple && (
               <p className="text-xs text-muted-foreground">
                 You can select multiple files
@@ -346,7 +350,15 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
           <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-lg">
             <div className="text-center">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Uploading...</p>
+              <p className="text-sm text-muted-foreground">
+                Uploading to Google Drive...
+              </p>
+              {currentUploads.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {currentUploads.length} file
+                  {currentUploads.length === 1 ? '' : 's'} in progress
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -404,24 +416,42 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                     {uploadStatus?.isActive && (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs text-muted-foreground">
-                          {uploadStatus.progress}%
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-muted-foreground">
+                            {uploadStatus.progress}%
+                          </span>
+                          {uploadStatus.estimatedTimeRemaining &&
+                            uploadStatus.estimatedTimeRemaining > 0 && (
+                              <span className="text-xs text-muted-foreground/70">
+                                {uploadStatus.estimatedTimeRemaining}s left
+                              </span>
+                            )}
+                        </div>
                       </div>
                     )}
 
                     {uploadStatus?.isCompleted && (
-                      <CheckCircle2
-                        className="w-4 h-4 text-green-500"
-                        data-testid="CheckCircle2"
-                      />
+                      <div className="flex items-center gap-1">
+                        <CheckCircle2
+                          className="w-4 h-4 text-green-500"
+                          data-testid="CheckCircle2"
+                        />
+                        <span className="text-xs text-green-600 dark:text-green-400">
+                          Uploaded to Drive
+                        </span>
+                      </div>
                     )}
 
                     {uploadStatus?.isFailed && (
-                      <AlertCircle
-                        className="w-4 h-4 text-destructive"
-                        data-testid="AlertCircle"
-                      />
+                      <div className="flex items-center gap-1">
+                        <AlertCircle
+                          className="w-4 h-4 text-destructive"
+                          data-testid="AlertCircle"
+                        />
+                        <span className="text-xs text-destructive">
+                          Upload failed
+                        </span>
+                      </div>
                     )}
 
                     {!uploadStatus && (
@@ -451,7 +481,7 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
       {currentUploads.length > 0 ? (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-foreground">
-            Upload Progress:
+            Uploading to Google Drive:
           </h3>
           <div className="space-y-2">
             {currentUploads.map((upload) => (
@@ -463,9 +493,14 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                   <span className="text-foreground truncate">
                     {upload.fileName}
                   </span>
-                  <span className="text-muted-foreground">
-                    {upload.progress}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      {upload.progress}%
+                    </span>
+                    {upload.status === AttachmentStatus.PENDING && (
+                      <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
+                    )}
+                  </div>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
@@ -480,12 +515,20 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                     style={{ width: `${upload.progress}%` }}
                   />
                 </div>
-                {upload.estimatedTimeRemaining &&
-                  upload.estimatedTimeRemaining > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {upload.estimatedTimeRemaining}s remaining
-                    </p>
-                  )}
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {upload.status === AttachmentStatus.PENDING &&
+                      'Uploading...'}
+                    {upload.status === AttachmentStatus.UPLOADED &&
+                      'Uploaded successfully'}
+                    {upload.status === AttachmentStatus.FAILED &&
+                      'Upload failed'}
+                  </span>
+                  {upload.estimatedTimeRemaining &&
+                    upload.estimatedTimeRemaining > 0 && (
+                      <span>{upload.estimatedTimeRemaining}s remaining</span>
+                    )}
+                </div>
               </div>
             ))}
           </div>

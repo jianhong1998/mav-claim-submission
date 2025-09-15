@@ -194,7 +194,9 @@ describe('FileUploadComponent', () => {
         wrapper: createWrapper(),
       });
 
-      expect(screen.getByText('Uploading...')).toBeInTheDocument();
+      expect(
+        screen.getByText('Uploading to Google Drive...'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -704,7 +706,9 @@ describe('FileUploadComponent', () => {
         wrapper: createWrapper(),
       });
 
-      expect(screen.getByText('Upload Progress:')).toBeInTheDocument();
+      expect(
+        screen.getByText('Uploading to Google Drive:'),
+      ).toBeInTheDocument();
       expect(screen.getByText('uploading-file.pdf')).toBeInTheDocument();
       expect(screen.getByText('45%')).toBeInTheDocument();
       expect(screen.getByText('5s remaining')).toBeInTheDocument();
