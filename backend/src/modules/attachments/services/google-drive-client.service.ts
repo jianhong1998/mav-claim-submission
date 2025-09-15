@@ -8,13 +8,6 @@ import { google, drive_v3 } from 'googleapis';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { TokenDBUtil } from 'src/modules/auth/utils/token-db.util';
 
-export interface DriveUploadOptions {
-  fileName: string;
-  mimeType: string;
-  fileBuffer: Buffer;
-  folderId?: string;
-}
-
 export interface DriveFileInfo {
   id: string;
   name: string;
@@ -22,17 +15,13 @@ export interface DriveFileInfo {
   size: string;
 }
 
-export interface DriveUploadResult extends DriveFileInfo {
-  uploadedAt: Date;
-}
-
 /**
  * GoogleDriveClient - Google Drive API Operations
  *
  * Responsibilities:
- * - File upload to Google Drive
  * - Folder creation and management
  * - File permission and sharing
+ * - File metadata operations
  * - Drive API error handling with retries
  *
  * Requirements: 1.1 - Google Drive Integration, 3.1 - Token Management
@@ -50,50 +39,6 @@ export class GoogleDriveClient {
     private readonly authService: AuthService,
     private readonly tokenDBUtil: TokenDBUtil,
   ) {}
-
-  /**
-   * Upload file to user's Google Drive
-   * Requirements: 1.1 - File Upload Operations
-   */
-  async uploadFile(
-    userId: string,
-    options: DriveUploadOptions,
-  ): Promise<DriveUploadResult> {
-    const drive = await this.getDriveClient(userId);
-
-    try {
-      const uploadResult = await this.retryOperation(async () => {
-        const response = await drive.files.create({
-          requestBody: {
-            name: options.fileName,
-            parents: options.folderId ? [options.folderId] : undefined,
-          },
-          media: {
-            mimeType: options.mimeType,
-            body: options.fileBuffer,
-          },
-          fields: 'id,name,webViewLink,size',
-        });
-
-        return response.data as DriveFileInfo;
-      });
-
-      // Make file shareable
-      await this.setFilePermissions(userId, uploadResult.id);
-
-      this.logger.log(
-        `File uploaded successfully: ${uploadResult.name} (${uploadResult.id})`,
-      );
-
-      return {
-        ...uploadResult,
-        uploadedAt: new Date(),
-      };
-    } catch (error) {
-      this.logger.error(`File upload failed for user ${userId}:`, error);
-      throw this.handleDriveError(error);
-    }
-  }
 
   /**
    * Create claim folder structure /Mavericks Claims/{claimUuid}/
@@ -302,23 +247,30 @@ export class GoogleDriveClient {
       );
     }
 
-    // Decrypt tokens for API usage
-    const { accessToken, refreshToken } =
-      await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
+    try {
+      // Decrypt tokens for API usage
+      const { accessToken, refreshToken } =
+        await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
 
-    // Create OAuth2 client
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-    );
+      // Create OAuth2 client
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI,
+      );
 
-    oauth2Client.setCredentials({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
 
-    // Create Drive client
-    return google.drive({ version: 'v3', auth: oauth2Client });
+      // Create Drive client
+      return google.drive({ version: 'v3', auth: oauth2Client });
+    } catch (_error) {
+      throw new BadRequestException(
+        'Failed to decrypt Google Drive tokens for user',
+      );
+    }
   }
 
   /**
@@ -382,6 +334,14 @@ export class GoogleDriveClient {
    * Requirements: 3.1 - Error Handling
    */
   private handleDriveError(error: unknown): Error {
+    // If it's already a NestJS exception, preserve it
+    if (
+      error instanceof BadRequestException ||
+      error instanceof InternalServerErrorException
+    ) {
+      return error;
+    }
+
     if (this.hasErrorCode(error, 401)) {
       return new BadRequestException('Google Drive authentication failed');
     }

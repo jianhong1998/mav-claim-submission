@@ -1,30 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { AttachmentService, FileUploadData } from './attachment.service';
-import {
-  GoogleDriveClient,
-  DriveUploadResult,
-} from './google-drive-client.service';
+import { AttachmentService } from './attachment.service';
+import { GoogleDriveClient } from './google-drive-client.service';
 import { AttachmentDBUtil } from 'src/modules/claims/utils/attachment-db.util';
 import { ClaimDBUtil } from 'src/modules/claims/utils/claim-db.util';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
-import { UserEntity } from 'src/modules/auth/entities/user.entity';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
+import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
+import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
 import { AttachmentMimeType } from '@project/types';
 
 // Mock external dependencies
 const mockGoogleDriveClient = {
-  uploadFile: vi.fn(),
   createClaimFolder: vi.fn(),
   deleteFile: vi.fn(),
 };
@@ -48,337 +36,157 @@ describe('AttachmentService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Create service instance with mocked dependencies
     attachmentService = new AttachmentService(
-      mockAttachmentDBUtil as any,
-      mockClaimDBUtil as any,
-      mockGoogleDriveClient as any,
+      mockAttachmentDBUtil as unknown as AttachmentDBUtil,
+      mockClaimDBUtil as unknown as ClaimDBUtil,
+      mockGoogleDriveClient as unknown as GoogleDriveClient,
     );
   });
 
+  // Mock data
   const mockUser: UserEntity = {
     id: 'user-123',
-    email: 'john.doe@mavericks-consulting.com',
-    name: 'John Doe',
-    picture: null,
+    email: 'test@mavericks-consulting.com',
+    name: 'Test User',
+    picture: 'https://example.com/picture.jpg',
     googleId: 'google-123',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  } as UserEntity;
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const mockClaim: ClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
-    category: 'telco',
-    year: 2024,
-    month: 9,
-    amount: 100.0,
-    status: 'draft',
     user: mockUser,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  } as ClaimEntity;
+    category: ClaimCategory.TELCO,
+    year: 2024,
+    month: 12,
+    totalAmount: 100.5,
+    claimName: 'Test claim',
+    status: ClaimStatus.DRAFT,
+    submissionDate: null,
+    attachments: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const mockAttachment: AttachmentEntity = {
     id: 'attachment-123',
     claimId: 'claim-123',
+    claim: mockClaim,
     originalFilename: 'receipt.pdf',
-    storedFilename: 'john_doe_telco_2024_09_1234567890.pdf',
-    fileSize: 1024,
-    mimeType: AttachmentMimeType.PDF,
+    storedFilename: 'test_user_telco_2024_12_1234567890.pdf',
     googleDriveFileId: 'drive-file-123',
     googleDriveUrl: 'https://drive.google.com/file/d/drive-file-123/view',
-    status: AttachmentStatus.UPLOADED,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  } as AttachmentEntity;
-
-  const mockFileData: FileUploadData = {
-    buffer: Buffer.from('mock file content'),
-    originalName: 'receipt.pdf',
+    fileSize: 1024,
     mimeType: AttachmentMimeType.PDF,
-    size: 1024,
+    status: AttachmentStatus.UPLOADED,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const mockDriveResult: DriveUploadResult = {
-    id: 'drive-file-123',
-    name: 'john_doe_telco_2024_09_1234567890.pdf',
-    webViewLink: 'https://drive.google.com/file/d/drive-file-123/view',
-    size: '1024',
-    uploadedAt: new Date('2024-01-01'),
-  };
-
-  describe('File Upload Workflow', () => {
-    it('should successfully upload file with complete workflow', async () => {
+  describe('Store File Metadata', () => {
+    it('should successfully store file metadata', async () => {
       // Setup mocks
       mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
       mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
       mockAttachmentDBUtil.create.mockResolvedValue(mockAttachment);
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(
-        mockAttachment,
-      );
+
+      const metadata = {
+        originalFilename: 'receipt.pdf',
+        storedFilename: 'test_user_telco_2024_12_1234567890.pdf',
+        googleDriveFileId: 'drive-file-123',
+        googleDriveUrl: 'https://drive.google.com/file/d/drive-file-123/view',
+        fileSize: 1024,
+        mimeType: AttachmentMimeType.PDF,
+      };
 
       // Execute
-      const result = await attachmentService.uploadFile(
-        'user-123',
+      const result = await attachmentService.storeFileMetadata(
         'claim-123',
-        mockFileData,
+        metadata,
       );
 
       // Verify result
       expect(result.success).toBe(true);
-      expect(result.attachmentId).toBe('attachment-123');
-      expect(result.fileId).toBe('drive-file-123');
-      expect(result.status).toBe(AttachmentStatus.UPLOADED);
+      if (result.success) {
+        expect(result.attachmentId).toBe('attachment-123');
+        expect(result.fileId).toBe('drive-file-123');
+        expect(result.status).toBe(AttachmentStatus.UPLOADED);
+      }
 
       // Verify interactions
       expect(mockClaimDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'claim-123' },
-        relation: { user: true },
       });
-      expect(mockAttachmentDBUtil.create).toHaveBeenCalled();
-      expect(mockGoogleDriveClient.createClaimFolder).toHaveBeenCalledWith(
-        'user-123',
-        'claim-123',
-      );
-      expect(mockGoogleDriveClient.uploadFile).toHaveBeenCalled();
-      expect(mockAttachmentDBUtil.updateGoogleDriveInfo).toHaveBeenCalled();
+      expect(mockAttachmentDBUtil.create).toHaveBeenCalledWith({
+        creationData: {
+          claimId: 'claim-123',
+          originalFilename: 'receipt.pdf',
+          storedFilename: 'test_user_telco_2024_12_1234567890.pdf',
+          fileSize: 1024,
+          mimeType: AttachmentMimeType.PDF,
+          googleDriveFileId: 'drive-file-123',
+          googleDriveUrl: 'https://drive.google.com/file/d/drive-file-123/view',
+          status: AttachmentStatus.UPLOADED,
+        },
+      });
     });
 
-    it('should handle file upload with parent folder ID', async () => {
-      mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockResolvedValue(mockAttachment);
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(
-        mockAttachment,
-      );
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        mockFileData,
-        'parent-folder-123',
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockGoogleDriveClient.uploadFile).toHaveBeenCalledWith(
-        'user-123',
-        expect.objectContaining({
-          folderId: 'parent-folder-123',
-        }),
-      );
-    });
-
-    it('should handle errors gracefully during upload', async () => {
-      mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockResolvedValue(mockAttachment);
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockRejectedValue(
-        new Error('Drive API error'),
-      );
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        mockFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Drive API error');
-    });
-  });
-
-  describe('File Validation', () => {
-    it('should reject files that are too large', async () => {
-      const largeFileData: FileUploadData = {
-        ...mockFileData,
-        size: 10 * 1024 * 1024, // 10MB - exceeds 5MB limit
-      };
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        largeFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('File validation failed');
-      expect(result.error).toContain('exceeds maximum allowed size');
-    });
-
-    it('should reject empty files', async () => {
-      const emptyFileData: FileUploadData = {
-        ...mockFileData,
-        size: 0,
-      };
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        emptyFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('File is empty');
-    });
-
-    it('should reject files with disallowed MIME types', async () => {
-      const disallowedFileData: FileUploadData = {
-        ...mockFileData,
-        mimeType: 'application/x-executable', // Not in allowed MIME types
-      };
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        disallowedFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('File type not allowed');
-    });
-
-    it('should reject files with dangerous extensions', async () => {
-      const dangerousFileData: FileUploadData = {
-        ...mockFileData,
-        originalName: 'malware.exe',
-      };
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        dangerousFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        'File type not allowed for security reasons',
-      );
-    });
-
-    it('should reject files with empty or overly long filenames', async () => {
-      const emptyFilenameData: FileUploadData = {
-        ...mockFileData,
-        originalName: '',
-      };
-
-      let result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        emptyFilenameData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Filename is required');
-
-      const longFilenameData: FileUploadData = {
-        ...mockFileData,
-        originalName: 'a'.repeat(300) + '.pdf', // Exceeds 255 character limit
-      };
-
-      result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        longFilenameData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Filename too long');
-    });
-
-    it('should accept valid file types', async () => {
-      mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockResolvedValue(mockAttachment);
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(
-        mockAttachment,
-      );
-
-      // Test different valid MIME types
-      const validMimeTypes = [
-        AttachmentMimeType.PDF,
-        AttachmentMimeType.JPEG,
-        AttachmentMimeType.PNG,
-      ];
-
-      for (const mimeType of validMimeTypes) {
-        const validFileData: FileUploadData = {
-          ...mockFileData,
-          mimeType,
-        };
-
-        const result = await attachmentService.uploadFile(
-          'user-123',
-          'claim-123',
-          validFileData,
-        );
-
-        expect(result.success).toBe(true);
-      }
-    });
-  });
-
-  describe('Business Logic Validation', () => {
-    it('should reject upload if claim not found', async () => {
+    it('should reject metadata storage if claim not found', async () => {
       mockClaimDBUtil.getOne.mockResolvedValue(null);
 
-      const result = await attachmentService.uploadFile(
-        'user-123',
+      const metadata = {
+        originalFilename: 'receipt.pdf',
+        storedFilename: 'test_user_telco_2024_12_1234567890.pdf',
+        googleDriveFileId: 'drive-file-123',
+        googleDriveUrl: 'https://drive.google.com/file/d/drive-file-123/view',
+        fileSize: 1024,
+        mimeType: AttachmentMimeType.PDF,
+      };
+
+      const result = await attachmentService.storeFileMetadata(
         'claim-123',
-        mockFileData,
+        metadata,
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Claim not found');
+      if (!result.success) {
+        expect(result.error).toBe('Claim not found');
+      }
     });
 
-    it('should reject upload if maximum files per claim reached', async () => {
-      const existingAttachments = Array(5).fill(mockAttachment); // 5 files already exist
+    it('should reject metadata storage if maximum files per claim reached', async () => {
       mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue(existingAttachments);
+      // Mock 5 existing attachments (max limit)
+      mockAttachmentDBUtil.findByClaimId.mockResolvedValue(
+        new Array(5).fill(mockAttachment),
+      );
 
-      const result = await attachmentService.uploadFile(
-        'user-123',
+      const metadata = {
+        originalFilename: 'receipt.pdf',
+        storedFilename: 'test_user_telco_2024_12_1234567890.pdf',
+        googleDriveFileId: 'drive-file-123',
+        googleDriveUrl: 'https://drive.google.com/file/d/drive-file-123/view',
+        fileSize: 1024,
+        mimeType: AttachmentMimeType.PDF,
+      };
+
+      const result = await attachmentService.storeFileMetadata(
         'claim-123',
-        mockFileData,
+        metadata,
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Maximum 5 files allowed per claim');
-    });
-
-    it('should handle database update failure', async () => {
-      mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockResolvedValue(mockAttachment);
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(null); // Update fails
-
-      const result = await attachmentService.uploadFile(
-        'user-123',
-        'claim-123',
-        mockFileData,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        'Failed to update attachment with Google Drive info',
-      );
+      if (!result.success) {
+        expect(result.error).toContain('Maximum 5 files allowed per claim');
+      }
     });
   });
 
   describe('Attachment Management', () => {
     it('should get attachments by claim ID', async () => {
-      const attachments = [mockAttachment];
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue(attachments);
+      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([mockAttachment]);
 
       const result =
         await attachmentService.getAttachmentsByClaimId('claim-123');
@@ -386,7 +194,6 @@ describe('AttachmentService', () => {
       expect(result.success).toBe(true);
       expect(result.attachments).toHaveLength(1);
       expect(result.total).toBe(1);
-      expect(result.attachments![0].id).toBe('attachment-123');
     });
 
     it('should handle errors when getting attachments by claim ID', async () => {
@@ -407,14 +214,15 @@ describe('AttachmentService', () => {
       const result =
         await attachmentService.getAttachmentById('attachment-123');
 
-      expect(result).not.toBeNull();
+      expect(result).toBeDefined();
       expect(result?.id).toBe('attachment-123');
     });
 
     it('should return null for non-existent attachment', async () => {
       mockAttachmentDBUtil.getOne.mockResolvedValue(null);
 
-      const result = await attachmentService.getAttachmentById('non-existent');
+      const result =
+        await attachmentService.getAttachmentById('attachment-123');
 
       expect(result).toBeNull();
     });
@@ -501,13 +309,13 @@ describe('AttachmentService', () => {
 
       const result = await attachmentService.updateAttachmentStatus(
         'attachment-123',
-        AttachmentStatus.PROCESSING,
+        AttachmentStatus.UPLOADED,
       );
 
       expect(result).toBe(true);
       expect(mockAttachmentDBUtil.updateStatus).toHaveBeenCalledWith({
         attachmentId: 'attachment-123',
-        status: AttachmentStatus.PROCESSING,
+        status: AttachmentStatus.UPLOADED,
       });
     });
 
@@ -516,7 +324,7 @@ describe('AttachmentService', () => {
 
       const result = await attachmentService.updateAttachmentStatus(
         'attachment-123',
-        AttachmentStatus.PROCESSING,
+        AttachmentStatus.UPLOADED,
       );
 
       expect(result).toBe(false);
@@ -529,22 +337,21 @@ describe('AttachmentService', () => {
 
       const result = await attachmentService.updateAttachmentStatus(
         'attachment-123',
-        AttachmentStatus.PROCESSING,
+        AttachmentStatus.UPLOADED,
       );
 
       expect(result).toBe(false);
     });
 
     it('should get attachments by status', async () => {
-      const attachments = [mockAttachment];
-      mockAttachmentDBUtil.findByStatus.mockResolvedValue(attachments);
+      mockAttachmentDBUtil.findByStatus.mockResolvedValue([mockAttachment]);
 
       const result = await attachmentService.getAttachmentsByStatus(
         AttachmentStatus.UPLOADED,
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('attachment-123');
+      expect(result[0]).toBe(mockAttachment);
     });
 
     it('should handle errors when getting attachments by status', async () => {
@@ -557,97 +364,6 @@ describe('AttachmentService', () => {
       );
 
       expect(result).toEqual([]);
-    });
-  });
-
-  describe('Filename Generation', () => {
-    it('should generate proper stored filename following naming convention', async () => {
-      mockClaimDBUtil.getOne.mockResolvedValue(mockClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockImplementation((params) => {
-        // Verify the stored filename follows the convention
-        const storedFilename = params.creationData.storedFilename;
-        expect(storedFilename).toMatch(/^john_doe_telco_2024_09_\d+\.pdf$/);
-        return Promise.resolve(mockAttachment);
-      });
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(
-        mockAttachment,
-      );
-
-      await attachmentService.uploadFile('user-123', 'claim-123', mockFileData);
-
-      expect(mockAttachmentDBUtil.create).toHaveBeenCalled();
-    });
-
-    it('should handle special characters in employee name', async () => {
-      const specialCharacterClaim = {
-        ...mockClaim,
-        user: {
-          ...mockUser,
-          name: "John O'Connor-Smith Jr.",
-        },
-      };
-
-      mockClaimDBUtil.getOne.mockResolvedValue(specialCharacterClaim);
-      mockAttachmentDBUtil.findByClaimId.mockResolvedValue([]);
-      mockAttachmentDBUtil.create.mockImplementation((params) => {
-        const storedFilename = params.creationData.storedFilename;
-        // Should clean special characters and limit length
-        expect(storedFilename).toMatch(/^john_o_connor_smith_.+$/);
-        return Promise.resolve(mockAttachment);
-      });
-      mockGoogleDriveClient.createClaimFolder.mockResolvedValue('folder-123');
-      mockGoogleDriveClient.uploadFile.mockResolvedValue(mockDriveResult);
-      mockAttachmentDBUtil.updateGoogleDriveInfo.mockResolvedValue(
-        mockAttachment,
-      );
-
-      await attachmentService.uploadFile('user-123', 'claim-123', mockFileData);
-
-      expect(mockAttachmentDBUtil.create).toHaveBeenCalled();
-    });
-  });
-
-  describe('Data Transformation', () => {
-    it('should properly transform AttachmentEntity to IAttachmentMetadata', async () => {
-      mockAttachmentDBUtil.getOne.mockResolvedValue(mockAttachment);
-
-      const result =
-        await attachmentService.getAttachmentById('attachment-123');
-
-      expect(result).not.toBeNull();
-      expect(result).toMatchObject({
-        id: 'attachment-123',
-        claimId: 'claim-123',
-        originalFilename: 'receipt.pdf',
-        storedFilename: 'john_doe_telco_2024_09_1234567890.pdf',
-        fileSize: 1024,
-        mimeType: AttachmentMimeType.PDF,
-        driveFileId: 'drive-file-123',
-        driveShareableUrl:
-          'https://drive.google.com/file/d/drive-file-123/view',
-        status: AttachmentStatus.UPLOADED,
-      });
-      expect(result?.uploadedAt).toBeDefined();
-      expect(result?.createdAt).toBeDefined();
-      expect(result?.updatedAt).toBeDefined();
-    });
-
-    it('should handle attachments without Google Drive info', async () => {
-      const attachmentWithoutDriveInfo = {
-        ...mockAttachment,
-        googleDriveFileId: null,
-        googleDriveUrl: null,
-      };
-      mockAttachmentDBUtil.getOne.mockResolvedValue(attachmentWithoutDriveInfo);
-
-      const result =
-        await attachmentService.getAttachmentById('attachment-123');
-
-      expect(result?.driveFileId).toBe('');
-      expect(result?.driveShareableUrl).toBe('');
     });
   });
 });

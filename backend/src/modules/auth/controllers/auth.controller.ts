@@ -7,10 +7,12 @@ import {
   Res,
   HttpStatus,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from '../services/auth.service';
+import { TokenDBUtil } from '../utils/token-db.util';
 import {
   AuthenticatedResponseDTO,
   UnauthenticatedResponseDTO,
@@ -33,7 +35,10 @@ import { JwtOptionalGuard } from '../guards/jwt-optional.guard';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly tokenDBUtil: TokenDBUtil,
+  ) {}
 
   /**
    * Initiate Google OAuth flow
@@ -146,6 +151,76 @@ export class AuthController {
       user: userDTO,
       message: 'Profile retrieved successfully',
     });
+  }
+
+  /**
+   * Get Google Drive access token for client-side uploads
+   * Requirements: 2.0 - Drive Token Management Endpoint
+   * Security: Rate limited, JWT authenticated, minimal scope validation
+   */
+  @Get('drive-token')
+  @AuthGeneralRateLimit()
+  @UseGuards(JwtAuthGuard)
+  async getDriveToken(@User() user: UserEntity): Promise<{
+    success: boolean;
+    accessToken?: string;
+    expiresAt?: string;
+    error?: string;
+  }> {
+    try {
+      // Get user's OAuth tokens using existing AuthService method
+      const tokenEntity = await this.authService.getUserTokens(user.id);
+
+      if (!tokenEntity) {
+        this.logger.warn(
+          `No valid Google Drive tokens found for user: ${user.id}`,
+        );
+        throw new BadRequestException(
+          'No valid Google Drive tokens found. Please re-authenticate.',
+        );
+      }
+
+      // Validate token scope includes drive.file
+      if (!tokenEntity.scope.includes('drive.file')) {
+        this.logger.warn(
+          `Insufficient Google Drive scope for user: ${user.id}, scope: ${tokenEntity.scope}`,
+        );
+        throw new BadRequestException(
+          'Insufficient permissions. Google Drive access required.',
+        );
+      }
+
+      // Decrypt tokens using existing TokenDBUtil method
+      const { accessToken } =
+        await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
+
+      this.logger.log(
+        `Drive token retrieved successfully for user: ${user.id}`,
+      );
+
+      return {
+        success: true,
+        accessToken,
+        expiresAt: tokenEntity.expiresAt.toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get Drive token for user ${user.id}:`,
+        error,
+      );
+
+      if (error instanceof BadRequestException) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Failed to retrieve Google Drive access token',
+      };
+    }
   }
 
   /**
