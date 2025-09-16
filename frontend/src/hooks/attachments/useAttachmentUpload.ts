@@ -264,7 +264,9 @@ export const useAttachmentUpload = (claimId: string) => {
 
         const driveFile = driveResult.data as DriveFile;
         uploadState.driveFileId = driveFile.id;
-        uploadState.driveUrl = driveFile.webViewLink;
+        uploadState.driveUrl =
+          driveFile.webViewLink ||
+          `https://drive.google.com/file/d/${driveFile.id}/view`;
 
         // Phase 3: Store metadata in backend
         uploadState.phase = 'metadata';
@@ -276,7 +278,9 @@ export const useAttachmentUpload = (claimId: string) => {
               originalFilename: file.name,
               storedFilename: driveFile.name,
               googleDriveFileId: driveFile.id,
-              googleDriveUrl: driveFile.webViewLink,
+              googleDriveUrl:
+                driveFile.webViewLink ||
+                `https://drive.google.com/file/d/${driveFile.id}/view`,
               fileSize: file.size,
               mimeType: validation.mimeType!,
             },
