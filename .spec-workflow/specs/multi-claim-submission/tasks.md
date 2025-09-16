@@ -1,6 +1,6 @@
 # Tasks Document
 
-- [ ] 1. Create multi-claim page route and layout
+- [x] 1. Create multi-claim page route and layout
   - File: frontend/src/app/claim/new/page.tsx
   - Create Next.js page component for multi-claim submission
   - Set up basic layout with navigation and title
@@ -9,7 +9,7 @@
   - _Requirements: 1.1_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer specializing in Next.js and React routing | Task: Create the main multi-claim submission page at /claim/new following requirement 1.1, leveraging existing layout patterns and establishing the foundation for the multi-claim workflow | Restrictions: Do not implement complex logic yet, focus on page structure and routing, maintain existing design system consistency | _Leverage: frontend/src/app/layout.tsx, existing page components_ | _Requirements: 1.1_ | Success: Page renders correctly at /claim/new, follows existing layout patterns, ready for component integration | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 2. Create DraftClaimsList component
+- [x] 2. Create DraftClaimsList component
   - File: frontend/src/components/claims/DraftClaimsList.tsx
   - Display list of draft claims with basic claim information
   - Add edit, delete, and file management actions
@@ -18,7 +18,7 @@
   - _Requirements: 4.1, 4.2_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Component Developer with expertise in state management and UI components | Task: Create DraftClaimsList component following requirements 4.1 and 4.2, displaying draft claims with management actions using existing card components and claim display patterns | Restrictions: Must call existing GET /claims?status=draft endpoint, do not create new API endpoints, maintain consistent UI patterns | _Leverage: frontend/src/components/ui/card.tsx, frontend/src/components/claims/ClaimForm.tsx_ | _Requirements: 4.1, 4.2_ | Success: Component displays draft claims correctly, edit/delete actions work, integrates with existing claim API endpoints | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 3. Create claim creation form component
+- [x] 3. Create claim creation form component
   - File: frontend/src/components/claims/MultiClaimForm.tsx
   - Build form for adding new claims to the draft list
   - Integrate validation and business rules checking
@@ -27,7 +27,7 @@
   - _Requirements: 1.1, 2.1_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Form Developer specializing in form validation and user experience | Task: Create MultiClaimForm component following requirements 1.1 and 2.1, building on existing ClaimForm patterns with validation and business rules | Restrictions: Must call existing POST /claims endpoint for each claim, validate monthly limits client-side, do not bypass existing validation | _Leverage: frontend/src/components/claims/ClaimForm.tsx, frontend/src/components/ui/form.tsx_ | _Requirements: 1.1, 2.1_ | Success: Form creates draft claims via individual API calls, validation works correctly, user experience is intuitive | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 4. Implement bulk file upload coordination
+- [x] 4. Implement bulk file upload coordination
   - File: frontend/src/components/attachments/BulkFileUploadComponent.tsx
   - Coordinate file uploads across multiple claims
   - Display upload progress and handle errors per claim
@@ -36,7 +36,7 @@
   - _Requirements: 3.1, 3.2_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer with expertise in file uploads and progress tracking | Task: Create BulkFileUploadComponent following requirements 3.1 and 3.2, coordinating uploads across multiple claims using existing FileUploadComponent and Google Drive integration | Restrictions: Must use existing Google Drive upload infrastructure, handle uploads per claim individually, provide clear progress feedback | _Leverage: frontend/src/components/attachments/FileUploadComponent.tsx, existing drive upload client_ | _Requirements: 3.1, 3.2_ | Success: Multiple file uploads work correctly, progress tracking is accurate, error handling is robust | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 5. Create claims review and finalization component
+- [x] 5. Create claims review and finalization component
   - File: frontend/src/components/claims/ClaimReviewComponent.tsx
   - Display summary of all draft claims with attachment counts
   - Implement mark as ready functionality
@@ -45,7 +45,7 @@
   - _Requirements: 5.1, 5.2_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer specializing in data display and user workflow completion | Task: Create ClaimReviewComponent following requirements 5.1 and 5.2, providing comprehensive review interface with summary data and ready marking functionality | Restrictions: Must call existing PUT /claims/:id/status endpoint for each claim, display accurate summaries, ensure user can review all details | _Leverage: frontend/src/components/attachments/AttachmentList.tsx, existing claim display components_ | _Requirements: 5.1, 5.2_ | Success: Review interface is comprehensive and clear, mark ready functionality works correctly, user can confidently finalize claims | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 6. Add multi-claim state management
+- [x] 6. Add multi-claim state management
   - File: frontend/src/hooks/useMultiClaim.ts
   - Create React hook for managing multi-claim workflow state
   - Handle transitions between creation, upload, and review phases
@@ -54,7 +54,7 @@
   - _Requirements: 1.1, 3.1, 5.1_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer with expertise in custom hooks and state management | Task: Create useMultiClaim hook following requirements 1.1, 3.1, and 5.1, managing workflow state and API interactions using existing React Query patterns | Restrictions: Must use existing API client methods, handle loading and error states properly, maintain state consistency across components | _Leverage: existing React Query patterns, frontend/src/lib/api-client.ts_ | _Requirements: 1.1, 3.1, 5.1_ | Success: Hook manages multi-claim state effectively, API calls are coordinated properly, state transitions are smooth | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 7. Integrate components into main page
+- [x] 7. Integrate components into main page
   - File: frontend/src/app/claim/new/page.tsx (continue from task 1)
   - Integrate all multi-claim components into main workflow
   - Add navigation between phases and error handling
@@ -63,7 +63,7 @@
   - _Requirements: All requirements_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Integration Developer with expertise in React composition and user experience flow | Task: Integrate all multi-claim components into the main page following all requirements, creating a seamless user workflow with proper navigation and error handling | Restrictions: Must coordinate all components effectively, ensure proper data flow between phases, maintain responsive design | _Leverage: components from tasks 2-6, existing page layout patterns_ | _Requirements: All requirements_ | Success: Complete workflow functions end-to-end, user experience is intuitive and responsive, all requirements are met | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 8. Add client-side validation utilities
+- [x] 8. Add client-side validation utilities
   - File: frontend/src/lib/validation/multi-claim-validator.ts
   - Implement monthly limit aggregation validation
   - Add business rules checking across multiple claims
@@ -72,7 +72,7 @@
   - _Requirements: 2.1, 2.2_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in validation logic and business rules | Task: Create multi-claim validation utilities following requirements 2.1 and 2.2, implementing monthly limit checking and business rules validation across multiple claims | Restrictions: Must aggregate validation correctly, use existing validation patterns, ensure client-side validation matches backend rules | _Leverage: existing validation patterns, @project/types for claim enums_ | _Requirements: 2.1, 2.2_ | Success: Validation catches limit violations correctly, business rules are enforced, validation feedback is clear and helpful | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 9. Implement error handling and user feedback
+- [x] 9. Implement error handling and user feedback
   - File: frontend/src/components/claims/MultiClaimErrorHandler.tsx
   - Create centralized error handling for multi-claim operations
   - Add user-friendly error messages and recovery options
@@ -81,7 +81,7 @@
   - _Requirements: All error scenarios from design document_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer specializing in error handling and user experience | Task: Create comprehensive error handling component covering all error scenarios from the design document, providing user-friendly messages and recovery options | Restrictions: Must handle all identified error scenarios, provide clear recovery paths, maintain user workflow continuity | _Leverage: existing toast notifications, error handling patterns_ | _Requirements: All error scenarios from design document_ | Success: All errors are handled gracefully, users receive clear feedback and recovery options, workflow continuity is maintained | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 10. Add responsive design and mobile optimization
+- [x] 10. Add responsive design and mobile optimization
   - File: frontend/src/app/claim/new/page.tsx, component CSS files
   - Ensure multi-claim interface works well on mobile devices
   - Optimize touch interactions and layout
@@ -90,7 +90,7 @@
   - _Requirements: NFR Mobile Responsive requirement_
   - _Prompt: Implement the task for spec multi-claim-submission, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in responsive design and mobile optimization | Task: Optimize multi-claim interface for mobile devices following NFR mobile responsive requirement, ensuring touch-friendly interactions and proper layout adaptation | Restrictions: Must maintain dark mode theme consistency, ensure touch targets meet accessibility guidelines, test on various screen sizes | _Leverage: existing dark mode theme, responsive design patterns_ | _Requirements: NFR Mobile Responsive requirement_ | Success: Interface works excellently on mobile devices, touch interactions are smooth, layout adapts properly to different screen sizes | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 11. Write component unit tests
+- [x] 11. Write component unit tests
   - File: frontend/src/components/claims/__tests__/
   - Create unit tests for all new multi-claim components
   - Test component rendering, user interactions, and error states

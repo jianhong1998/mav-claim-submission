@@ -13,6 +13,7 @@ import { AttachmentModule } from '../attachments/attachment.module';
   imports: [
     AppConfig.configModule,
     AppConfig.typeormModule,
+    AppConfig.throttleModule,
     CommonModule,
     AuthModule,
     EmailModule,
