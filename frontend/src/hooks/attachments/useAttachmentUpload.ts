@@ -237,11 +237,34 @@ export const useAttachmentUpload = (claimId: string) => {
         const driveClient = createDriveClient();
         await driveClient.initialize();
 
-        // Phase 2: Upload to Google Drive
+        // Phase 2: Ensure folder structure exists
         uploadState.phase = 'drive';
+
+        // Create/get "Mavericks Claims" root folder
+        const claimsFolderResult =
+          await driveClient.getOrCreateFolder('Mavericks Claims');
+        if (!claimsFolderResult.success || !claimsFolderResult.data) {
+          throw new Error(
+            driveClient.getUserFriendlyErrorMessage(claimsFolderResult.error!),
+          );
+        }
+
+        // Create/get claim-specific subfolder
+        const claimFolderResult = await driveClient.getOrCreateFolder(
+          claimId,
+          claimsFolderResult.data.id,
+        );
+        if (!claimFolderResult.success || !claimFolderResult.data) {
+          throw new Error(
+            driveClient.getUserFriendlyErrorMessage(claimFolderResult.error!),
+          );
+        }
+
+        // Phase 3: Upload to correct folder
         const driveResult = await driveClient.uploadFile(file, {
           fileName: file.name,
           mimeType: validation.mimeType!,
+          parentFolderId: claimFolderResult.data.id,
           onProgress: (driveProgress) => {
             const progress = mapDriveProgress(driveProgress);
             setUploadState((prev) => ({
@@ -268,7 +291,7 @@ export const useAttachmentUpload = (claimId: string) => {
           driveFile.webViewLink ||
           `https://drive.google.com/file/d/${driveFile.id}/view`;
 
-        // Phase 3: Store metadata in backend
+        // Phase 4: Store metadata in backend
         uploadState.phase = 'metadata';
         const metadataResponse =
           await apiClient.post<IAttachmentUploadResponse>(
@@ -286,7 +309,7 @@ export const useAttachmentUpload = (claimId: string) => {
             },
           );
 
-        // Phase 4: Complete
+        // Phase 5: Complete
         uploadState.phase = 'complete';
 
         // Update state with success
