@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAttachmentUpload } from '@/hooks/attachments/useAttachmentUpload';
+import { useAttachmentList } from '@/hooks/attachments/useAttachmentList';
 import { AttachmentStatus } from '@project/types';
 import { toast } from 'sonner';
 import {
@@ -91,6 +92,9 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
     allowedTypes,
     error,
   } = useAttachmentUpload(claimId);
+
+  const { attachments, deleteAttachment, isDeletingAttachment } =
+    useAttachmentList(claimId);
 
   /**
    * Creates preview for uploaded files
@@ -253,6 +257,22 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
       return updated;
     });
   }, []);
+
+  /**
+   * Handles uploaded file deletion
+   */
+  const handleDeleteUploadedFile = useCallback(
+    async (attachmentId: string, fileName: string) => {
+      try {
+        await deleteAttachment(attachmentId);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Delete failed';
+        toast.error(`Failed to delete ${fileName}: ${errorMessage}`);
+      }
+    },
+    [deleteAttachment],
+  );
 
   /**
    * Gets upload progress for a specific file
@@ -473,6 +493,79 @@ export const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Uploaded Files */}
+      {attachments.length > 0 ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-foreground">
+            Uploaded files:
+          </h3>
+          <div className="space-y-2">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="flex items-center gap-3 p-3 rounded-md border border-green-500/50 bg-green-500/5"
+              >
+                {/* File Icon */}
+                <div className="flex-shrink-0">
+                  {attachment.mimeType.startsWith('image/') ? (
+                    <Image
+                      className="w-8 h-8 text-blue-500"
+                      aria-label="Image file icon"
+                    />
+                  ) : (
+                    <FileText
+                      className="w-8 h-8 text-gray-500"
+                      aria-label="Document file icon"
+                    />
+                  )}
+                </div>
+
+                {/* File Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {attachment.originalFilename}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(attachment.fileSize)}
+                  </p>
+                </div>
+
+                {/* Status and Actions */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-xs text-green-600 dark:text-green-400">
+                      Uploaded to Drive
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDeleteUploadedFile(
+                        attachment.id,
+                        attachment.originalFilename,
+                      );
+                    }}
+                    disabled={isDeletingAttachment}
+                    className="h-6 w-6 p-0 hover:bg-destructive/10"
+                    aria-label="Delete file"
+                  >
+                    {isDeletingAttachment ? (
+                      <div className="w-3 h-3 border border-destructive border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <X className="w-3 h-3 text-destructive" />
+                    )}
+                    <span className="sr-only">Delete file</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ) : null}
