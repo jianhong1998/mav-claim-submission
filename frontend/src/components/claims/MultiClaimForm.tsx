@@ -50,7 +50,7 @@ interface FormData {
  */
 const MONTHLY_LIMITS = {
   [ClaimCategory.TELCO]: 150, // SGD 150 monthly limit for telco
-  [ClaimCategory.FITNESS]: 150, // SGD 150 monthly limit for fitness
+  [ClaimCategory.FITNESS]: 50, // SGD 50 monthly limit for fitness
 } as const;
 
 /**
