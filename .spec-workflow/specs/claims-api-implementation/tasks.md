@@ -1,6 +1,6 @@
 # Tasks Document
 
-- [ ] 1. Create Claims API DTOs
+- [x] 1. Create Claims API DTOs
   - File: backend/src/modules/claims/dto/index.ts
   - Create request/response DTOs for all claims endpoints
   - Add validation decorators following existing patterns
@@ -9,7 +9,7 @@
   - _Requirements: 1.1, 3.1, 5.1_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer specializing in NestJS and TypeScript DTOs | Task: Create comprehensive claims API DTOs following requirements 1.1, 3.1, and 5.1, implementing ClaimCreateRequestDto, ClaimUpdateRequestDto, ClaimStatusUpdateDto, and ClaimResponseDto with proper validation decorators | Restrictions: Must reuse existing ClaimCategory and ClaimStatus enums, follow existing DTO patterns, ensure validation matches frontend expectations | _Leverage: existing validation patterns, @project/types for enums, existing DTO examples_ | _Requirements: 1.1, 3.1, 5.1_ | Success: DTOs provide type safety and validation for all claims endpoints, match frontend API calls exactly, follow established patterns | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 2. Implement ClaimsController
+- [x] 2. Implement ClaimsController
   - File: backend/src/modules/claims/claims.controller.ts
   - Create NestJS controller with all 5 required endpoints
   - Add JWT authentication and validation pipes
@@ -27,7 +27,7 @@
   - _Requirements: 5.1, 5.2_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer with expertise in OpenAPI/Swagger documentation | Task: Add comprehensive Swagger documentation to ClaimsController following requirements 5.1 and 5.2, documenting all endpoints with proper request/response schemas and error codes | Restrictions: Must follow existing Swagger patterns, document all HTTP status codes, ensure schemas match DTOs exactly | _Leverage: existing Swagger decorators, AuthController documentation patterns_ | _Requirements: 5.1, 5.2_ | Success: All endpoints are properly documented, schemas are accurate, documentation follows existing standards | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 4. Update Claims module configuration
+- [x] 4. Update Claims module configuration
   - File: backend/src/modules/claims/claims.module.ts
   - Add ClaimsController to module providers and controllers
   - Ensure proper dependency injection setup
@@ -54,7 +54,7 @@
   - _Requirements: All API requirements_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with expertise in API integration testing and database testing | Task: Create comprehensive integration tests for all claims API endpoints following all API requirements, testing complete request/response cycles with authentication and database operations | Restrictions: Must use existing API test infrastructure, test with real database operations, validate error scenarios thoroughly | _Leverage: existing API test patterns, authentication test utilities_ | _Requirements: All API requirements_ | Success: All API endpoints are thoroughly tested, authentication is validated, error scenarios are covered | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 7. Add error handling and HTTP status codes
+- [x] 7. Add error handling and HTTP status codes
   - File: backend/src/modules/claims/claims.controller.ts (continue from task 2)
   - Implement proper error mapping and status codes
   - Add error logging and monitoring
@@ -72,7 +72,7 @@
   - _Requirements: All requirements_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Full-Stack Developer with expertise in frontend-backend integration | Task: Validate that the implemented claims API endpoints work correctly with the existing frontend multi-claim implementation, testing all API calls and error scenarios | Restrictions: Do not modify frontend code, ensure backend matches frontend expectations exactly, test all error scenarios | _Leverage: existing frontend multi-claim implementation_ | _Requirements: All requirements_ | Success: Frontend works seamlessly with new backend endpoints, all API calls succeed, error handling works correctly | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 9. Update API documentation
+- [x] 9. Update API documentation
   - File: docs/project-info/api-endpoints.md
   - Document all new claims API endpoints
   - Add examples and error response documentation
