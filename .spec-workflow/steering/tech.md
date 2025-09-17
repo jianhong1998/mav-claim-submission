@@ -54,17 +54,20 @@ mav-claim-submission/
 - Stored in `src/modules/user/entities/user.entity.ts`
 - Links to claims and file permissions
 
-**Claims Entity** 
-- Status flow: `draft → sent ↔ paid`
+**Claims Entity**
+- **Critical Workflow**: Claims created immediately in 'draft' state to provide UUID for file uploads
+- Status flow: `draft → sent ↔ paid → failed` (with resend capability)
 - Categories using Object.freeze() pattern (not TypeScript enum)
 - Validation constraints for amounts and dates
-- Immutable audit trail
+- Immutable audit trail with timestamps
 - Stored in `src/modules/claims/entities/claim.entity.ts`
 
 **Attachments Entity**
 - Google Drive file metadata only (no binary storage)
+- Files organized in `Mavericks Claims/{claimUuid}/` folder structure
 - Shareable URL generation for email workflows
 - Permission tracking via Google Drive API
+- Must link to existing claim UUID (foreign key constraint)
 - Stored in `src/modules/claims/entities/attachment.entity.ts`
 
 **OAuth Tokens Entity**
@@ -75,10 +78,12 @@ mav-claim-submission/
 
 ### Data Flow Pattern
 
-1. **Authentication**: Google OAuth → User creation/login
-2. **File Upload**: Browser → Google Drive (client-side)
-3. **Metadata Sync**: Frontend → Backend (file references)
-4. **Email Processing**: Backend → Gmail API (synchronous)
+**CRITICAL: Sequential 3-Phase Workflow**
+1. **Claim Creation**: Frontend form submission → Backend creates claim record (status: 'draft') → Returns claim UUID
+2. **File Upload**: Browser uses claim UUID → Upload to `Mavericks Claims/{claimUuid}/` → Send metadata to backend
+3. **Email Processing**: Backend validates all files uploaded → Gmail API send → Update claim status to 'sent'
+
+**Authentication Flow**: Google OAuth → User creation/login (prerequisite for all operations)
 
 ## TypeScript Standards
 

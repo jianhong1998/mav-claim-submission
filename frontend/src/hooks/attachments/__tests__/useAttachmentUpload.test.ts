@@ -20,6 +20,18 @@ const mockDriveInstance = {
     success: true,
     data: mockDriveFileResponse,
   }),
+  getOrCreateFolder: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      id: 'folder-123',
+      name: 'Mavericks Claims',
+      mimeType: 'application/vnd.google-apps.folder',
+      webViewLink: 'https://drive.google.com/drive/folders/folder-123',
+      parents: [],
+      createdTime: new Date().toISOString(),
+      modifiedTime: new Date().toISOString(),
+    },
+  }),
   getUserFriendlyErrorMessage: vi.fn().mockReturnValue('Upload failed'),
 };
 
@@ -348,7 +360,9 @@ describe('useAttachmentUpload Hook', () => {
         await expect(result.current.uploadFile(invalidFile)).rejects.toThrow();
       });
 
-      const { apiClient } = await vi.importMock('@/lib/api-client');
+      const { apiClient } = (await vi.importMock('@/lib/api-client')) as {
+        apiClient: { post: ReturnType<typeof vi.fn> };
+      };
       expect(apiClient.post).not.toHaveBeenCalled();
       expect(result.current.uploadHistory).toHaveLength(1);
       expect(result.current.uploadHistory[0].status).toBe(
@@ -378,7 +392,9 @@ describe('useAttachmentUpload Hook', () => {
         });
       });
 
-      const { apiClient } = await vi.importMock('@/lib/api-client');
+      const { apiClient } = (await vi.importMock('@/lib/api-client')) as {
+        apiClient: { post: ReturnType<typeof vi.fn> };
+      };
       expect(apiClient.post).toHaveBeenCalledTimes(3);
       expect(result.current.uploadHistory).toHaveLength(3);
     });

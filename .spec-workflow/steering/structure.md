@@ -33,7 +33,15 @@ backend/src/
 │   │   ├── services/       # Business logic
 │   │   ├── dtos/          # Request/response types
 │   │   └── entities/      # Database models
-│   ├── claims/            # Claim management
+│   ├── claims/            # Claim management (3-phase workflow)
+│   │   ├── controllers/   # Create claim → File upload → Email send
+│   │   ├── services/      # Business logic for sequential processing
+│   │   ├── dtos/         # Sequential request/response types
+│   │   └── entities/     # Claims with draft/sent/paid status
+│   ├── attachments/       # File metadata management
+│   │   ├── controllers/   # Metadata storage after Drive upload
+│   │   ├── services/      # Drive folder structure validation
+│   │   └── entities/      # Attachment metadata with claim UUID links
 │   ├── drive/             # Google Drive integration
 │   └── email/             # Gmail integration
 ├── shared/                 # Cross-module utilities
@@ -77,6 +85,9 @@ frontend/src/
 │   │   └── layout.tsx    # Auth layout
 │   ├── dashboard/        # Dashboard pages
 │   ├── claims/           # Claim management
+│   │   ├── create/       # 3-phase claim creation workflow
+│   │   ├── [id]/         # Individual claim view/edit
+│   │   └── list/         # Claims listing with filters
 │   ├── layout.tsx        # Root layout
 │   └── page.tsx          # Home page
 ├── components/           # Reusable UI components
@@ -106,7 +117,10 @@ components/
 │   │   └── index.ts
 │   └── Input/
 ├── forms/              # Composite form components
-│   ├── ClaimForm/
+│   ├── ClaimForm/         # Multi-step claim creation form
+│   │   ├── ClaimDetails/  # Step 1: Basic claim info
+│   │   ├── FileUpload/    # Step 2: Document upload with Drive integration
+│   │   └── ReviewSubmit/  # Step 3: Review and final submission
 │   └── LoginForm/
 └── layout/             # Layout and navigation
     ├── Header/
@@ -126,7 +140,11 @@ packages/types/src/
 │   └── attachment.types.ts
 ├── dtos/               # API data transfer objects
 │   ├── auth/
-│   ├── claims/
+│   ├── claims/            # 3-phase workflow DTOs
+│   │   ├── create-claim.dto.ts      # Phase 1: Initial claim creation
+│   │   ├── attach-files.dto.ts      # Phase 2: File metadata attachment
+│   │   └── submit-claim.dto.ts      # Phase 3: Final submission
+│   ├── attachments/       # File metadata DTOs
 │   └── drive/
 ├── enums/              # Shared enums (Object.freeze pattern)
 │   ├── claim-status.ts

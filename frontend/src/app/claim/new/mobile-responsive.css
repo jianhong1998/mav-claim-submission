@@ -1,0 +1,101 @@
+/* Mobile-first responsive optimizations for multi-claim submission */
+
+/* Touch manipulation for better mobile performance */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure touch targets meet WCAG accessibility guidelines (minimum 44x44px) */
+@media (max-width: 640px) {
+  /* Buttons on mobile should be larger for touch */
+  .mobile-touch-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Form inputs should be larger on mobile */
+  .mobile-form-input {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Cards should have better spacing on mobile */
+  .mobile-card-padding {
+    padding: 1rem;
+  }
+
+  /* Reduce excessive whitespace on small screens */
+  .mobile-compact-spacing {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* Better text sizing for mobile */
+  .mobile-text-size {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Optimize phase indicator for touch */
+  .mobile-phase-dot {
+    min-width: 12px;
+    min-height: 12px;
+  }
+}
+
+/* Tablet breakpoint optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Better grid gaps for tablet */
+  .tablet-grid-gap {
+    gap: 1.5rem;
+  }
+
+  /* Adjust button sizing for tablet */
+  .tablet-button-sizing {
+    min-height: 40px;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* High DPI displays optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure icons remain crisp */
+  .hdpi-icons {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce vertical padding in landscape */
+  .landscape-compact {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Make phase indicator more compact */
+  .landscape-phase-indicator {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Focus and hover states for better accessibility */
+@media (hover: hover) {
+  /* Only show hover effects on devices that support hover */
+  .hover-touch-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .motion-reduce {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
