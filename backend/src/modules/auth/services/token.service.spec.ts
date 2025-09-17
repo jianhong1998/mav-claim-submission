@@ -40,7 +40,11 @@ describe('TokenService', () => {
         if (key === 'BACKEND_JWT_SECRET') return mockJWTSecret;
         return defaultValue as string;
       }),
-      getOrThrow: vi.fn().mockReturnValue(''),
+      getOrThrow: vi.fn().mockImplementation((key: string) => {
+        if (key === 'BACKEND_EMAIL_RECIPIENT')
+          return 'test@mavericks-consulting.com';
+        return '';
+      }),
     } as unknown as ConfigService;
 
     const mockRepository = {

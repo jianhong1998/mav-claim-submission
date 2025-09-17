@@ -1,6 +1,6 @@
 # Tasks Document
 
-- [ ] 1. Extend EnvironmentVariableUtil for email recipient configuration
+- [x] 1. Extend EnvironmentVariableUtil for email recipient configuration
   - File: backend/src/modules/common/utils/environment-variable.util.ts
   - Add BACKEND_EMAIL_RECIPIENT to IEnvironmentVariableList interface
   - Implement startup validation for comma-separated email format
@@ -9,7 +9,7 @@
   - _Requirements: 5.1, 5.2, 5.3_
   - _Prompt: Implement the task for spec email-sending-for-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer specializing in configuration management and environment variables | Task: Extend EnvironmentVariableUtil to add BACKEND_EMAIL_RECIPIENT configuration with comma-separated email parsing and validation, following requirements 5.1-5.3 from the email sending specification | Restrictions: Must use existing getOrThrow() pattern, validate email format at startup, maintain backward compatibility with existing configuration | _Leverage: existing ConfigService patterns, email validation utilities_ | _Requirements: 5.1 - environment variable reading, 5.2 - startup validation, 5.3 - email format validation_ | Success: Environment variable properly configured and validated, comma-separated emails parsed correctly, application fails to start with clear error if invalid | Instructions: Mark this task as in progress in tasks.md before starting, then mark as complete when finished_
 
-- [ ] 2. Create EmailValidationUtil for email format validation
+- [x] 2. Create EmailValidationUtil for email format validation
   - File: backend/src/modules/email/utils/email-validation.util.ts
   - Implement validateEmail(), parseRecipients(), validateRecipients() methods
   - Add proper email regex validation and error handling
