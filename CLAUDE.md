@@ -74,6 +74,7 @@ make test/api          # API integration tests
 ### Enum Implementation Pattern
 
 **❌ Avoid TypeScript `enum`:**
+
 ```typescript
 // DON'T use this pattern
 export enum ClaimCategory {
@@ -83,6 +84,7 @@ export enum ClaimCategory {
 ```
 
 **✅ Prefer `Object.freeze()` with `as const`:**
+
 ```typescript
 // USE this pattern instead
 export const ClaimCategory = Object.freeze({
@@ -98,6 +100,7 @@ export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
 ```
 
 **Benefits of `Object.freeze()` pattern:**
+
 - Better tree-shaking support
 - More predictable JavaScript output
 - Avoids TypeScript enum pitfalls
@@ -122,6 +125,7 @@ Managed from root `.env` file:
 ## Current Status
 
 ✅ **Implemented**:
+
 - **Google OAuth Authentication**: Complete OAuth 2.0 flow with JWT sessions
   - Domain restriction to @mavericks-consulting.com accounts
   - Passport.js Google OAuth strategy with automatic token refresh
@@ -152,12 +156,14 @@ Managed from root `.env` file:
   - Unit and integration test coverage for all components
 
 🚧 **In Development**:
+
 - **API Endpoints**: Implementing remaining endpoints:
   - Claims management endpoints (create, list, update)
   - Email send endpoint with Gmail API integration
 - **Swagger Integration**: API documentation with OpenAPI specifications
 
 📋 **Next Phase**:
+
 - Complete claim management API endpoints
 - Frontend claim submission and management interfaces
 - Email notification templates with Drive URLs
@@ -168,3 +174,4 @@ Managed from root `.env` file:
 - Always run `make format` and `make lint` after code changes
 - always format code with command `make format` before running lint check
 - Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.
+- Always check which folder you are in before running `Make` command. The `Make` commands only work at the project root folder.
