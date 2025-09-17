@@ -36,7 +36,7 @@
   - _Requirements: 1.1_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer with expertise in NestJS module configuration | Task: Update ClaimsModule following requirement 1.1, adding ClaimsController to the module configuration with proper dependency injection | Restrictions: Must maintain existing module structure, ensure ClaimDBUtil is properly injected, follow established module patterns | _Leverage: existing module patterns, ClaimDBUtil already configured_ | _Requirements: 1.1_ | Success: ClaimsController is properly registered, dependency injection works correctly, module follows existing patterns | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 5. Write controller unit tests
+- [x] 5. Write controller unit tests
   - File: backend/src/modules/claims/__tests__/claims.controller.spec.ts
   - Test all controller endpoints with mocked dependencies
   - Test authentication, validation, and error scenarios
@@ -63,7 +63,7 @@
   - _Requirements: 4.1, 4.2_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer with expertise in error handling and HTTP status codes | Task: Implement comprehensive error handling in ClaimsController following requirements 4.1 and 4.2, ensuring proper HTTP status codes and error responses for all scenarios | Restrictions: Must use existing HttpException patterns, avoid exposing sensitive error details, ensure consistent error response format | _Leverage: existing error handling patterns, HttpException classes_ | _Requirements: 4.1, 4.2_ | Success: All error scenarios return appropriate status codes, error messages are user-friendly, error handling is consistent | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 8. Validate frontend integration
+- [x] 8. Validate frontend integration
   - File: Test frontend calls to new API endpoints
   - Run existing multi-claim frontend and verify API calls work
   - Test error scenarios and edge cases

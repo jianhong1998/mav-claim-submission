@@ -22,7 +22,7 @@ This feature directly supports the core product vision outlined in product.md by
 
 #### Acceptance Criteria
 
-1. WHEN a user triggers claim submission THEN the system SHALL send an email via Gmail API to the administration team
+1. WHEN a user triggers claim submission THEN the system SHALL send an email via Gmail API to the recipient specified in BACKEND_EMAIL_RECIPIENT environment variable
 2. WHEN email sending succeeds THEN the system SHALL update claim status from 'draft' to 'sent' and set submissionDate
 3. WHEN email sending fails THEN the system SHALL update claim status to 'failed' and log the error details
 4. IF a claim has no attachments THEN the system SHALL send the email with claim details only (no file links)
@@ -72,7 +72,21 @@ This feature directly supports the core product vision outlined in product.md by
 6. WHEN email fails THEN the system SHALL preserve claim in database with error status for manual retry
 7. IF template rendering fails THEN the system SHALL log template error and use fallback plain text format
 
-### Requirement 5: API Endpoint Implementation
+### Requirement 5: Environment Configuration
+
+**User Story:** As a system administrator, I want to configure the email recipient address through environment variables so that the system can be deployed to different environments without code changes.
+
+#### Acceptance Criteria
+
+1. WHEN the system starts THEN it SHALL read the BACKEND_EMAIL_RECIPIENT environment variable for the recipient email address
+2. IF BACKEND_EMAIL_RECIPIENT is not configured THEN the system SHALL fail to start with clear error message
+3. WHEN BACKEND_EMAIL_RECIPIENT is configured THEN the system SHALL validate it is a proper email format
+4. WHEN email is sent THEN the system SHALL use the configured recipient address as the "to" field
+5. WHEN environment variable changes THEN the system SHALL use the new value after restart (no dynamic reload required)
+6. WHEN multiple email addresses are needed THEN the system SHALL support comma-separated values in BACKEND_EMAIL_RECIPIENT
+7. WHEN email template includes recipient information THEN the system SHALL use the configured recipient address
+
+### Requirement 6: API Endpoint Implementation
 
 **User Story:** As a frontend developer, I want a reliable API endpoint for sending claim emails so that I can integrate email sending into the user interface.
 
@@ -93,6 +107,7 @@ This feature directly supports the core product vision outlined in product.md by
 - **Modular Design**: Email templates, Gmail client, and claim status updates are separate, reusable components
 - **Dependency Management**: Email module depends only on Auth module for token management
 - **Clear Interfaces**: Well-defined contracts between email service, claims service, and template engine
+- **Configuration Management**: Email recipient address configured via BACKEND_EMAIL_RECIPIENT environment variable
 
 ### Performance
 - **Response Time**: Email sending operations must complete within 30 seconds including Gmail API calls
