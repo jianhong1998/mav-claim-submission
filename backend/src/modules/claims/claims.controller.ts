@@ -18,6 +18,23 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiUnprocessableEntityResponse,
+  ApiInternalServerErrorResponse,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../auth/decorators/user.decorator';
 import { UserEntity } from '../user/entities/user.entity';
@@ -25,6 +42,7 @@ import { ClaimDBUtil } from './utils/claim-db.util';
 import { ClaimEntity } from './entities/claim.entity';
 import {
   ClaimStatus,
+  ClaimCategory,
   AttachmentMimeType,
   AttachmentStatus,
 } from '@project/types';
@@ -38,8 +56,21 @@ import {
 import { IClaimCreationData } from './types/claim-creation-data.type';
 import { IClaimMetadata } from '@project/types';
 
+@ApiTags('Claims')
 @Controller('claims')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
+@ApiCookieAuth('jwt')
+@ApiUnauthorizedResponse({
+  description: 'Authentication required - invalid or missing JWT token',
+  schema: {
+    type: 'object',
+    properties: {
+      statusCode: { type: 'number', example: 401 },
+      message: { type: 'string', example: 'Unauthorized' },
+    },
+  },
+})
 export class ClaimsController {
   private readonly logger = new Logger(ClaimsController.name);
 
@@ -50,6 +81,97 @@ export class ClaimsController {
    * Requirements: 1.1 - Claims CRUD API Endpoints, 4.1, 4.2 - Error Handling
    */
   @Get()
+  @ApiOperation({
+    summary: 'Get all claims',
+    description:
+      'Retrieve all claims for the authenticated user with optional status filtering',
+  })
+  @ApiQuery({
+    name: 'status',
+    enum: ClaimStatus,
+    required: false,
+    description: 'Filter claims by status (draft, sent, paid, failed)',
+    example: ClaimStatus.DRAFT,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Claims retrieved successfully',
+    type: ClaimListResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        claims: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                example: '123e4567-e89b-12d3-a456-426614174000',
+              },
+              userId: {
+                type: 'string',
+                example: '123e4567-e89b-12d3-a456-426614174001',
+              },
+              category: {
+                type: 'string',
+                enum: Object.values(ClaimCategory),
+                example: 'telco',
+              },
+              claimName: { type: 'string', example: 'Monthly phone bill' },
+              month: { type: 'number', example: 9 },
+              year: { type: 'number', example: 2025 },
+              totalAmount: { type: 'number', example: 50.0 },
+              status: {
+                type: 'string',
+                enum: Object.values(ClaimStatus),
+                example: 'draft',
+              },
+              submissionDate: {
+                type: 'string',
+                nullable: true,
+                example: '2025-09-17T10:00:00.000Z',
+              },
+              attachments: { type: 'array', items: { type: 'object' } },
+              createdAt: {
+                type: 'string',
+                example: '2025-09-17T09:00:00.000Z',
+              },
+              updatedAt: {
+                type: 'string',
+                example: '2025-09-17T09:00:00.000Z',
+              },
+            },
+          },
+        },
+        error: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid query parameters',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'string', example: 'Invalid status parameter' },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Database or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to retrieve claims. Please try again.',
+        },
+      },
+    },
+  })
   async getClaims(
     @User() user: UserEntity,
     @Query('status') status?: ClaimStatus,
@@ -90,6 +212,128 @@ export class ClaimsController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create a new claim',
+    description: 'Create a new expense claim for the authenticated user',
+  })
+  @ApiBody({
+    type: ClaimCreateRequestDto,
+    description: 'Claim data for creation',
+    examples: {
+      telco: {
+        summary: 'Telco claim example',
+        description: 'Example of creating a telco expense claim',
+        value: {
+          category: 'telco',
+          claimName: 'Monthly phone bill',
+          month: 9,
+          year: 2025,
+          totalAmount: 50.0,
+        },
+      },
+      fitness: {
+        summary: 'Fitness claim example',
+        description: 'Example of creating a fitness expense claim',
+        value: {
+          category: 'fitness',
+          claimName: 'Gym membership',
+          month: 9,
+          year: 2025,
+          totalAmount: 80.0,
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'Claim created successfully',
+    type: ClaimResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        claim: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            userId: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            category: {
+              type: 'string',
+              enum: Object.values(ClaimCategory),
+              example: 'telco',
+            },
+            claimName: { type: 'string', example: 'Monthly phone bill' },
+            month: { type: 'number', example: 9 },
+            year: { type: 'number', example: 2025 },
+            totalAmount: { type: 'number', example: 50.0 },
+            status: {
+              type: 'string',
+              enum: Object.values(ClaimStatus),
+              example: 'draft',
+            },
+            submissionDate: { type: 'string', nullable: true, example: null },
+            attachments: {
+              type: 'array',
+              items: { type: 'object' },
+              example: [],
+            },
+            createdAt: { type: 'string', example: '2025-09-17T09:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2025-09-17T09:00:00.000Z' },
+          },
+        },
+        error: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error - invalid request data',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: {
+          type: 'array',
+          items: { type: 'string' },
+          example: [
+            'Category must be one of: telco, fitness, dental, company-event, company-lunch, company-dinner, others',
+            'Total amount must be greater than 0',
+          ],
+        },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Business rule violation',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 422 },
+        message: {
+          type: 'string',
+          example: 'Claim amount exceeds maximum limit of $10,000',
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Database or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to create claim. Please try again.',
+        },
+      },
+    },
+  })
   async createClaim(
     @User() user: UserEntity,
     @Body(ValidationPipe) createClaimDto: ClaimCreateRequestDto,
@@ -139,6 +383,140 @@ export class ClaimsController {
    * Requirements: 1.1 - Claims CRUD API Endpoints, 2.1 - Authentication and Authorization, 4.1, 4.2 - Error Handling
    */
   @Put(':id')
+  @ApiOperation({
+    summary: 'Update an existing claim',
+    description: 'Update an existing claim owned by the authenticated user',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the claim to update',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({
+    type: ClaimUpdateRequestDto,
+    description: 'Updated claim data (all fields are optional)',
+    examples: {
+      partial: {
+        summary: 'Partial update example',
+        description: 'Example of updating only specific fields',
+        value: {
+          claimName: 'Updated claim name',
+          totalAmount: 75.0,
+        },
+      },
+      full: {
+        summary: 'Full update example',
+        description: 'Example of updating all fields',
+        value: {
+          category: 'fitness',
+          claimName: 'Updated gym membership',
+          month: 10,
+          year: 2025,
+          totalAmount: 85.0,
+          status: 'draft',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Claim updated successfully',
+    type: ClaimResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        claim: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            userId: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            category: {
+              type: 'string',
+              enum: Object.values(ClaimCategory),
+              example: 'fitness',
+            },
+            claimName: { type: 'string', example: 'Updated gym membership' },
+            month: { type: 'number', example: 10 },
+            year: { type: 'number', example: 2025 },
+            totalAmount: { type: 'number', example: 85.0 },
+            status: {
+              type: 'string',
+              enum: Object.values(ClaimStatus),
+              example: 'draft',
+            },
+            submissionDate: { type: 'string', nullable: true, example: null },
+            attachments: { type: 'array', items: { type: 'object' } },
+            createdAt: { type: 'string', example: '2025-09-17T09:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2025-09-17T09:30:00.000Z' },
+          },
+        },
+        error: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error - invalid request data',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: {
+          type: 'array',
+          items: { type: 'string' },
+          example: [
+            'Total amount must be greater than 0',
+            'Month must be between 1 and 12',
+          ],
+        },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Claim not found or not owned by user',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Claim not found' },
+      },
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Business rule violation',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 422 },
+        message: {
+          type: 'string',
+          example: 'Cannot create claims for future years',
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Database or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to update claim. Please try again.',
+        },
+      },
+    },
+  })
   async updateClaim(
     @User() user: UserEntity,
     @Param('id') id: string,
@@ -219,6 +597,57 @@ export class ClaimsController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete a claim',
+    description:
+      'Delete an existing claim owned by the authenticated user. Claims with status "paid" cannot be deleted.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the claim to delete',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiNoContentResponse({
+    description: 'Claim deleted successfully',
+  })
+  @ApiNotFoundResponse({
+    description: 'Claim not found or not owned by user',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Claim not found' },
+      },
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Business rule violation - cannot delete paid claim',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 422 },
+        message: {
+          type: 'string',
+          example: 'Cannot delete a claim that has been paid',
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Database or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to delete claim. Please try again.',
+        },
+      },
+    },
+  })
   async deleteClaim(
     @User() user: UserEntity,
     @Param('id') id: string,
@@ -265,6 +694,143 @@ export class ClaimsController {
    * Requirements: 1.1 - Claims CRUD API Endpoints, 2.1 - Authentication and Authorization, 4.1, 4.2 - Error Handling
    */
   @Put(':id/status')
+  @ApiOperation({
+    summary: 'Update claim status',
+    description:
+      'Update the status of an existing claim with business rule validation for status transitions',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the claim to update status',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({
+    type: ClaimStatusUpdateDto,
+    description: 'Status update data',
+    examples: {
+      submit: {
+        summary: 'Submit claim',
+        description: 'Change claim status from draft to sent',
+        value: {
+          status: 'sent',
+        },
+      },
+      markPaid: {
+        summary: 'Mark as paid',
+        description: 'Change claim status to paid',
+        value: {
+          status: 'paid',
+        },
+      },
+      returnToDraft: {
+        summary: 'Return to draft',
+        description: 'Change claim status back to draft',
+        value: {
+          status: 'draft',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Claim status updated successfully',
+    type: ClaimResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        claim: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            userId: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            category: {
+              type: 'string',
+              enum: Object.values(ClaimCategory),
+              example: 'telco',
+            },
+            claimName: { type: 'string', example: 'Monthly phone bill' },
+            month: { type: 'number', example: 9 },
+            year: { type: 'number', example: 2025 },
+            totalAmount: { type: 'number', example: 50.0 },
+            status: {
+              type: 'string',
+              enum: Object.values(ClaimStatus),
+              example: 'sent',
+            },
+            submissionDate: {
+              type: 'string',
+              nullable: true,
+              example: '2025-09-17T10:00:00.000Z',
+            },
+            attachments: { type: 'array', items: { type: 'object' } },
+            createdAt: { type: 'string', example: '2025-09-17T09:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2025-09-17T10:00:00.000Z' },
+          },
+        },
+        error: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error - invalid status value',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Status must be one of: draft, sent, paid, failed'],
+        },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Claim not found or not owned by user',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Claim not found' },
+      },
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Invalid status transition',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 422 },
+        message: {
+          type: 'string',
+          example: 'Invalid status transition from paid to draft',
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Database or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to update claim status. Please try again.',
+        },
+      },
+    },
+  })
   async updateClaimStatus(
     @User() user: UserEntity,
     @Param('id') id: string,

@@ -1,8 +1,24 @@
-import { IClaimMetadata } from '@project/types';
+import { ApiProperty } from '@nestjs/swagger';
+import type { IClaimMetadata } from '@project/types';
 
 export class ClaimResponseDto {
+  @ApiProperty({
+    description: 'Indicates if the operation was successful',
+    example: true,
+  })
   public success: boolean;
+
+  @ApiProperty({
+    description: 'Claim data when operation is successful',
+    required: false,
+  })
   public claim?: IClaimMetadata;
+
+  @ApiProperty({
+    description: 'Error message when operation fails',
+    required: false,
+    example: 'Claim not found',
+  })
   public error?: string;
 
   constructor(params: {

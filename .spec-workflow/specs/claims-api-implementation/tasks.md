@@ -18,7 +18,7 @@
   - _Requirements: 1.1, 1.2, 2.1_
   - _Prompt: Implement the task for spec claims-api-implementation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer specializing in NestJS controllers and REST API design | Task: Create ClaimsController following requirements 1.1, 1.2, and 2.1, implementing GET /claims, POST /claims, PUT /claims/:id, DELETE /claims/:id, and PUT /claims/:id/status endpoints using existing ClaimDBUtil methods | Restrictions: Must call existing ClaimDBUtil methods directly, use existing JWT guard patterns, follow established controller structure | _Leverage: existing AuthController patterns, ClaimDBUtil methods, JWT guards_ | _Requirements: 1.1, 1.2, 2.1_ | Success: All 5 endpoints work correctly, authentication is enforced, calls existing database utilities properly | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], implement the task, then mark as complete by changing [-] to [x]_
 
-- [ ] 3. Add Swagger API documentation
+- [x] 3. Add Swagger API documentation
   - File: backend/src/modules/claims/claims.controller.ts (continue from task 2)
   - Add OpenAPI decorators to all controller endpoints
   - Document request/response schemas and error codes
