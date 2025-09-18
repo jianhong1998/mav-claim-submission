@@ -15,9 +15,7 @@ import { AttachmentList } from '@/components/attachments/AttachmentList';
 import {
   IClaimMetadata,
   IClaimListResponse,
-  IClaimResponse,
   ClaimCategory,
-  ClaimStatus,
 } from '@project/types';
 import { apiClient } from '@/lib/api-client';
 import { useEmailSending } from '@/hooks/email/useEmailSending';
@@ -249,20 +247,16 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
       // Send email for each claim sequentially
       for (const claimId of claimIds) {
         try {
-          // Send email first
+          // Send email (status is updated automatically by email service)
           const emailResult = await apiClient.post('/email/send-claim', {
             claimId,
           });
 
-          // If email succeeds, mark claim as sent
-          const statusResult = await apiClient.put<IClaimResponse>(
-            `/claims/${claimId}/status`,
-            {
-              status: ClaimStatus.SENT,
-            },
-          );
-
-          results.push({ claimId, success: true, emailResult, statusResult });
+          results.push({
+            claimId,
+            success: true,
+            emailResult,
+          });
         } catch (error) {
           results.push({ claimId, success: false, error });
           throw error; // Stop processing on first failure
@@ -296,6 +290,7 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
     onSettled: () => {
       setUpdatingClaims(new Set());
     },
+    retry: false,
   });
 
   const handleMarkAllReady = useCallback(() => {

@@ -535,18 +535,12 @@ describe('ClaimReviewComponent', () => {
       await user.click(markReadyButton);
 
       await waitFor(() => {
-        expect(mockApiClient.put).toHaveBeenCalledWith(
-          '/claims/claim-1/status',
-          {
-            status: ClaimStatus.SENT,
-          },
-        );
-        expect(mockApiClient.put).toHaveBeenCalledWith(
-          '/claims/claim-2/status',
-          {
-            status: ClaimStatus.SENT,
-          },
-        );
+        expect(mockApiClient.post).toHaveBeenCalledWith('/email/send-claim', {
+          claimId: 'claim-1',
+        });
+        expect(mockApiClient.post).toHaveBeenCalledWith('/email/send-claim', {
+          claimId: 'claim-2',
+        });
         expect(mockToast.success).toHaveBeenCalledWith(
           expect.stringContaining('Successfully sent'),
         );
