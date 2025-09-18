@@ -162,6 +162,8 @@ describe('GoogleDriveClient', () => {
     });
 
     it('should handle folder creation errors', async () => {
+      mockAuthService.getUserTokens.mockResolvedValue(mockTokenEntity);
+      mockTokenDBUtil.getDecryptedTokens.mockResolvedValue(mockDecryptedTokens);
       mockDriveAPI.files.list.mockRejectedValue(new Error('Drive API error'));
 
       await expect(
