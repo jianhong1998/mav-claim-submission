@@ -8,6 +8,7 @@ import { google, gmail_v1 } from 'googleapis';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { TokenDBUtil } from 'src/modules/auth/utils/token-db.util';
 import { IEmailSendRequest, IEmailSendResponse } from '@project/types';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 /**
  * GmailClient - Gmail API Operations
@@ -28,11 +29,12 @@ export class GmailClient {
   private readonly logger = new Logger(GmailClient.name);
   private readonly maxRetries = 3;
   private readonly baseDelayMs = 1000;
-  private readonly requiredScope = 'https://www.googleapis.com/auth/gmail.send';
+  private readonly requiredScope = 'gmail.send';
 
   constructor(
     private readonly authService: AuthService,
     private readonly tokenDBUtil: TokenDBUtil,
+    private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {}
 
   /**
@@ -141,11 +143,14 @@ export class GmailClient {
       const { accessToken, refreshToken } =
         await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
 
+      const { googleClientId, googleClientSecret, googleRedirectUri } =
+        this.environmentVariableUtil.getVariables();
+
       // Create OAuth2 client
       const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI,
+        googleClientId,
+        googleClientSecret,
+        googleRedirectUri,
       );
 
       oauth2Client.setCredentials({

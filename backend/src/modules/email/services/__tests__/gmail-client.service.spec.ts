@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { GmailClient } from '../gmail-client.service';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { TokenDBUtil } from 'src/modules/auth/utils/token-db.util';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 import { google } from 'googleapis';
 import { IEmailSendRequest } from '@project/types';
 
@@ -23,6 +24,10 @@ const mockAuthService = {
 
 const mockTokenDBUtil = {
   getDecryptedTokens: vi.fn(),
+};
+
+const mockEnvironmentVariableUtil = {
+  getVariables: vi.fn(),
 };
 
 const mockGmailAPI = {
@@ -61,10 +66,35 @@ describe('GmailClient', () => {
     vi.mocked(google.gmail).mockReturnValue(mockGmailAPI as never);
     vi.mocked(google.auth.OAuth2).mockReturnValue(mockOAuth2Client as never);
 
+    // Mock environment variable util
+    mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+      nodeEnv: 'test',
+      port: 3001,
+      buildMode: 'swc',
+      clientHost: 'http://localhost:3000',
+      cookieDomainName: 'localhost',
+      cookieSecret: 'test-secret',
+      googleClientId: 'test-client-id',
+      googleClientSecret: 'test-client-secret',
+      googleRedirectUri: 'test-redirect-uri',
+      googleDriveApiKey: 'test-api-key',
+      googleDriveScope: 'drive.file',
+      tokenEncryptionKey: 'test-encryption-key',
+      jwtSecret: 'test-jwt-secret',
+      frontendBaseUrl: 'http://localhost:3000',
+      databaseHost: 'localhost',
+      databasePort: 5432,
+      databaseUser: 'postgres',
+      databasePassword: 'postgres',
+      databaseDb: 'test_db',
+      emailRecipients: 'test@example.com',
+    });
+
     // Create service instance with mocked dependencies
     gmailClient = new GmailClient(
-      mockAuthService as AuthService,
-      mockTokenDBUtil as TokenDBUtil,
+      mockAuthService as unknown as AuthService,
+      mockTokenDBUtil as unknown as TokenDBUtil,
+      mockEnvironmentVariableUtil as unknown as EnvironmentVariableUtil,
     );
   });
 

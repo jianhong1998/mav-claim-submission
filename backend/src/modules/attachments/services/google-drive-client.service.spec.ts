@@ -63,8 +63,8 @@ describe('GoogleDriveClient', () => {
 
     // Create service instance with mocked dependencies
     googleDriveClient = new GoogleDriveClient(
-      mockAuthService as AuthService,
-      mockTokenDBUtil as TokenDBUtil,
+      mockAuthService as unknown as AuthService,
+      mockTokenDBUtil as unknown as TokenDBUtil,
     );
   });
 
