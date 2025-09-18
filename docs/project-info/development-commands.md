@@ -109,6 +109,45 @@ make db/data/up       # Run migrations and seed data
 pnpm run dev          # Start development servers
 ```
 
+### Email Configuration
+
+The system requires proper email configuration for claim submission workflows:
+
+#### BACKEND_EMAIL_RECIPIENT (Required)
+
+This environment variable configures where automated claim submission emails are sent.
+
+**Configuration Examples:**
+
+```bash
+# Single recipient (development/testing)
+BACKEND_EMAIL_RECIPIENT=admin@mavericks-consulting.com
+
+# Multiple recipients (production)
+BACKEND_EMAIL_RECIPIENT=admin@mavericks-consulting.com,hr@mavericks-consulting.com,finance@mavericks-consulting.com
+
+# With spaces (automatically trimmed)
+BACKEND_EMAIL_RECIPIENT=admin@mavericks-consulting.com, hr@mavericks-consulting.com
+```
+
+**Validation Requirements:**
+- **Required**: System will fail to start if not configured
+- **Format**: Must be valid email address(es)
+- **Multiple**: Use comma-separated values for multiple recipients
+- **Parsing**: Spaces around commas are automatically trimmed
+- **Startup**: Email format validated at application startup
+
+**Error Scenarios:**
+```bash
+# ❌ Invalid - will cause startup failure
+BACKEND_EMAIL_RECIPIENT=invalid-email
+BACKEND_EMAIL_RECIPIENT=user@domain,invalid-format
+
+# ✅ Valid configurations
+BACKEND_EMAIL_RECIPIENT=user@mavericks-consulting.com
+BACKEND_EMAIL_RECIPIENT=admin@mavericks-consulting.com,finance@mavericks-consulting.com
+```
+
 ## Google Drive Integration Testing
 
 ```bash

@@ -162,7 +162,7 @@
   - _Requirements: 4.1, 4.2, 4.3_
   - _Prompt: Implement the task for spec email-sending-for-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in notification systems and accessibility | Task: Create email status notification components following requirements 4.1-4.3, providing clear user feedback for email operations | Restrictions: Must follow existing notification patterns, ensure accessibility compliance, handle all error scenarios | _Leverage: existing notification components, design system patterns_ | _Requirements: 4.1-4.3 - error handling and user feedback_ | Success: Notifications are accessible and responsive, clear feedback for all scenarios, consistent with design system | Instructions: Mark this task as in progress in tasks.md before starting, then mark as complete when finished_
 
-- [ ] 19. Update environment variable documentation and examples
+- [x] 19. Update environment variable documentation and examples
   - File: .env.template and docs/project-info/development-commands.md
   - Add BACKEND_EMAIL_RECIPIENT configuration documentation
   - Provide examples for single and multiple recipients
