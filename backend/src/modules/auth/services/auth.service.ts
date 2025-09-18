@@ -5,6 +5,7 @@ import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { OAuthTokenEntity } from '../entities/oauth-token.entity';
 import { google } from 'googleapis';
 import { TokenService } from './token.service';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 export interface GoogleProfile {
   id: string;
@@ -41,6 +42,7 @@ export class AuthService {
     private readonly userDBUtil: UserDBUtil,
     private readonly tokenDBUtil: TokenDBUtil,
     private readonly tokenService: TokenService,
+    private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {}
 
   /**
@@ -126,9 +128,11 @@ export class AuthService {
       }
 
       // Use Google OAuth2 client to refresh token
+      const envVars = this.environmentVariableUtil.getVariables();
       const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
+        envVars.googleClientId,
+        envVars.googleClientSecret,
+        envVars.googleRedirectUri,
       );
 
       const { refreshToken: decryptedRefreshToken } =
@@ -206,6 +210,7 @@ export class AuthService {
     });
 
     if (!tokenEntity) {
+      this.logger.error('No Token found');
       return null;
     }
 
