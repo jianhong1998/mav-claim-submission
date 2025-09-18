@@ -144,7 +144,7 @@
   - _Requirements: 6.1, 6.2, 6.7_
   - _Prompt: Implement the task for spec email-sending-for-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in React hooks and API integration | Task: Create useEmailSending hook following requirements 6.1-6.2 and 6.7, integrating with claim email endpoint and providing proper loading/error states | Restrictions: Must follow existing API hook patterns, handle authentication errors, provide proper TypeScript types | _Leverage: existing API hooks from frontend/src/hooks/, error handling patterns_ | _Requirements: 6.1-6.2 - API integration, 6.7 - structured error responses_ | Success: Hook provides clean email sending interface, proper error handling, loading states work correctly | Instructions: Mark this task as in progress in tasks.md before starting, then mark as complete when finished_
 
-- [ ] 17. Integrate email sending into Review & Submit workflow
+- [x] 17. Integrate email sending into Review & Submit workflow
   - File: frontend/src/components/claims/review/ClaimReviewComponent.tsx (or similar)
   - Add email sending trigger to existing "Review & Submit" button
   - Implement success/error notifications and status updates
@@ -153,7 +153,7 @@
   - _Requirements: 3.1, 3.2, 6.6_
   - _Prompt: Implement the task for spec email-sending-for-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in React components and user workflow integration | Task: Integrate email sending into existing Review & Submit workflow following requirements 3.1-3.2 and 6.6, adding email trigger and status updates | Restrictions: Must extend existing Review & Submit component, maintain current UI/UX patterns, handle email success/failure states | _Leverage: existing claim submission workflow, useEmailSending hook, notification components_ | _Requirements: 3.1-3.2 - claim validation and status updates, 6.6 - success response with claim object_ | Success: Email sending integrated seamlessly into existing workflow, proper user feedback provided | Instructions: Mark this task as in progress in tasks.md before starting, then mark as complete when finished_
 
-- [ ] 18. Create email sending notification components
+- [x] 18. Create email sending notification components
   - File: frontend/src/components/email/EmailStatusNotification.tsx
   - Implement success and error notification components for email sending
   - Add proper accessibility and responsive design
