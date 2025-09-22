@@ -6,7 +6,7 @@ Based on feedback, this implementation will **NOT modify any database entities o
 
 ## Phase 1: Folder Naming Utilities
 
-- [ ] 1. Create FolderNamingUtil for dynamic name generation
+- [x] 1. Create FolderNamingUtil for dynamic name generation
   - File: backend/src/shared/utils/folder-naming.util.ts
   - Implement generateFolderName, sanitizeClaimName, and validateClaimName functions
   - Generate names from existing claim data without requiring new fields
