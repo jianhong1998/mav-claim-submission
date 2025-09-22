@@ -323,11 +323,13 @@ frontend/src/
 ```
 Employee's Google Drive/
 └── Mavericks Claims/
-    └── {claimUuid}/
+    └── {year}-{month}-{categoryCode}-{name}-{uploadTimestamp}/
         ├── jason_lee_company_dinner_2025_09_1725456123000.pdf
         ├── jason_lee_company_dinner_2025_09_1725456124000.png
         └── ...
 ```
+
+Example folder name: `2025-09-company-lunch-1758268548628`
 
 ### File Upload Flow
 1. **Client-Side Upload**: Client uploads files directly to employee's Google Drive using:

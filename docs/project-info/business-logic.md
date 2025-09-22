@@ -53,10 +53,12 @@ draft → failed → sent ↔ paid
 ```
 Employee's Google Drive/
 └── Mavericks Claims/
-    └── {claimUuid}/
+    └── {year}-{month}-{categoryCode}-{name}-{uploadTimestamp}/
         ├── jason_lee_company_dinner_2025_09_1725456123000.pdf
         └── ...
 ```
+
+Example folder name: `2025-09-company-lunch-1758268548628`
 
 ### File Naming Convention
 Format: `{employee_name}_{category}_{year}_{month}_{timestamp}.{extension}`
