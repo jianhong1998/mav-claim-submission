@@ -45,10 +45,7 @@ export class FolderNamingUtil {
       const timestamp = Math.floor(createdAt.getTime() / 1000);
       const categoryCode = CategoryCodeMapping[category];
 
-      let processedClaimName = this.sanitizeClaimName(claimName);
-      if (!processedClaimName && category !== ClaimCategory.OTHERS) {
-        processedClaimName = 'default';
-      }
+      const processedClaimName = this.sanitizeClaimName(claimName);
 
       const baseFolder = `${year}-${formattedMonth}-${timestamp}-${categoryCode}`;
       let folderName = processedClaimName

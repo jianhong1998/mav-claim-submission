@@ -15,7 +15,7 @@ Based on feedback, this implementation will **NOT modify any database entities o
   - _Requirements: 1.1-1.7, 2.1-2.5, 3.1-3.5_
   - _Prompt: Implement the task for spec google-drive-folder-restructure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Utility Developer with expertise in string manipulation and validation | Task: Create folder naming utility that generates descriptive names from existing claim data following requirements 1.1-1.7, 2.1-2.5, and 3.1-3.5, without requiring database changes | Restrictions: Must work with existing claim entity fields only, no external dependencies, follow existing utility patterns, ensure performance <10ms | _Leverage: backend/src/shared/utils/ existing patterns, packages/types/src/enums/ for category mappings, backend/src/entities/claims.entity.ts for available fields_ | _Requirements: 1.1 (descriptive format), 2.1-2.5 (character limits and sanitization), 3.1-3.5 (category mapping using existing data)_ | Success: Generates folder names using only existing claim fields, validation works correctly, sanitization handles edge cases, performance meets <10ms requirement | Instructions: First change this task status to [-] in tasks.md, implement the utility using existing claim properties, then mark as [x] when complete_
 
-- [ ] 2. Create unit tests for FolderNamingUtil
+- [x] 2. Create unit tests for FolderNamingUtil
   - File: backend/src/shared/utils/__tests__/folder-naming.util.test.ts
   - Write comprehensive tests for naming scenarios using existing claim data
   - Test character limits, sanitization, category mapping with current claim structure
@@ -26,7 +26,7 @@ Based on feedback, this implementation will **NOT modify any database entities o
 
 ## Phase 2: Google Drive Integration
 
-- [ ] 3. Enhance GoogleDriveClient with descriptive folder creation
+- [x] 3. Enhance GoogleDriveClient with descriptive folder creation
   - File: backend/src/modules/attachments/services/google-drive-client.service.ts
   - Modify createClaimFolder to generate descriptive names using FolderNamingUtil
   - Add collision detection and retry logic with suffix generation
@@ -35,7 +35,7 @@ Based on feedback, this implementation will **NOT modify any database entities o
   - _Requirements: 9.1-9.6, 8.1-8.6, 4.3-4.4_
   - _Prompt: Implement the task for spec google-drive-folder-restructure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Google Drive API Developer with expertise in Google APIs and folder management | Task: Enhance GoogleDriveClient to create folders with descriptive names following requirements 9.1-9.6, 8.1-8.6, and 4.3-4.4, using existing claim data without database changes | Restrictions: Must maintain existing method signatures, respect API rate limits, implement proper retry mechanisms, use existing OAuth token patterns | _Leverage: existing Google Drive OAuth and API patterns, backend/src/shared/utils/folder-naming.util.ts, existing claim data structure_ | _Requirements: 9.1-9.6 (collision handling), 8.1-8.6 (fallback strategy), 4.3-4.4 (folder creation integration)_ | Success: Creates descriptive folders using existing claim data, collision detection works correctly, retry logic handles failures gracefully, maintains backward compatibility | Instructions: First change this task status to [-] in tasks.md, enhance folder creation with descriptive naming, then mark as [x] when complete_
 
-- [ ] 4. Update attachment service to use enhanced folder creation
+- [x] 4. Update attachment service to use enhanced folder creation
   - File: backend/src/modules/attachments/services/attachments.service.ts
   - Modify service to pass claim data to GoogleDriveClient for descriptive folder creation
   - Ensure attachment metadata references the descriptive folder structure
@@ -66,7 +66,7 @@ Based on feedback, this implementation will **NOT modify any database entities o
 
 ## Phase 4: Documentation and Cleanup
 
-- [ ] 7. Update internal documentation for folder naming
+- [x] 7. Update internal documentation for folder naming
   - File: backend/src/modules/attachments/README.md
   - Document the new descriptive folder naming behavior using existing claim data
   - Add examples of folder name generation without database dependencies

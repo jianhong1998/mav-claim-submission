@@ -102,5 +102,10 @@ check-implementation/frontend:
 check-implementation/backend:
 	@$(MAKE) format lint build/backend test/unit
 
+check-implementation:
+	@$(MAKE) format lint
+	@$(MAKE) build
+	@$(MAKE) test/unit test/ui
+
 check-implementation/backend/with-api-test:
 	@$(MAKE) format lint build/backend test/unit test/api

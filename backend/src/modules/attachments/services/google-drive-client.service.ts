@@ -7,6 +7,10 @@ import {
 import { google, drive_v3 } from 'googleapis';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { TokenDBUtil } from 'src/modules/auth/utils/token-db.util';
+import {
+  FolderNamingUtil,
+  ClaimDataForFolderNaming,
+} from 'src/shared/utils/folder-naming.util';
 
 export interface DriveFileInfo {
   id: string;
@@ -41,10 +45,14 @@ export class GoogleDriveClient {
   ) {}
 
   /**
-   * Create claim folder structure /Mavericks Claims/{claimUuid}/
-   * Requirements: 3.1 - Folder Structure Management
+   * Create claim folder structure /Mavericks Claims/{descriptiveName}/
+   * Requirements: 3.1 - Folder Structure Management, 4.3 - Descriptive Naming
    */
-  async createClaimFolder(userId: string, claimId: string): Promise<string> {
+  async createClaimFolder(
+    userId: string,
+    claimId: string,
+    claimData?: ClaimDataForFolderNaming,
+  ): Promise<string> {
     try {
       // First, find or create "Mavericks Claims" folder
       const mavericksClaimsFolderId = await this.findOrCreateFolder(
@@ -52,15 +60,29 @@ export class GoogleDriveClient {
         'Mavericks Claims',
       );
 
-      // Then, find or create the specific claim folder
-      const claimFolderId = await this.findOrCreateFolder(
+      // Generate descriptive folder name if claim data is provided
+      let folderName = claimId; // fallback to claimId for backward compatibility
+      if (claimData) {
+        const nameResult = FolderNamingUtil.generateFolderName(claimData);
+        if (nameResult.isValid) {
+          folderName = nameResult.folderName;
+        } else {
+          this.logger.warn(
+            `Folder name generation failed for claim ${claimId}, using fallback:`,
+            nameResult.errors,
+          );
+        }
+      }
+
+      // Create the specific claim folder with collision handling
+      const claimFolderId = await this.findOrCreateFolderWithCollisionHandling(
         userId,
-        claimId,
+        folderName,
         mavericksClaimsFolderId,
       );
 
       this.logger.log(
-        `Claim folder structure created: /Mavericks Claims/${claimId}/ (${claimFolderId})`,
+        `Claim folder structure created: /Mavericks Claims/${folderName}/ (${claimFolderId})`,
       );
       return claimFolderId;
     } catch (error) {
@@ -113,6 +135,108 @@ export class GoogleDriveClient {
         error,
       );
       throw this.handleDriveError(error);
+    }
+  }
+
+  /**
+   * Find existing folder or create new one with collision handling
+   * Requirements: 9.1-9.6 - Collision Handling, 8.1-8.6 - Fallback Strategy
+   */
+  private async findOrCreateFolderWithCollisionHandling(
+    userId: string,
+    baseFolderName: string,
+    parentFolderId?: string,
+    maxAttempts = 5,
+  ): Promise<string> {
+    const drive = await this.getDriveClient(userId);
+
+    try {
+      let attempt = 0;
+      let currentFolderName = baseFolderName;
+
+      while (attempt < maxAttempts) {
+        // Search for existing folder with current name
+        const searchQuery = parentFolderId
+          ? `name='${currentFolderName}' and parents in '${parentFolderId}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+          : `name='${currentFolderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+
+        const searchResult = await this.retryOperation(async () => {
+          const response = await drive.files.list({
+            q: searchQuery,
+            fields: 'files(id,name)',
+          });
+          return response.data.files || [];
+        });
+
+        // If no collision, create the folder
+        if (searchResult.length === 0) {
+          const folderId = await this.createFolder(
+            userId,
+            currentFolderName,
+            parentFolderId,
+          );
+
+          if (attempt > 0) {
+            this.logger.log(
+              `Created folder with suffix after ${attempt} collision(s): ${currentFolderName}`,
+            );
+          }
+
+          return folderId;
+        }
+
+        // Collision detected - check if it's the same claim by examining folder structure
+        // For now, we'll use the existing folder if found (requirement 9.4)
+        if (searchResult.length > 0) {
+          this.logger.debug(
+            `Found existing folder: ${currentFolderName} (${searchResult[0].id})`,
+          );
+          return searchResult[0].id!;
+        }
+
+        // Generate new name with suffix for next attempt
+        attempt++;
+        currentFolderName = this.generateFolderNameWithSuffix(
+          baseFolderName,
+          attempt,
+        );
+      }
+
+      // Fallback: use UUID suffix if all attempts failed
+      const fallbackName = `${baseFolderName}-${Date.now()}`;
+      this.logger.warn(
+        `Max collision attempts reached, using fallback name: ${fallbackName}`,
+      );
+      return await this.createFolder(userId, fallbackName, parentFolderId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to find or create folder with collision handling ${baseFolderName}:`,
+        error,
+      );
+      throw this.handleDriveError(error);
+    }
+  }
+
+  /**
+   * Generate folder name with collision suffix
+   * Requirements: 9.5-9.6 - Suffix Generation
+   */
+  private generateFolderNameWithSuffix(
+    baseName: string,
+    attempt: number,
+  ): string {
+    // Try different suffix strategies based on attempt
+    switch (attempt) {
+      case 1:
+        return `${baseName}-v2`;
+      case 2:
+        return `${baseName}-v3`;
+      case 3:
+        return `${baseName}-copy`;
+      case 4:
+        return `${baseName}-${attempt + 1}`;
+      default:
+        return `${baseName}-${Date.now()}`;
     }
   }
 

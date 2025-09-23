@@ -395,7 +395,7 @@ describe('useAttachmentUpload Hook', () => {
       const { apiClient } = (await vi.importMock('@/lib/api-client')) as {
         apiClient: { post: ReturnType<typeof vi.fn> };
       };
-      expect(apiClient.post).toHaveBeenCalledTimes(3);
+      expect(apiClient.post).toHaveBeenCalledTimes(6);
       expect(result.current.uploadHistory).toHaveLength(3);
     });
   });

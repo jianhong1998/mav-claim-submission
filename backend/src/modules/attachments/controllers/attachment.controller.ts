@@ -52,6 +52,47 @@ export class AttachmentController {
   constructor(private readonly attachmentService: AttachmentService) {}
 
   /**
+   * Create descriptive Google Drive folder for claim attachments
+   * Requirements: Folder Creation API Integration
+   */
+  @Post('folder/:claimId')
+  async createClaimFolder(
+    @Param('claimId', ParseUUIDPipe) claimId: string,
+    @User() user: UserEntity,
+  ): Promise<{ success: boolean; folderId?: string; error?: string }> {
+    try {
+      this.logger.debug(`Creating folder for claim: ${claimId}`);
+
+      const folderId = await this.attachmentService.createClaimFolder(
+        user.id,
+        claimId,
+      );
+
+      if (!folderId) {
+        this.logger.warn(`Failed to create folder for claim: ${claimId}`);
+        return {
+          success: false,
+          error: 'Failed to create claim folder',
+        };
+      }
+
+      this.logger.debug(
+        `Folder created successfully for claim ${claimId}: ${folderId}`,
+      );
+      return {
+        success: true,
+        folderId,
+      };
+    } catch (error) {
+      this.logger.error(`Folder creation failed for claim ${claimId}:`, error);
+      return {
+        success: false,
+        error: 'Folder creation failed',
+      };
+    }
+  }
+
+  /**
    * Store Google Drive file metadata after client-side upload
    * Requirements: 3.0 - Metadata-Only Backend Storage
    */
