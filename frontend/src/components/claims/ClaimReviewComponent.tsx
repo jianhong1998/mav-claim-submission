@@ -15,14 +15,12 @@ import { AttachmentList } from '@/components/attachments/AttachmentList';
 import {
   IClaimMetadata,
   IClaimListResponse,
-  IClaimResponse,
   ClaimCategory,
-  ClaimStatus,
 } from '@project/types';
 import { apiClient } from '@/lib/api-client';
+import { useEmailSending } from '@/hooks/email/useEmailSending';
 import { toast } from 'sonner';
 import {
-  CheckCircle2,
   Calendar,
   DollarSign,
   FileText,
@@ -30,6 +28,7 @@ import {
   RefreshCw,
   Edit,
   ArrowLeft,
+  Mail,
 } from 'lucide-react';
 
 interface ClaimReviewComponentProps {
@@ -200,6 +199,10 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [updatingClaims, setUpdatingClaims] = useState<Set<string>>(new Set());
+  const [_emailingSingleClaim, _setEmailingSingleClaim] = useState<
+    string | null
+  >(null);
+  const _emailSendingMutation = useEmailSending();
 
   // Query for draft claims
   const {
@@ -236,35 +239,58 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
     };
   }, [draftClaims]);
 
-  // Mutation for marking claims as ready
-  const markReadyMutation = useMutation({
+  // Mutation for sending emails and marking claims as ready
+  const markReadyAndEmailMutation = useMutation({
     mutationFn: async (claimIds: string[]) => {
-      // Call PUT /claims/:id/status endpoint for each claim individually
-      const updatePromises = claimIds.map((claimId) =>
-        apiClient.put<IClaimResponse>(`/claims/${claimId}/status`, {
-          status: ClaimStatus.SENT,
-        }),
-      );
+      const results = [];
 
-      return Promise.all(updatePromises);
+      // Send email for each claim sequentially
+      for (const claimId of claimIds) {
+        try {
+          // Send email (status is updated automatically by email service)
+          const emailResult = await apiClient.post('/email/send-claim', {
+            claimId,
+          });
+
+          results.push({
+            claimId,
+            success: true,
+            emailResult,
+          });
+        } catch (error) {
+          results.push({ claimId, success: false, error });
+          throw error; // Stop processing on first failure
+        }
+      }
+
+      return results;
     },
     onMutate: (claimIds) => {
       setUpdatingClaims(new Set(claimIds));
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       void queryClient.invalidateQueries({ queryKey: ['claims'] });
-      toast.success('Claims marked as ready successfully');
+      const successCount = results.filter((r) => r.success).length;
+      toast.success(
+        `Successfully sent ${successCount} claim email${successCount !== 1 ? 's' : ''} and marked as ready`,
+      );
       // Redirect to claims list page after successful update
       if (typeof window !== 'undefined') {
         window.location.href = '/claims';
       }
     },
-    onError: () => {
-      toast.error('Failed to mark claims as ready');
+    onError: (error, _claimIds) => {
+      // Log error for debugging purposes
+      // eslint-disable-next-line no-console
+      console.error('Failed to send emails and mark claims as ready:', error);
+      toast.error(
+        'Failed to send emails and mark claims as ready. Please try again.',
+      );
     },
     onSettled: () => {
       setUpdatingClaims(new Set());
     },
+    retry: false,
   });
 
   const handleMarkAllReady = useCallback(() => {
@@ -274,18 +300,21 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
       (claim) => !claim.attachments?.length,
     );
 
-    let confirmMessage = `Are you sure you want to mark all ${draftClaims.length} claim${draftClaims.length !== 1 ? 's' : ''} as ready for processing?`;
+    let confirmMessage = `Are you sure you want to email and submit all ${draftClaims.length} claim${draftClaims.length !== 1 ? 's' : ''} for processing?\n\nThis will:`;
+    confirmMessage += `\n• Send email notifications for each claim`;
+    confirmMessage += `\n• Mark all claims as sent/submitted`;
+    confirmMessage += `\n• Make them ready for processing`;
 
     if (hasClaimsWithoutAttachments) {
       confirmMessage +=
-        '\n\nWarning: Some claims do not have any attachments. These will still be marked as ready.';
+        '\n\nWarning: Some claims do not have any attachments. These will still be submitted.';
     }
 
     if (window.confirm(confirmMessage)) {
       const claimIds = draftClaims.map((claim) => claim.id);
-      markReadyMutation.mutate(claimIds);
+      markReadyAndEmailMutation.mutate(claimIds);
     }
-  }, [draftClaims, markReadyMutation]);
+  }, [draftClaims, markReadyAndEmailMutation]);
 
   const handleEditClaim = useCallback(
     (claim: IClaimMetadata) => {
@@ -387,7 +416,8 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
     );
   }
 
-  const isAnyClaimUpdating = updatingClaims.size > 0;
+  const isAnyClaimUpdating =
+    updatingClaims.size > 0 || _emailingSingleClaim !== null;
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -423,7 +453,8 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
         <CardHeader>
           <CardTitle className="text-lg">Summary</CardTitle>
           <CardDescription>
-            Review your draft claims before marking them as ready
+            Review your draft claims before emailing and submitting them for
+            processing
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -493,13 +524,13 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
           {isAnyClaimUpdating ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              Updating Claims...
+              Sending Emails & Submitting...
             </>
           ) : (
             <>
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Mark All {draftClaims.length} Claim
-              {draftClaims.length !== 1 ? 's' : ''} as Ready
+              <Mail className="w-4 h-4 mr-2" />
+              Email & Submit All {draftClaims.length} Claim
+              {draftClaims.length !== 1 ? 's' : ''}
             </>
           )}
         </Button>

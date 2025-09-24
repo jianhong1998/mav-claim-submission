@@ -18,6 +18,7 @@ import { TokenDBUtil } from '../utils/token-db.util';
 import { type EncryptedToken } from '../utils/token-encryption.util';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { OAuthTokenEntity } from '../entities/oauth-token.entity';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 // Mock Google APIs
 vi.mock('googleapis', () => ({
@@ -51,6 +52,9 @@ describe('AuthService', () => {
   let mockTokenService: {
     generateJWT: Mock;
     validateJWT: Mock;
+  };
+  let mockEnvironmentVariableUtil: {
+    getVariables: Mock;
   };
   let mockOAuth2Client: {
     setCredentials: Mock;
@@ -133,6 +137,14 @@ describe('AuthService', () => {
       validateJWT: vi.fn(),
     };
 
+    mockEnvironmentVariableUtil = {
+      getVariables: vi.fn().mockReturnValue({
+        googleClientId: 'mock-client-id',
+        googleClientSecret: 'mock-client-secret',
+        googleRedirectUri: 'http://localhost:3001/auth/google/callback',
+      }),
+    };
+
     // Setup OAuth2Client mock
     mockOAuth2Client = {
       setCredentials: vi.fn(),
@@ -155,6 +167,7 @@ describe('AuthService', () => {
       mockUserDBUtil as unknown as UserDBUtil,
       mockTokenDBUtil as unknown as TokenDBUtil,
       mockTokenService as unknown as TokenService,
+      mockEnvironmentVariableUtil as unknown as EnvironmentVariableUtil,
     );
 
     // Mock logger to avoid console output during tests

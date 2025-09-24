@@ -4,6 +4,7 @@ import { ClaimDBUtil } from 'src/modules/claims/utils/claim-db.util';
 import { GoogleDriveClient } from './google-drive-client.service';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
+import { ClaimDataForFolderNaming } from 'src/shared/utils/folder-naming.util';
 import {
   IAttachmentUploadResponse,
   IAttachmentMetadata,
@@ -221,8 +222,75 @@ export class AttachmentService {
   }
 
   /**
+   * Create descriptive folder for claim attachments
+   * Requirements: 4.3-4.4 - Descriptive Folder Creation Integration
+   */
+  async createClaimFolder(
+    userId: string,
+    claimId: string,
+  ): Promise<string | null> {
+    try {
+      // Get claim data for descriptive folder naming
+      const claim = await this.claimDBUtil.getOne({
+        criteria: { id: claimId },
+      });
+
+      if (!claim) {
+        this.logger.warn(`Claim not found for folder creation: ${claimId}`);
+        return null;
+      }
+
+      // Transform claim data to folder naming format
+      const claimDataForFolderNaming: ClaimDataForFolderNaming = {
+        id: claim.id,
+        claimName: claim.claimName,
+        category: claim.category,
+        month: claim.month,
+        year: claim.year,
+        createdAt: claim.createdAt,
+        totalAmount: claim.totalAmount,
+      };
+
+      // Create folder with descriptive naming using enhanced GoogleDriveClient
+      const folderId = await this.googleDriveClient.createClaimFolder(
+        userId,
+        claimId,
+        claimDataForFolderNaming,
+      );
+
+      this.logger.log(
+        `Descriptive folder created for claim ${claimId}: ${folderId}`,
+      );
+      return folderId;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create descriptive folder for claim ${claimId}:`,
+        error,
+      );
+
+      // Fallback: attempt basic folder creation without descriptive naming
+      try {
+        const fallbackFolderId = await this.googleDriveClient.createClaimFolder(
+          userId,
+          claimId,
+        );
+        this.logger.warn(
+          `Created fallback folder for claim ${claimId}: ${fallbackFolderId}`,
+        );
+        return fallbackFolderId;
+      } catch (fallbackError) {
+        this.logger.error(
+          `Fallback folder creation also failed for claim ${claimId}:`,
+          fallbackError,
+        );
+        return null;
+      }
+    }
+  }
+
+  /**
    * Store Google Drive file metadata after client-side upload
-   * Requirements: 3.0 - Metadata-Only Backend Storage
+   * Requirements: 3.0 - Metadata-Only Backend Storage, 4.5-4.6 - Enhanced Folder Integration
    */
   async storeFileMetadata(
     claimId: string,
@@ -260,6 +328,7 @@ export class AttachmentService {
       }
 
       // Create database record with Google Drive info
+      // Note: File should be uploaded to descriptive folder structure created by createClaimFolder
       const attachment = await this.attachmentDBUtil.create({
         creationData: {
           claimId,

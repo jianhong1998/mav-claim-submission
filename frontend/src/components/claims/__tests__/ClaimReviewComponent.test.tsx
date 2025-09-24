@@ -27,11 +27,22 @@ vi.mock('@/lib/api-client', () => ({
   apiClient: {
     get: vi.fn(),
     put: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
 vi.mock('@/lib/utils', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}));
+
+vi.mock('@/hooks/email/useEmailSending', () => ({
+  useEmailSending: vi.fn(() => ({
+    sendEmails: vi.fn(),
+    isSending: false,
+    error: null,
+    isError: false,
+    isSuccess: false,
+  })),
 }));
 
 // Mock AttachmentList component
@@ -63,11 +74,13 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => <span data-testid="RefreshCw" />,
   Edit: () => <span data-testid="Edit" />,
   ArrowLeft: () => <span data-testid="ArrowLeft" />,
+  Mail: () => <span data-testid="Mail" />,
 }));
 
 const mockApiClient = {
   get: apiClient.get as ReturnType<typeof vi.fn>,
   put: apiClient.put as ReturnType<typeof vi.fn>,
+  post: apiClient.post as ReturnType<typeof vi.fn>,
 };
 
 const mockToast = {
@@ -410,6 +423,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
+      mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockConfirm.mockReturnValue(true);
 
       const user = userEvent.setup();
@@ -417,12 +431,12 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
@@ -447,18 +461,18 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 2 claims as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 2 claims/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 2 claims as ready/i,
+        name: /email & submit all 2 claims/i,
       });
       await user.click(markReadyButton);
 
       expect(mockConfirm).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Are you sure you want to mark all 2 claims as ready for processing?',
+          'Are you sure you want to email and submit all 2 claims for processing?',
         ),
       );
     });
@@ -479,18 +493,18 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 2 claims as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 2 claims/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 2 claims as ready/i,
+        name: /email & submit all 2 claims/i,
       });
       await user.click(markReadyButton);
 
       expect(mockConfirm).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Warning: Some claims do not have any attachments. These will still be marked as ready.',
+          'Warning: Some claims do not have any attachments. These will still be submitted.',
         ),
       );
     });
@@ -503,6 +517,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockResolvedValue(createMockUpdateResponse());
+      mockApiClient.post.mockResolvedValue({ success: true });
       mockConfirm.mockReturnValue(true);
 
       const user = userEvent.setup();
@@ -510,30 +525,24 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 2 claims as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 2 claims/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 2 claims as ready/i,
+        name: /email & submit all 2 claims/i,
       });
       await user.click(markReadyButton);
 
       await waitFor(() => {
-        expect(mockApiClient.put).toHaveBeenCalledWith(
-          '/claims/claim-1/status',
-          {
-            status: ClaimStatus.SENT,
-          },
-        );
-        expect(mockApiClient.put).toHaveBeenCalledWith(
-          '/claims/claim-2/status',
-          {
-            status: ClaimStatus.SENT,
-          },
-        );
+        expect(mockApiClient.post).toHaveBeenCalledWith('/email/send-claim', {
+          claimId: 'claim-1',
+        });
+        expect(mockApiClient.post).toHaveBeenCalledWith('/email/send-claim', {
+          claimId: 'claim-2',
+        });
         expect(mockToast.success).toHaveBeenCalledWith(
-          'Claims marked as ready successfully',
+          expect.stringContaining('Successfully sent'),
         );
         expect(mockLocation.href).toBe('/claims');
       });
@@ -550,12 +559,12 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
@@ -567,6 +576,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockRejectedValue(new Error('API Error'));
+      mockApiClient.post.mockRejectedValue(new Error('API Error'));
       mockConfirm.mockReturnValue(true);
 
       const user = userEvent.setup();
@@ -574,18 +584,18 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith(
-          'Failed to mark claims as ready',
+          'Failed to send emails and mark claims as ready. Please try again.',
         );
       });
     });
@@ -595,6 +605,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
+      mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockConfirm.mockReturnValue(true);
 
       const user = userEvent.setup();
@@ -602,17 +613,19 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Updating Claims...')).toBeInTheDocument();
+        expect(
+          screen.getByText('Sending Emails & Submitting...'),
+        ).toBeInTheDocument();
         expect(markReadyButton).toBeDisabled();
       });
     });
@@ -644,6 +657,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
+      mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockConfirm.mockReturnValue(true);
 
       const user = userEvent.setup();
@@ -651,12 +665,12 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
@@ -707,6 +721,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
+      mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockConfirm.mockReturnValue(true);
       const onBack = vi.fn();
 
@@ -715,12 +730,12 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
@@ -764,6 +779,7 @@ describe('ClaimReviewComponent', () => {
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockResolvedValue(createMockUpdateResponse());
+      mockApiClient.post.mockResolvedValue({ success: true });
       mockConfirm.mockReturnValue(true);
 
       const queryClient = new QueryClient({
@@ -786,12 +802,12 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
       const markReadyButton = screen.getByRole('button', {
-        name: /mark all 1 claim as ready/i,
+        name: /email & submit all 1 claim/i,
       });
       await user.click(markReadyButton);
 
@@ -812,7 +828,7 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
         expect(screen.getByTitle('Edit claim')).toBeInTheDocument();
       });
@@ -842,7 +858,7 @@ describe('ClaimReviewComponent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /mark all 1 claim as ready/i }),
+          screen.getByRole('button', { name: /email & submit all 1 claim/i }),
         ).toBeInTheDocument();
       });
 
@@ -858,7 +874,7 @@ describe('ClaimReviewComponent', () => {
       await waitFor(() => {
         // The component might not re-fetch data on rerender, so check what's actually rendered
         const button = screen.getByRole('button', {
-          name: /mark all.*as ready/i,
+          name: /email & submit all.*claims?/i,
         });
         expect(button).toBeInTheDocument();
         // The actual text could be singular or plural depending on data state

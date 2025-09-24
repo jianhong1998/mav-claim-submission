@@ -63,8 +63,8 @@ describe('GoogleDriveClient', () => {
 
     // Create service instance with mocked dependencies
     googleDriveClient = new GoogleDriveClient(
-      mockAuthService as AuthService,
-      mockTokenDBUtil as TokenDBUtil,
+      mockAuthService as unknown as AuthService,
+      mockTokenDBUtil as unknown as TokenDBUtil,
     );
   });
 
@@ -162,6 +162,8 @@ describe('GoogleDriveClient', () => {
     });
 
     it('should handle folder creation errors', async () => {
+      mockAuthService.getUserTokens.mockResolvedValue(mockTokenEntity);
+      mockTokenDBUtil.getDecryptedTokens.mockResolvedValue(mockDecryptedTokens);
       mockDriveAPI.files.list.mockRejectedValue(new Error('Drive API error'));
 
       await expect(

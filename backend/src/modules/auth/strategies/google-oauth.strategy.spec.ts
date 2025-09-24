@@ -62,6 +62,7 @@ describe('GoogleOAuthStrategy', () => {
     googleClientId: 'test-client-id',
     googleClientSecret: 'test-client-secret',
     googleRedirectUri: 'http://localhost:3001/auth/google/callback',
+    emailRecipients: 'test@mavericks-consulting.com',
   };
 
   const mockValidProfile: GoogleProfile = {
