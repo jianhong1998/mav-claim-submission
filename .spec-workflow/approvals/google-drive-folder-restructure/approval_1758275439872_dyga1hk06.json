@@ -1,0 +1,12 @@
+{
+  "id": "approval_1758275439872_dyga1hk06",
+  "title": "Tasks Document - Google Drive Folder Restructure Implementation Tasks",
+  "filePath": ".spec-workflow/specs/google-drive-folder-restructure/tasks.md",
+  "type": "document",
+  "status": "rejected",
+  "createdAt": "2025-09-19T09:50:39.872Z",
+  "category": "spec",
+  "categoryName": "google-drive-folder-restructure",
+  "response": "Should not change any data entities in backend and frontend, only update the request for get or create folder from Google Drive.",
+  "respondedAt": "2025-09-22T02:39:55.208Z"
+}

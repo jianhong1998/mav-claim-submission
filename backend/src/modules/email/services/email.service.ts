@@ -1,269 +1,307 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
-  UnauthorizedException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
-import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
-import { TokenService } from 'src/modules/auth/services/token.service';
-import {
-  IEmailSendRequest,
-  IEmailSendResponse,
-  IGmailAccessResponse,
-} from '@project/types';
-import { EnvironmentVariableUtil } from '../../common/utils/environment-variable.util';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ClaimDBUtil } from 'src/modules/claims/utils/claim-db.util';
+import { AttachmentDBUtil } from 'src/modules/claims/utils/attachment-db.util';
+import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
+import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
+import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { GmailClient } from './gmail-client.service';
+import { EmailTemplateService } from './email-template.service';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
+import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
+import { IClaimEmailRequest, IClaimEmailResponse } from '@project/types';
 
+/**
+ * EmailService - Business Logic Coordination for Email Sending
+ *
+ * Responsibilities:
+ * - Coordinate complete email sending workflow
+ * - Manage database transactions for claim status updates
+ * - Validate claim ownership and status before sending
+ * - Handle rollback scenarios when email or database operations fail
+ * - Maintain audit trail for status changes
+ *
+ * Requirements: 3.1-3.2 - claim validation, 3.5-3.6 - status updates and audit trail
+ *
+ * Design: Service layer that orchestrates GmailClient, EmailTemplate, and ClaimDBUtil
+ * with atomic database transactions and proper error handling
+ */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly oauth2Client: OAuth2Client;
 
   constructor(
-    private readonly tokenService: TokenService,
-    private readonly environmentVariableUtil: EnvironmentVariableUtil,
-  ) {
-    const variables = environmentVariableUtil.getVariables();
-    this.oauth2Client = new google.auth.OAuth2(
-      variables.googleClientId,
-      variables.googleClientSecret,
-      variables.googleRedirectUri,
-    );
-  }
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+    private readonly claimDBUtil: ClaimDBUtil,
+    private readonly attachmentDBUtil: AttachmentDBUtil,
+    private readonly userDBUtil: UserDBUtil,
+    private readonly gmailClient: GmailClient,
+    private readonly emailTemplateService: EmailTemplateService,
+    private readonly environmentUtil: EnvironmentVariableUtil,
+  ) {}
 
-  async sendEmail(
+  /**
+   * Send claim email with transaction coordination
+   * Requirements: 3.1-3.2 - claim validation, 3.5-3.6 - status updates and transactions
+   */
+  async sendClaimEmail(
     userId: string,
-    emailData: IEmailSendRequest,
-  ): Promise<IEmailSendResponse> {
-    try {
-      // Validate email data
-      this.validateEmailData(emailData);
+    request: IClaimEmailRequest,
+  ): Promise<IClaimEmailResponse> {
+    const { claimId } = request;
 
-      // Get valid token for user
-      const tokens = await this.tokenService.getValidTokenForUser(userId);
-      if (!tokens) {
-        throw new UnauthorizedException(
-          'User not authenticated or tokens expired',
-        );
+    this.logger.log(
+      `Starting email sending workflow for claim ${claimId} by user ${userId}`,
+    );
+
+    try {
+      // Step 1: Validate claim ownership and status outside transaction
+      const claimValidation = await this.validateClaimForSending(
+        userId,
+        claimId,
+      );
+      if (!claimValidation.isValid) {
+        return {
+          success: false,
+          error: claimValidation.error,
+        };
       }
 
-      // Set credentials for OAuth2 client
-      this.oauth2Client.setCredentials({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
+      const { claim, user, attachments } = claimValidation;
+
+      // Type assertions for safety - these should be defined after validation
+      if (!claim || !user) {
+        throw new InternalServerErrorException('Invalid validation result');
+      }
+
+      // Step 2: Generate email content
+      const emailContent = this.emailTemplateService.generateClaimEmail(
+        claim,
+        user,
+        attachments,
+      );
+      const emailSubject = this.emailTemplateService.generateSubject(
+        claim,
+        user,
+      );
+
+      // Step 3: Get email recipients from environment
+      const emailRecipients =
+        this.environmentUtil.getVariables().emailRecipients;
+
+      // Step 4: Send email first (outside transaction to avoid holding locks during external API call)
+      const emailResult = await this.gmailClient.sendEmail(userId, {
+        to: emailRecipients,
+        subject: emailSubject,
+        body: emailContent,
+        isHtml: true,
       });
 
-      // Create Gmail API client
-      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+      if (!emailResult.success) {
+        // Email failed - update claim status to failed and return
+        await this.updateClaimStatusWithTransaction(
+          claimId,
+          ClaimStatus.FAILED,
+          null,
+        );
 
-      // Prepare email message
-      const emailContent = this.prepareEmailContent(emailData);
-      const encodedEmail = Buffer.from(emailContent).toString('base64url');
+        this.logger.error(
+          `Email sending failed for claim ${claimId}: ${emailResult.error}`,
+        );
 
-      // Send email via Gmail API
-      const response = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedEmail,
-        },
-      });
+        return {
+          success: false,
+          error: emailResult.error || 'Email sending failed',
+        };
+      }
+
+      // Step 5: Email succeeded - update claim status to sent with transaction
+      const updatedClaim = await this.updateClaimStatusWithTransaction(
+        claimId,
+        ClaimStatus.SENT,
+        new Date(),
+      );
 
       this.logger.log(
-        `Email sent successfully to ${emailData.to}, messageId: ${response.data.id}`,
+        `Email sent successfully for claim ${claimId} with messageId: ${emailResult.messageId}`,
       );
 
       return {
         success: true,
-        messageId: response.data.id || undefined,
+        messageId: emailResult.messageId,
+        claim: {
+          id: updatedClaim.id,
+          userId: updatedClaim.userId,
+          category: updatedClaim.category,
+          claimName: updatedClaim.claimName,
+          month: updatedClaim.month,
+          year: updatedClaim.year,
+          totalAmount: Number(updatedClaim.totalAmount),
+          status: updatedClaim.status,
+          submissionDate: updatedClaim.submissionDate?.toISOString() || null,
+          createdAt: updatedClaim.createdAt.toISOString(),
+          updatedAt: updatedClaim.updatedAt.toISOString(),
+        },
       };
-    } catch (error: unknown) {
+    } catch (error) {
       this.logger.error(
-        `Failed to send email to ${emailData.to}:`,
-        error instanceof Error ? error.message : 'Unknown error',
+        `Email sending workflow failed for claim ${claimId}:`,
+        error,
       );
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
-      ) {
-        throw error;
-      }
-
-      // Handle Gmail API specific errors
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const errorWithCode = error as { code: number };
-        if (errorWithCode.code === 403) {
-          throw new UnauthorizedException(
-            'Gmail API access forbidden. Please re-authenticate.',
+      // Attempt to mark claim as failed if it's not already in a sent state
+      try {
+        const currentClaim = await this.claimDBUtil.getOne({
+          criteria: { id: claimId },
+        });
+        if (currentClaim && currentClaim.status === ClaimStatus.DRAFT) {
+          await this.updateClaimStatusWithTransaction(
+            claimId,
+            ClaimStatus.FAILED,
+            null,
           );
         }
-
-        if (errorWithCode.code === 429) {
-          throw new InternalServerErrorException(
-            'Gmail API quota exceeded. Please try again later.',
-          );
-        }
+      } catch (statusUpdateError) {
+        this.logger.error(
+          `Failed to update claim status after error for claim ${claimId}:`,
+          statusUpdateError,
+        );
       }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Email sending failed';
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to send email',
+        error: errorMessage,
       };
     }
   }
 
-  private validateEmailData(emailData: IEmailSendRequest): void {
-    if (!emailData.to || !this.isValidEmail(emailData.to)) {
-      throw new BadRequestException('Invalid recipient email address');
-    }
-
-    if (!emailData.subject || emailData.subject.trim().length === 0) {
-      throw new BadRequestException('Email subject is required');
-    }
-
-    if (!emailData.body || emailData.body.trim().length === 0) {
-      throw new BadRequestException('Email body is required');
-    }
-
-    // Check for reasonable limits
-    if (emailData.subject.length > 998) {
-      throw new BadRequestException(
-        'Email subject too long (max 998 characters)',
-      );
-    }
-
-    if (emailData.body.length > 1000000) {
-      throw new BadRequestException('Email body too long (max 1MB)');
-    }
-  }
-
-  private isValidEmail(email: string): boolean {
-    // More strict email validation that rejects consecutive dots
-    const emailRegex =
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-    // Additional check for consecutive dots and other edge cases
-    if (
-      email.includes('..') ||
-      email.startsWith('.') ||
-      email.endsWith('.') ||
-      email.includes('.@') ||
-      email.includes('@.')
-    ) {
-      return false;
-    }
-
-    return emailRegex.test(email);
-  }
-
-  private prepareEmailContent(emailData: IEmailSendRequest): string {
-    const { to, subject, body, isHtml = false } = emailData;
-
-    const contentType = isHtml ? 'text/html' : 'text/plain';
-
-    const emailLines = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      `Content-Type: ${contentType}; charset=utf-8`,
-      '',
-      body,
-    ];
-
-    return emailLines.join('\r\n');
-  }
-
-  async refreshUserToken(userId: string): Promise<boolean> {
+  /**
+   * Validate claim for email sending
+   * Requirements: 3.1-3.2 - claim validation
+   */
+  private async validateClaimForSending(
+    userId: string,
+    claimId: string,
+  ): Promise<{
+    isValid: boolean;
+    error?: string;
+    claim?: ClaimEntity;
+    user?: UserEntity;
+    attachments?: AttachmentEntity[];
+  }> {
     try {
-      const tokens = await this.tokenService.getValidTokenForUser(userId);
-      if (!tokens) {
-        return false;
-      }
-
-      this.oauth2Client.setCredentials({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
+      // Get claim with user relation
+      const claim = await this.claimDBUtil.getOne({
+        criteria: { id: claimId },
+        relation: { user: true },
       });
 
-      // Attempt to refresh the token
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
-
-      if (credentials.access_token && credentials.expiry_date) {
-        // Update tokens in database
-        await this.tokenService.updateToken({
-          userId,
-          provider: 'google',
-          accessToken: credentials.access_token,
-          refreshToken: credentials.refresh_token || tokens.refreshToken,
-          expiresAt: new Date(credentials.expiry_date),
-          scope: 'https://www.googleapis.com/auth/gmail.send',
-        });
-
-        this.logger.log(`Token refreshed successfully for user ${userId}`);
-        return true;
-      }
-
-      return false;
-    } catch (error: unknown) {
-      this.logger.error(
-        `Failed to refresh token for user ${userId}:`,
-        error instanceof Error ? error.message : 'Unknown error',
-      );
-      return false;
-    }
-  }
-
-  async checkGmailAccess(userId: string): Promise<IGmailAccessResponse> {
-    try {
-      const tokens = await this.tokenService.getValidTokenForUser(userId);
-      if (!tokens) {
+      if (!claim) {
         return {
-          hasAccess: false,
-          error: 'No valid tokens found. Please re-authenticate.',
+          isValid: false,
+          error: 'Claim not found',
         };
       }
 
-      this.oauth2Client.setCredentials({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-      });
-
-      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
-
-      // Test access by getting user profile
-      const profile = await gmail.users.getProfile({ userId: 'me' });
-
-      return {
-        hasAccess: true,
-        email: profile.data.emailAddress || undefined,
-      };
-    } catch (error: unknown) {
-      this.logger.warn(
-        `Gmail access check failed for user ${userId}:`,
-        error instanceof Error ? error.message : 'Unknown error',
-      );
-
-      // Try to refresh token if access fails
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const errorWithCode = error as { code: number };
-        if (errorWithCode.code === 401) {
-          const refreshed = await this.refreshUserToken(userId);
-          if (refreshed) {
-            // Recursively check access after token refresh
-            return await this.checkGmailAccess(userId);
-          }
-          return {
-            hasAccess: false,
-            error: 'Token expired and refresh failed. Please re-authenticate.',
-          };
-        }
+      // Verify claim ownership
+      if (claim.userId !== userId) {
+        return {
+          isValid: false,
+          error: 'Access denied: You do not own this claim',
+        };
       }
 
+      // Verify claim status
+      if (claim.status !== ClaimStatus.DRAFT) {
+        return {
+          isValid: false,
+          error: `Cannot send email: Claim status is ${claim.status}, expected ${ClaimStatus.DRAFT}`,
+        };
+      }
+
+      // Get user separately to ensure we have user data
+      const user = await this.userDBUtil.getOne({
+        criteria: { id: userId },
+      });
+
+      if (!user) {
+        return {
+          isValid: false,
+          error: 'User not found',
+        };
+      }
+
+      // Get attachments for the claim
+      const attachments = await this.attachmentDBUtil.findByClaimId({
+        claimId,
+      });
+
       return {
-        hasAccess: false,
-        error:
-          error instanceof Error ? error.message : 'Gmail access check failed',
+        isValid: true,
+        claim,
+        user,
+        attachments: attachments || [],
+      };
+    } catch (error) {
+      this.logger.error(`Claim validation failed for claim ${claimId}:`, error);
+      return {
+        isValid: false,
+        error: 'Claim validation failed',
       };
     }
+  }
+
+  /**
+   * Update claim status with database transaction
+   * Requirements: 3.5-3.6 - status updates and audit trail
+   */
+  private async updateClaimStatusWithTransaction(
+    claimId: string,
+    status: ClaimStatus,
+    submissionDate: Date | null,
+  ) {
+    return await this.dataSource.transaction(async (entityManager) => {
+      const claim = await this.claimDBUtil.getOne({
+        criteria: { id: claimId },
+        entityManager,
+      });
+
+      if (!claim) {
+        throw new NotFoundException('Claim not found for status update');
+      }
+
+      // Update claim status and submission date
+      claim.status = status;
+      if (submissionDate) {
+        claim.submissionDate = submissionDate;
+      }
+
+      // Save updated claim within transaction
+      const updatedClaims = await this.claimDBUtil.updateWithSave({
+        dataArray: [claim],
+        entityManager,
+      });
+
+      if (!updatedClaims || updatedClaims.length === 0) {
+        throw new InternalServerErrorException('Failed to update claim status');
+      }
+
+      this.logger.log(
+        `Claim status updated: ${claimId} -> ${status}${submissionDate ? ` with submissionDate: ${submissionDate.toISOString()}` : ''}`,
+      );
+
+      return updatedClaims[0];
+    });
   }
 }

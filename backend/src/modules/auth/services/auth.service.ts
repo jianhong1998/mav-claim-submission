@@ -1,158 +1,275 @@
-import { Injectable } from '@nestjs/common';
-import { TokenService } from './token.service';
-import { IUser, IAuthResponse } from '@project/types';
-import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
+import { TokenDBUtil } from '../utils/token-db.util';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { OAuthTokenEntity } from '../entities/oauth-token.entity';
+import { google } from 'googleapis';
+import { TokenService } from './token.service';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
+export interface GoogleProfile {
+  id: string;
+  emails: Array<{ value: string; verified: boolean }>;
+  name: { familyName: string; givenName: string };
+  photos: Array<{ value: string }>;
+}
+
+export interface GoogleTokens {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  scope: string;
+}
+
+/**
+ * AuthService - OAuth and User Management
+ *
+ * Responsibilities:
+ * - Google OAuth flow processing
+ * - OAuth token storage and refresh
+ * - User creation and management
+ * - OAuth session lifecycle
+ *
+ * Requirements: 1.1 - OAuth Flow, 3.1 - Token Management
+ *
+ * Note: JWT functionality moved to TokenService for clean separation of concerns
+ */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userDBUtil: UserDBUtil,
+    private readonly tokenDBUtil: TokenDBUtil,
     private readonly tokenService: TokenService,
+    private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {}
 
-  async findOrCreateUser(userData: {
-    googleId: string;
-    email: string;
-    name: string;
-    picture?: string;
-  }): Promise<UserEntity> {
-    const user = await this.getUserByGoogleId(userData.googleId);
+  /**
+   * Handle OAuth callback - Process successful OAuth authentication
+   * Requirements: 2.1 - User Session Management
+   */
+  async handleOAuthCallback(
+    profile: GoogleProfile,
+    tokens?: GoogleTokens | null,
+  ): Promise<{ user: UserEntity; jwt: string }> {
+    try {
+      const email = profile.emails?.[0]?.value;
 
-    if (!user) {
-      return await this.userDBUtil.create({
-        creationData: {
-          email: userData.email,
-          name: userData.name,
-          picture: userData.picture,
-          googleId: userData.googleId,
-        },
+      if (!email) {
+        throw new UnauthorizedException('No email found in Google profile');
+      }
+
+      // Domain validation - hard requirement
+      if (!email.endsWith('@mavericks-consulting.com')) {
+        throw new UnauthorizedException(
+          'Access denied: Only @mavericks-consulting.com accounts are allowed',
+        );
+      }
+
+      const fullName = `${profile.name.givenName} ${profile.name.familyName}`;
+      const picture = profile.photos?.[0]?.value || null;
+
+      // Find or create user
+      let user = await this.userDBUtil.getOne({
+        criteria: { email } as Parameters<UserDBUtil['getOne']>[0]['criteria'],
+      });
+
+      if (!user) {
+        user = await this.userDBUtil.create({
+          creationData: {
+            email,
+            name: fullName,
+            picture: picture || undefined,
+            googleId: profile.id,
+          },
+        });
+      }
+
+      // Store/update OAuth tokens (skip if already handled by strategy)
+      if (tokens) {
+        await this.storeTokens(user.id, tokens);
+      }
+
+      // Generate JWT session token using TokenService
+      const jwt = this.tokenService.generateJWT(user);
+
+      this.logger.log(`OAuth callback successful for user: ${user.id}`);
+
+      return { user, jwt };
+    } catch (error) {
+      this.logger.error('OAuth callback error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh OAuth tokens when expired
+   * Requirements: 3.1 - Token Management and Refresh
+   */
+  async refreshTokens(userId: string): Promise<boolean> {
+    try {
+      const tokenEntity = await this.tokenDBUtil.getOne({
+        criteria: {
+          userId,
+          provider: 'google',
+        } as Parameters<TokenDBUtil['getOne']>[0]['criteria'],
+      });
+
+      if (!tokenEntity || !tokenEntity.refreshToken) {
+        this.logger.warn(`No refresh token found for user: ${userId}`);
+        return false;
+      }
+
+      // Check if token is actually expired
+      if (tokenEntity.expiresAt > new Date()) {
+        this.logger.debug(`Token not expired for user: ${userId}`);
+        return true;
+      }
+
+      // Use Google OAuth2 client to refresh token
+      const envVars = this.environmentVariableUtil.getVariables();
+      const oauth2Client = new google.auth.OAuth2(
+        envVars.googleClientId,
+        envVars.googleClientSecret,
+        envVars.googleRedirectUri,
+      );
+
+      const { refreshToken: decryptedRefreshToken } =
+        await this.tokenDBUtil.getDecryptedTokens(tokenEntity);
+
+      oauth2Client.setCredentials({
+        refresh_token: decryptedRefreshToken,
+      });
+
+      const { credentials } = await oauth2Client.refreshAccessToken();
+
+      if (credentials.access_token) {
+        // Hard delete existing token to avoid unique constraint issues
+        await this.tokenDBUtil.hardDelete({
+          criteria: {
+            userId,
+            provider: 'google',
+          } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
+        });
+
+        await this.tokenDBUtil.create({
+          creationData: {
+            userId,
+            provider: 'google',
+            accessToken: credentials.access_token,
+            refreshToken: credentials.refresh_token || decryptedRefreshToken,
+            expiresAt: new Date(
+              Date.now() + (credentials.expiry_date || 3600 * 1000),
+            ),
+            scope: tokenEntity.scope,
+          },
+        });
+
+        this.logger.log(`Tokens refreshed successfully for user: ${userId}`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      this.logger.error(`Token refresh failed for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Logout user and invalidate session
+   * Requirements: 2.1 - User Session Management
+   */
+  async logout(userId: string): Promise<void> {
+    try {
+      // Hard delete OAuth tokens to invalidate them
+      await this.tokenDBUtil.hardDelete({
+        criteria: {
+          userId,
+        } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
+      });
+
+      this.logger.log(`User logged out successfully: ${userId}`);
+    } catch (error) {
+      this.logger.error(`Logout failed for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's valid OAuth tokens
+   * Requirements: 3.1 - Token Management and Refresh
+   */
+  async getUserTokens(userId: string): Promise<OAuthTokenEntity | null> {
+    const tokenEntity = await this.tokenDBUtil.getOne({
+      criteria: {
+        userId,
+        provider: 'google',
+      } as Parameters<TokenDBUtil['getOne']>[0]['criteria'],
+    });
+
+    if (!tokenEntity) {
+      this.logger.error('No Token found');
+      return null;
+    }
+
+    // Auto-refresh if expired
+    if (tokenEntity.expiresAt <= new Date()) {
+      const refreshSuccess = await this.refreshTokens(userId);
+      if (!refreshSuccess) {
+        return null;
+      }
+
+      // Fetch updated tokens
+      return await this.tokenDBUtil.getOne({
+        criteria: {
+          userId,
+          provider: 'google',
+        } as Parameters<TokenDBUtil['getOne']>[0]['criteria'],
       });
     }
 
-    // Update user info in case it changed
-    user.name = userData.name;
-    user.picture = userData.picture ?? null;
-    user.email = userData.email;
+    return tokenEntity;
+  }
 
-    const updatedUsers = await this.userDBUtil.updateWithSave({
-      dataArray: [user],
+  /**
+   * Validate JWT token and return associated user
+   * Requirements: 2.1 - User Session Management
+   */
+  async validateSession(jwtToken: string): Promise<UserEntity | null> {
+    return this.tokenService.validateJWT(jwtToken);
+  }
+
+  /**
+   * Store OAuth tokens securely in database
+   * Requirements: 3.1 - Token Management and Refresh
+   */
+  private async storeTokens(
+    userId: string,
+    tokens: GoogleTokens,
+  ): Promise<void> {
+    // Hard delete existing tokens for this user/provider to avoid unique constraint issues
+    await this.tokenDBUtil.hardDelete({
+      criteria: {
+        userId,
+        provider: 'google',
+      } as Parameters<TokenDBUtil['hardDelete']>[0]['criteria'],
     });
 
-    if (updatedUsers.length !== 1)
-      throw new Error('Updated user number is not 1.');
+    // Calculate expiration time
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-    return updatedUsers[0];
-  }
-
-  async handleOAuthCallback(oauthData: {
-    googleId: string;
-    email: string;
-    name: string;
-    picture?: string;
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: Date;
-    scope: string;
-  }): Promise<{ user: UserEntity; isNewUser: boolean }> {
-    const existingUser = await this.getUserByGoogleId(oauthData.googleId);
-    const isNewUser = !existingUser;
-
-    const user = await this.findOrCreateUser({
-      googleId: oauthData.googleId,
-      email: oauthData.email,
-      name: oauthData.name,
-      picture: oauthData.picture,
+    // Create new token record
+    await this.tokenDBUtil.create({
+      creationData: {
+        userId,
+        provider: 'google',
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt,
+        scope: tokens.scope || 'profile email gmail.send drive.file',
+      },
     });
-
-    // Store or update OAuth tokens
-    await this.tokenService.updateToken({
-      userId: user.id,
-      provider: 'google',
-      accessToken: oauthData.accessToken,
-      refreshToken: oauthData.refreshToken,
-      expiresAt: oauthData.expiresAt,
-      scope: oauthData.scope,
-    });
-
-    return { user, isNewUser };
-  }
-
-  async getUserByGoogleId(googleId: string): Promise<UserEntity | null> {
-    return await this.userDBUtil.getOne({
-      criteria: { googleId },
-    });
-  }
-
-  async getUserByEmail(email: string): Promise<UserEntity | null> {
-    return await this.userDBUtil.getOne({
-      criteria: { email },
-    });
-  }
-
-  async getUserById(id: string): Promise<UserEntity | null> {
-    return await this.userDBUtil.getOne({
-      criteria: { id },
-      relation: { oauthTokens: true },
-    });
-  }
-
-  async getUserProfile(userId: string): Promise<IAuthResponse> {
-    const user = await this.getUserById(userId);
-
-    if (!user) {
-      return {
-        user: null,
-        isAuthenticated: false,
-        message: 'User not found',
-      };
-    }
-
-    return {
-      user: this.toDTO(user),
-      isAuthenticated: true,
-    };
-  }
-
-  async logout(userId: string): Promise<boolean> {
-    // Remove OAuth tokens for the user
-    return await this.tokenService.deleteTokenForUser(userId);
-  }
-
-  async hasValidToken(userId: string): Promise<boolean> {
-    const tokenData = await this.tokenService.getValidTokenForUser(userId);
-    return tokenData !== null;
-  }
-
-  async refreshUserToken(userId: string): Promise<boolean> {
-    const user = await this.getUserById(userId);
-    if (!user) return false;
-
-    const token = await this.tokenService.getTokenForUser(userId);
-    if (!token) return false;
-
-    // Token refresh would be handled by Google OAuth library
-    // This is a placeholder for the actual refresh logic
-    // In a real implementation, you would use the refresh token to get a new access token
-    return true;
-  }
-
-  toDTO(user: UserEntity): IUser {
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture ?? null,
-      googleId: user.googleId,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-    };
-  }
-
-  async deleteUser(userId: string): Promise<boolean> {
-    const result = await this.userDBUtil.delete({
-      criteria: { id: userId },
-    });
-    return result !== null;
   }
 }

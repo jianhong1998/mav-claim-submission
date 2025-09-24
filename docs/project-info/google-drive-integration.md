@@ -14,12 +14,16 @@ The system uses Google Drive API v3 for document storage, replacing traditional 
 
 ### Upload Workflow
 
-1. **Authentication**: Employee authenticated with Google OAuth (includes Drive API scope)
-2. **File Validation**: Client-side validation for type, size, name
-3. **Folder Management**: Create "Mavericks Claims" folder structure if needed
-4. **Direct Upload**: Browser uploads directly to Google Drive using Google Drive API v3
-5. **Permission Setting**: Set file to "anyone with the link" for payroll access
-6. **Backend Confirmation**: Send file ID and shareable URL to backend for verification
+1. **Authentication**: Employee authenticated with Google OAuth 2.0
+   - Domain restriction: @mavericks-consulting.com only
+   - Required scopes: profile, email, gmail.send, drive.file
+   - JWT session created upon successful authentication
+2. **OAuth Token Retrieval**: Frontend fetches user's OAuth access token from backend
+3. **File Validation**: Client-side validation for type, size, name
+4. **Folder Management**: Create "Mavericks Claims" folder structure if needed
+5. **Direct Upload**: Browser uploads directly to Google Drive using OAuth token
+6. **Permission Setting**: Set file to "anyone with the link" for payroll access
+7. **Backend Confirmation**: Send file ID and shareable URL to backend for claim creation
 
 ### Required OAuth Scopes
 
@@ -35,40 +39,58 @@ const REQUIRED_SCOPES = [
 
 ## Implementation Details
 
-### Google Drive API Client Setup
+### OAuth Token Flow for Drive Upload
 
-```javascript
-// Initialize Google Drive API
-function initializeDriveAPI() {
-  return gapi.load('client:auth2', async () => {
-    await gapi.client.init({
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      scope: 'https://www.googleapis.com/auth/drive.file'
-    });
+```typescript
+// Frontend: Get OAuth access token from backend
+async function getOAuthToken(): Promise<string> {
+  const response = await fetch('/api/auth/drive-token', {
+    credentials: 'include' // Include JWT cookie
   });
+
+  if (!response.ok) {
+    throw new Error('Failed to retrieve OAuth token');
+  }
+
+  const { accessToken } = await response.json();
+  return accessToken;
 }
+
+// Use token for Drive API calls
+const token = await getOAuthToken();
+const driveResponse = await fetch(
+  'https://www.googleapis.com/drive/v3/files',
+  {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  }
+);
 ```
 
 ### File Upload Process
 
 ```javascript
 // Upload file to Google Drive
-async function uploadToGoogleDrive(file, claimUuid, storedFilename) {
+async function uploadToGoogleDrive(file, claimData, storedFilename) {
   // 1. Create folder structure
   const claimsFolder = await createOrGetFolder('Mavericks Claims');
-  const claimFolder = await createOrGetFolder(claimUuid, claimsFolder.id);
-  
+
+  // Generate folder name: {year}-{month}-{categoryCode}-{name}-{uploadTimestamp}
+  const folderName = `${claimData.year}-${claimData.month.padStart(2, '0')}-${claimData.categoryCode}-${claimData.employeeName}-${Date.now()}`;
+  const claimFolder = await createOrGetFolder(folderName, claimsFolder.id);
+
   // 2. Upload with metadata
   const metadata = {
     name: storedFilename,
     parents: [claimFolder.id]
   };
-  
+
   // 3. Multipart upload
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
   form.append('file', file);
-  
+
   const response = await fetch(
     'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
     {
@@ -79,9 +101,9 @@ async function uploadToGoogleDrive(file, claimUuid, storedFilename) {
       body: form
     }
   );
-  
+
   const result = await response.json();
-  
+
   // 4. Set sharing permissions
   await gapi.client.drive.permissions.create({
     fileId: result.id,
@@ -90,7 +112,7 @@ async function uploadToGoogleDrive(file, claimUuid, storedFilename) {
       type: 'anyone'
     }
   });
-  
+
   return {
     fileId: result.id,
     shareableUrl: `https://drive.google.com/file/d/${result.id}/view`
@@ -164,9 +186,11 @@ Emails contain Google Drive shareable URLs instead of file attachments:
 
 ### Token Refresh
 
-- Handle expired OAuth tokens during upload
-- Automatic refresh using stored refresh tokens
-- Fallback authentication prompts if refresh fails
+- Backend automatically refreshes expired OAuth tokens
+- Refresh tokens encrypted and stored in PostgreSQL
+- Automatic refresh when tokens expire (1-hour expiry)
+- Reuses existing refresh token if Google doesn't provide new one
+- Frontend can request fresh token if upload fails with 401
 
 ### Quota Management
 
@@ -179,8 +203,10 @@ Emails contain Google Drive shareable URLs instead of file attachments:
 ### File Access Security
 
 - Files stored in employee's personal Drive (data isolation)
-- OAuth-based access (no service account impersonation needed)
+- OAuth-based access with encrypted token storage
+- JWT authentication required to retrieve OAuth tokens
 - "Anyone with link" sharing for payroll team access
+- Domain restriction enforced (@mavericks-consulting.com only)
 - Google Workspace security policies apply
 
 ### Data Protection

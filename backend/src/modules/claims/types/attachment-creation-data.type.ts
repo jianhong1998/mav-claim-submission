@@ -1,3 +1,5 @@
+import { AttachmentStatus } from '../enums/attachment-status.enum';
+
 export interface IAttachmentCreationData {
   claimId: string;
   originalFilename: string;
@@ -6,4 +8,5 @@ export interface IAttachmentCreationData {
   googleDriveUrl?: string;
   fileSize: number;
   mimeType: string;
+  status?: AttachmentStatus;
 }

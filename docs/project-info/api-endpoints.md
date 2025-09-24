@@ -1,119 +1,335 @@
 # API Endpoints
 
-## Existing Endpoints
+## Implemented Endpoints
 
 ### Authentication (`/auth`)
-- `GET /auth/google` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - Handle Google OAuth callback
-- `GET /auth/profile` - Get authenticated user profile
-- `POST /auth/logout` - Logout and clear session
-- `GET /auth/status` - Check authentication status
-- `POST /auth/refresh` - Refresh OAuth tokens
+
+#### `GET /auth/google`
+- **Purpose**: Initiate Google OAuth flow with domain restriction
+- **Rate Limit**: 10 requests per minute (OAuth initiate protection)
+- **Scopes**: profile, email, gmail.send, drive.file
+- **Domain**: Only @mavericks-consulting.com accounts allowed
+- **Response**: Redirect to Google OAuth consent screen
+
+#### `GET /auth/google/callback`
+- **Purpose**: Handle OAuth callback and generate JWT session
+- **Rate Limit**: 20 requests per minute (OAuth callback protection)
+- **Process**:
+  - Validates Google OAuth response
+  - Creates/updates user in database
+  - Stores encrypted OAuth tokens
+  - Generates JWT and sets HttpOnly cookie
+- **Success**: Redirect to `/callback` page
+- **Failure**: Redirect to `/login?error=auth_failed`
+
+#### `GET /auth/profile`
+- **Purpose**: Get authenticated user profile
+- **Authentication**: Required (JWT)
+- **Rate Limit**: Standard API rate limit
+- **Response**:
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "user@mavericks-consulting.com",
+    "name": "User Name",
+    "picture": "url",
+    "googleId": "google-id",
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:00Z"
+  },
+  "message": "Profile retrieved successfully"
+}
+```
+
+#### `POST /auth/logout`
+- **Purpose**: Logout user and clear JWT cookie
+- **Authentication**: Optional (graceful handling)
+- **Rate Limit**: Standard API rate limit
+- **Process**:
+  - Deletes OAuth tokens from database
+  - Clears JWT cookie
+- **Response**:
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+#### `GET /auth/status`
+- **Purpose**: Check authentication status
+- **Authentication**: Optional (uses JwtOptionalGuard)
+- **Rate Limit**: None (for integration tests)
+- **Response**:
+```json
+{
+  "isAuthenticated": true,
+  "user": { /* user object if authenticated */ }
+}
+```
 
 ### Email (`/email`)
 - `POST /email/send` - Send email via Gmail API (requires authentication)
 - `POST /email/check-access` - Check Gmail API access status
 - `POST /email/refresh-token` - Refresh Gmail OAuth token
 
-## Claims Management Endpoints (To be implemented)
+## Claims Management Endpoints
 
-### Claim Submission
-```typescript
-// Create new claim with attachments metadata
-POST /api/claims
-Body: {
-  category: ClaimCategoryEnum;
-  claimName?: string; // Required for 'others'
-  month: number; // 1-12
-  year: number;
-  totalAmount: number;
-  attachments: Array<{
-    originalFilename: string;
-    fileSize: number;
-    mimeType: string;
-  }>;
+### `GET /claims`
+- **Purpose**: Get all claims for authenticated user with optional status filtering
+- **Authentication**: Required (JWT)
+- **Query Parameters**:
+  - `status` (optional): Filter by claim status (`draft`, `sent`, `failed`, `paid`)
+- **Request Example**:
+```bash
+GET /claims?status=draft
+Authorization: Bearer <jwt-token>
+```
+- **Success Response** (200):
+```json
+{
+  "success": true,
+  "claims": [
+    {
+      "id": "uuid",
+      "userId": "user-uuid",
+      "category": "telco",
+      "claimName": "Phone bill reimbursement",
+      "month": 9,
+      "year": 2025,
+      "totalAmount": 45.50,
+      "status": "draft",
+      "submissionDate": null,
+      "attachments": [
+        {
+          "id": "attachment-uuid",
+          "claimId": "uuid",
+          "originalFilename": "phone-bill.pdf",
+          "storedFilename": "stored-filename.pdf",
+          "fileSize": 1024567,
+          "mimeType": "application/pdf",
+          "driveFileId": "google-drive-file-id",
+          "driveShareableUrl": "https://drive.google.com/file/d/xyz/view",
+          "status": "uploaded",
+          "uploadedAt": "2025-01-01T00:00:00Z",
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-01T00:00:00Z"
+        }
+      ],
+      "createdAt": "2025-01-01T00:00:00Z",
+      "updatedAt": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "total": 1
 }
-Response: {
-  claimId: string;
-  attachments: Array<{
-    attachmentId: string;
-  }>;
+```
+- **Error Response** (500):
+```json
+{
+  "success": false,
+  "error": "Failed to retrieve claims. Please try again."
 }
 ```
 
-### Attachment Management
-```typescript
-// Confirm attachment upload with Google Drive file details
-POST /api/claims/:claimId/attachments/:attachmentId/confirm
-Body: {
-  googleDriveFileId: string;
-  googleDriveUrl: string;
-  storedFilename: string;
-}
-Response: 200 | 404 (if file not found in Google Drive)
-```
-
-### Claim Details
-```typescript
-// Get specific claim details
-GET /api/claims/:claimId
-Response: {
-  id: string;
-  category: ClaimCategoryEnum;
-  claimName?: string;
-  month: number;
-  year: number;
-  totalAmount: number;
-  status: ClaimStatusEnum;
-  submissionDate?: string;
-  attachments: Array<{
-    id: string;
-    originalFilename: string;
-    status: AttachmentStatusEnum;
-    googleDriveUrl?: string; // Shareable Google Drive URL
-  }>;
+### `POST /claims`
+- **Purpose**: Create a new claim
+- **Authentication**: Required (JWT)
+- **Request Body**:
+```json
+{
+  "category": "telco",
+  "claimName": "Phone bill reimbursement",
+  "month": 9,
+  "year": 2025,
+  "totalAmount": 45.50
 }
 ```
-
-### Claim List & Management
-```typescript
-// Get user's claims with filtering and pagination
-GET /api/claims?category=telco&status=sent&month=9&year=2025&page=1&limit=20
-Response: {
-  claims: Array<ClaimSummary>;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+- **Success Response** (201):
+```json
+{
+  "success": true,
+  "claim": {
+    "id": "uuid",
+    "userId": "user-uuid",
+    "category": "telco",
+    "claimName": "Phone bill reimbursement",
+    "month": 9,
+    "year": 2025,
+    "totalAmount": 45.50,
+    "status": "draft",
+    "submissionDate": null,
+    "attachments": [],
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:00Z"
+  }
 }
-
-// Update claim status
-PATCH /api/claims/:claimId/status
-Body: { status: 'paid' | 'sent' }
-Response: { success: boolean }
-
-// Resend failed claim email
-POST /api/claims/:claimId/resend
-Response: { jobId: string }
 ```
+- **Validation Error** (400):
+```json
+{
+  "success": false,
+  "error": "Validation failed: Month must be between 1 and 12"
+}
+```
+- **Business Rule Error** (422):
+```json
+{
+  "success": false,
+  "error": "Claim amount must be greater than zero"
+}
+```
+
+### `PUT /claims/:id`
+- **Purpose**: Update an existing claim
+- **Authentication**: Required (JWT)
+- **URL Parameters**:
+  - `id`: Claim UUID
+- **Request Body** (all fields optional):
+```json
+{
+  "category": "fitness",
+  "claimName": "Gym membership",
+  "month": 10,
+  "year": 2025,
+  "totalAmount": 75.00,
+  "status": "draft"
+}
+```
+- **Success Response** (200):
+```json
+{
+  "success": true,
+  "claim": {
+    "id": "uuid",
+    "userId": "user-uuid",
+    "category": "fitness",
+    "claimName": "Gym membership",
+    "month": 10,
+    "year": 2025,
+    "totalAmount": 75.00,
+    "status": "draft",
+    "submissionDate": null,
+    "attachments": [],
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:30Z"
+  }
+}
+```
+- **Not Found Error** (404):
+```json
+{
+  "success": false,
+  "error": "Claim not found"
+}
+```
+
+### `DELETE /claims/:id`
+- **Purpose**: Delete a claim (soft delete)
+- **Authentication**: Required (JWT)
+- **URL Parameters**:
+  - `id`: Claim UUID
+- **Success Response** (204): No content
+- **Not Found Error** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "Claim not found",
+  "error": "Not Found"
+}
+```
+- **Business Rule Error** (422):
+```json
+{
+  "statusCode": 422,
+  "message": "Cannot delete a claim that has been paid",
+  "error": "Unprocessable Entity"
+}
+```
+
+### `PUT /claims/:id/status`
+- **Purpose**: Update claim status with validation
+- **Authentication**: Required (JWT)
+- **URL Parameters**:
+  - `id`: Claim UUID
+- **Request Body**:
+```json
+{
+  "status": "sent"
+}
+```
+- **Success Response** (200):
+```json
+{
+  "success": true,
+  "claim": {
+    "id": "uuid",
+    "userId": "user-uuid",
+    "category": "telco",
+    "claimName": "Phone bill reimbursement",
+    "month": 9,
+    "year": 2025,
+    "totalAmount": 45.50,
+    "status": "sent",
+    "submissionDate": "2025-01-01T00:00:30Z",
+    "attachments": [],
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:30Z"
+  }
+}
+```
+- **Invalid Status Transition** (422):
+```json
+{
+  "success": false,
+  "error": "Invalid status transition from paid to draft"
+}
+```
+
+### Status Transition Rules
+Valid status transitions:
+- `draft` → `sent`
+- `sent` → `paid`, `draft`, `failed`
+- `failed` → `draft`, `sent`
+- `paid` → (no transitions allowed)
+
+### Business Rules Validation
+All endpoints enforce these business rules:
+- **Amount limits**: Must be greater than 0, maximum $10,000
+- **Date constraints**: Cannot create claims for future years
+- **Month validation**: Must be between 1-12
+- **Status transitions**: Must follow valid transition rules
+- **User ownership**: Users can only access their own claims
 
 ## Authentication Requirements
 
-All endpoints support session-based authentication and include test bypass headers for development.
+### JWT Authentication
+Protected endpoints require JWT token in HttpOnly cookie:
+```
+Cookie: jwt=<token>
+```
 
-### Required Headers
-```
-Cookie: session-cookie-from-login
-```
+### JWT Token Details
+- **Type**: JWT with HS256 signing
+- **Storage**: HttpOnly cookie with SameSite=lax
+- **Expiry**: 24 hours
+- **Payload**: Contains user ID and email
+- **Secure Flag**: Enabled in production
 
-### Development Test Headers
-For bypassing authentication in development:
-```
-X-Test-User-Email: user@mavericks-consulting.com
-X-Test-User-Id: uuid-string
-```
+### Guards
+- **JwtAuthGuard**: Requires valid JWT token (used by all claims endpoints)
+- **JwtOptionalGuard**: Allows both authenticated and unauthenticated access
+
+### Claims Authentication
+All claims endpoints (`/claims/*`) require authentication:
+- JWT token must be present in HttpOnly cookie
+- Token must be valid and not expired
+- User ownership is enforced automatically (users can only access their own claims)
+
+### OAuth Token Management
+- **Storage**: Encrypted in PostgreSQL
+- **Refresh**: Automatic when expired
+- **Scopes**: profile, email, gmail.send, drive.file
+- **Provider**: Google OAuth 2.0
 
 ## Request/Response Formats
 
@@ -125,6 +341,26 @@ X-Test-User-Id: uuid-string
   "error": "Bad Request"
 }
 ```
+
+### Claims API Error Responses
+Claims endpoints use a consistent response format for errors:
+```json
+{
+  "success": false,
+  "error": "Error message description"
+}
+```
+
+### HTTP Status Codes
+Claims API endpoints return the following status codes:
+- **200 OK**: Successful GET/PUT operations
+- **201 Created**: Successful POST operations (claim creation)
+- **204 No Content**: Successful DELETE operations
+- **400 Bad Request**: Validation errors (invalid input format)
+- **401 Unauthorized**: Authentication required or invalid JWT
+- **404 Not Found**: Claim not found or user doesn't own the claim
+- **422 Unprocessable Entity**: Business rule violations (invalid status transitions, amount limits)
+- **500 Internal Server Error**: Database or server errors
 
 ### Pagination Format
 ```json
@@ -142,12 +378,19 @@ X-Test-User-Id: uuid-string
 ## Validation Rules
 
 ### Claim Validation
-- Category must be valid enum value
-- Month must be 1-12
-- Year must be current or previous year
-- Total amount must be positive
-- Claim name required only for 'others' category
-- Claims must be within 2-month eligibility window
+- **Category**: Must be one of: `telco`, `fitness`, `dental`, `skill-enhancement`, `company-event`, `company-lunch`, `company-dinner`, `others`
+- **Month**: Must be between 1 and 12 (integer)
+- **Year**: Must be between 2020 and 2100 (integer)
+- **Total Amount**: Must be positive number with at most 2 decimal places, maximum $10,000
+- **Claim Name**: Optional string, 1-255 characters when provided
+- **Status**: Must be valid enum value: `draft`, `sent`, `failed`, `paid`
+
+### Business Rule Validation
+- Amount must be greater than zero
+- Cannot create claims for future years
+- Status transitions must follow valid flow (see Status Transition Rules above)
+- Cannot delete claims with status `paid`
+- Users can only access claims they own
 
 ### File Upload Validation
 - File types: PDF, PNG, JPEG/JPG, IMG only
@@ -157,10 +400,18 @@ X-Test-User-Id: uuid-string
 
 ## Rate Limiting
 
-Standard rate limiting applied:
-- 100 requests per minute per user
-- 1000 requests per hour per IP
-- Special limits for file upload endpoints
+### OAuth Endpoints
+- **`/auth/google`**: 10 requests per minute (initiate protection)
+- **`/auth/google/callback`**: 20 requests per minute (callback protection)
+
+### Standard API Endpoints
+- **Authenticated endpoints**: Standard rate limit
+- **`/auth/status`**: No rate limit (for integration tests)
+
+### Implementation
+- Uses custom decorators: `@OAuthProtected()` and `@AuthGeneralRateLimit()`
+- Rate limiting by IP address
+- Returns 429 Too Many Requests when exceeded
 
 ## CORS Configuration
 

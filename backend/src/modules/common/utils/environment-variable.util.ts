@@ -17,6 +17,7 @@ type IEnvironmentVariableList = {
   googleDriveApiKey: string;
   googleDriveScope: string;
   tokenEncryptionKey: string;
+  jwtSecret: string;
   frontendBaseUrl: string;
 
   // Database Related
@@ -25,6 +26,9 @@ type IEnvironmentVariableList = {
   databaseUser: string;
   databasePassword: string;
   databaseDb: string;
+
+  // Email Related
+  emailRecipients: string;
 };
 
 type IFeatureFlagList = {
@@ -38,6 +42,41 @@ export class EnvironmentVariableUtil {
   private featureFlagList: IFeatureFlagList | undefined;
 
   constructor(private readonly configService: ConfigService) {}
+
+  private validateEmailRecipients(emailRecipients: string): void {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRecipients.trim()) {
+      throw new Error('BACKEND_EMAIL_RECIPIENT cannot be empty');
+    }
+
+    const emails = emailRecipients
+      .split(',')
+      .map((email) => email.trim())
+      .filter((email) => email.length > 0);
+
+    if (emails.length === 0) {
+      throw new Error(
+        'BACKEND_EMAIL_RECIPIENT must contain at least one valid email address',
+      );
+    }
+
+    for (const email of emails) {
+      if (!emailRegex.test(email)) {
+        throw new Error(
+          `Invalid email format in BACKEND_EMAIL_RECIPIENT: ${email}`,
+        );
+      }
+    }
+  }
+
+  private getValidatedEmailRecipients(): string {
+    const emailRecipients: string = this.configService.getOrThrow(
+      'BACKEND_EMAIL_RECIPIENT',
+    );
+    this.validateEmailRecipients(emailRecipients);
+    return emailRecipients;
+  }
 
   public getVariables(): IEnvironmentVariableList {
     if (this.environmentVariableList) return this.environmentVariableList;
@@ -79,6 +118,10 @@ export class EnvironmentVariableUtil {
         'BACKEND_TOKEN_ENCRYPTION_KEY',
         '',
       ),
+      jwtSecret: this.configService.get(
+        'BACKEND_JWT_SECRET',
+        'mav-claim-jwt-secret-default-key',
+      ),
       frontendBaseUrl: this.configService.get(
         'BACKEND_FRONTEND_BASE_URL',
         'http://localhost:3000',
@@ -91,6 +134,7 @@ export class EnvironmentVariableUtil {
         'DATABASE_DB',
         'invoice_management_app_db',
       ),
+      emailRecipients: this.getValidatedEmailRecipients(),
     };
 
     return this.environmentVariableList;

@@ -1,158 +1,255 @@
-# Technology Stack
+# Technical Steering Guide
 
-## Project Type
+## Architecture Overview
 
-Full-stack web application with asynchronous job processing - a TurboRepo monorepo for digital expense claim processing that integrates with Google Workspace APIs and replaces manual email workflows.
+**Mavericks Claim Submission System** follows a modern TurboRepo monorepo architecture with NestJS backend, Next.js frontend, and deep Google Workspace integration. The system prioritizes type safety, developer experience, and scalable patterns.
 
-## Core Technologies
+## Technology Stack
 
-### Primary Language(s)
-- **Language**: TypeScript 5.7+ (strict mode enabled across all workspaces)
-- **Runtime**: Node.js 22+ (specified in engines)
-- **Language-specific tools**: pnpm 9.0.0 (package manager), TurboRepo 2.5+ (monorepo build system)
-
-### Key Dependencies/Libraries
-
-**Backend (NestJS API)**:
-- **NestJS 11**: Modular TypeScript framework with dependency injection
-- **TypeORM 0.3**: Object-relational mapping with PostgreSQL
-- **Passport.js**: Authentication with Google OAuth 2.0 strategy
-- **googleapis 159+**: Google APIs client library (Gmail + Drive)
-- **google-auth-library 10.3+**: OAuth token management
-- **class-validator/class-transformer**: Request validation and transformation
-- **express-session**: Session management with PostgreSQL store
-
-**Frontend (Next.js)**:
-- **Next.js 15.5**: React framework with App Router and Turbopack
-- **React 19.1**: Latest React with concurrent features
-- **TanStack React Query 5.85+**: Server state management with 5-minute stale time
-- **TailwindCSS 4**: Utility-first CSS framework
-- **Radix UI**: Accessible component primitives
-- **React Hook Form**: Form handling with Zod validation
-- **Axios**: HTTP client with custom configuration
-
-**Shared Types**:
-- **@project/types**: Workspace package for cross-workspace type safety
-
-### Application Architecture
-
-**Monorepo Structure**: TurboRepo with workspace-based dependency management
-- **Client-Server**: Next.js frontend communicates with NestJS backend via REST API
-- **Job Queue Architecture**: RabbitMQ for asynchronous email processing (same backend codebase, different entry point)
-- **Google-First Integration**: Direct Google API integration rather than third-party abstractions
-- **Feature-based Modules**: NestJS modules organized by business domain (auth, email, claims, attachments, jobs)
-
-### Data Storage
-
-- **Primary storage**: PostgreSQL with TypeORM migrations-first approach
-- **Session storage**: PostgreSQL-backed express-session store
-- **File storage**: Google Drive per-employee (not local/S3)
-- **Caching**: TanStack React Query client-side with 5-minute stale time
-- **Data formats**: JSON for API communication, TypeScript interfaces for type safety
+### Core Technologies
+- **Monorepo**: TurboRepo for workspace management and build orchestration
+- **Backend**: NestJS with TypeORM for robust API development
+- **Frontend**: Next.js with dark mode and mobile-responsive design
+- **Database**: PostgreSQL for relational data with ACID compliance
+- **Testing**: Vitest for unit testing, custom API test suite for integration
+- **Linting**: ESLint + Prettier with TypeScript strict mode
 
 ### External Integrations
+- **Authentication**: Google OAuth 2.0 with domain restrictions
+- **File Storage**: Google Drive API (client-side uploads)
+- **Email**: Gmail API (synchronous sending)
+- **Documentation**: Swagger/OpenAPI integration
 
-- **APIs**: Google Gmail API, Google Drive API v3, Google OAuth 2.0
-- **Protocols**: HTTP/REST for client-server, HTTPS for Google APIs
-- **Authentication**: Google OAuth 2.0 with @mavericks-consulting.com domain restriction
-- **File Operations**: Direct client-to-Google Drive uploads (no server relay)
-- **Email Processing**: Gmail API for sending (no SMTP)
+## Workspace Architecture
 
-### Monitoring & Dashboard Technologies
+```
+mav-claim-submission/
+├── backend/              # NestJS API server
+│   ├── src/modules/      # Feature modules (auth, claims, drive, email)
+│   │   ├── auth/         # Authentication module
+│   │   │   ├── entities/ # OAuth tokens, auth-related entities
+│   │   │   └── ...       # Controllers, services, etc.
+│   │   ├── user/         # User management module
+│   │   │   ├── entities/ # User entity
+│   │   │   └── ...       # User-related logic
+│   │   └── claims/       # Claims module
+│   │       ├── entities/ # Claims, attachments entities
+│   │       └── ...       # Claims-related logic
+│   └── src/shared/       # Common utilities and DTOs
+├── frontend/             # Next.js web application
+│   ├── src/app/          # App Router pages and layouts
+│   ├── src/components/   # Reusable UI components
+│   └── src/lib/          # Client utilities and API calls
+├── packages/types/       # Shared TypeScript types (@project/types)
+├── api-test/            # Integration test suite
+└── docs/                # Project documentation
+```
 
-- **Dashboard Framework**: Next.js with React 19 and TailwindCSS dark mode
-- **Data Fetching**: TanStack React Query with intelligent background updates
-- **Visualization Libraries**: Lucide React icons, Radix UI components
-- **State Management**: TanStack React Query as single source of truth for server state
-- **UI Components**: Radix UI + custom components using class-variance-authority
+## Database Design
 
-## Development Environment
+### Core Entities
 
-### Build & Development Tools
+**User Entity**
+- Google OAuth integration with @mavericks-consulting.com domain
+- Stored in `src/modules/user/entities/user.entity.ts`
+- Links to claims and file permissions
 
-- **Build System**: TurboRepo with workspace filtering and intelligent caching
-- **Package Management**: pnpm with workspace protocol for internal dependencies
-- **Development workflow**: 
-  - Hot reload via Nodemon (backend) and Next.js Turbopack (frontend)
-  - Cross-workspace TypeScript watching (backend watches types package)
-  - Docker Compose for PostgreSQL and RabbitMQ services
+**Claims Entity**
+- **Critical Workflow**: Claims created immediately in 'draft' state to provide UUID for file uploads
+- Status flow: `draft → sent ↔ paid → failed` (with resend capability)
+- Categories using Object.freeze() pattern (not TypeScript enum)
+- Validation constraints for amounts and dates
+- Immutable audit trail with timestamps
+- Stored in `src/modules/claims/entities/claim.entity.ts`
 
-### Code Quality Tools
+**Attachments Entity**
+- Google Drive file metadata only (no binary storage)
+- Files organized in `Mavericks Claims/{claimUuid}/` folder structure
+- Shareable URL generation for email workflows
+- Permission tracking via Google Drive API
+- Must link to existing claim UUID (foreign key constraint)
+- Stored in `src/modules/claims/entities/attachment.entity.ts`
 
-- **Static Analysis**: ESLint 9+ with TypeScript rules and Prettier integration
-- **Formatting**: Prettier 3.4+ with consistent configuration across workspaces
-- **Testing Framework**: Vitest 3.2+ for backend unit tests, separate api-test workspace for integration
-- **Documentation**: TypeScript JSDoc comments, markdown documentation in docs/
+**OAuth Tokens Entity**
+- Secure token storage for Google API access
+- Refresh token management
+- Scope validation (Gmail + Drive)
+- Stored in `src/modules/auth/entities/oauth-token.entity.ts`
 
-### Version Control & Collaboration
+### Data Flow Pattern
 
-- **VCS**: Git with Husky 9.1+ for pre-commit hooks
-- **Branching Strategy**: Feature branch workflow with main branch protection
-- **Code Review Process**: GitHub-based with automated linting and format checks
-- **Commit Standards**: Conventional commits enforced via Husky hooks
+**CRITICAL: Sequential 3-Phase Workflow**
+1. **Claim Creation**: Frontend form submission → Backend creates claim record (status: 'draft') → Returns claim UUID
+2. **File Upload**: Browser uses claim UUID → Upload to `Mavericks Claims/{claimUuid}/` → Send metadata to backend
+3. **Email Processing**: Backend validates all files uploaded → Gmail API send → Update claim status to 'sent'
 
-### Dashboard Development
+**Authentication Flow**: Google OAuth → User creation/login (prerequisite for all operations)
 
-- **Live Reload**: Next.js Fast Refresh with Turbopack compilation
-- **Port Management**: Fixed ports (3000 frontend, 3001 backend, 5432 PostgreSQL)
-- **Multi-Instance Support**: TurboRepo workspace filtering allows selective service startup
+## TypeScript Standards
 
-## Deployment & Distribution
+### Strict Configuration
+- **No `any` types**: Enforced across all workspaces
+- **Shared types**: `@project/types` for cross-workspace consistency
+- **Path aliases**: `src/` (backend), `@/` (frontend)
+- **Build validation**: TypeScript strict mode in CI/CD
 
-- **Target Platform(s)**: Docker containers for production, local development via Node.js
-- **Distribution Method**: Container registry deployment (backend), static site generation (frontend)
-- **Installation Requirements**: Node.js 22+, PostgreSQL 14+, RabbitMQ 3+
-- **Update Mechanism**: Rolling deployment with database migrations
+### Enum Pattern (Critical)
+```typescript
+// ❌ AVOID: TypeScript enum
+export enum ClaimCategory {
+  TELCO = 'telco',
+}
 
-## Technical Requirements & Constraints
+// ✅ USE: Object.freeze() with as const
+export const ClaimCategory = Object.freeze({
+  TELCO: 'telco',
+  FITNESS: 'fitness',
+  DENTAL: 'dental',
+  COMPANY_EVENT: 'company-event',
+  COMPANY_LUNCH: 'company-lunch',
+  COMPANY_DINNER: 'company-dinner',
+  OTHERS: 'others',
+} as const);
+export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
+```
 
-### Performance Requirements
+**Benefits**: Better tree-shaking, predictable JS output, module compatibility
 
-- **API Response Time**: <200ms for CRUD operations, <2s for Google API calls
-- **File Upload**: Direct client-to-Google Drive (no server bandwidth consumption)
-- **Memory Usage**: <512MB per backend instance, optimized Next.js bundle
-- **Database**: Connection pooling with TypeORM for concurrent requests
+## API Design Patterns
 
-### Compatibility Requirements  
+### DTO Structure (In Development)
+- **Request DTOs**: Input validation with class-validator
+- **Response DTOs**: Consistent API responses across modules
+- **Swagger Integration**: Auto-generated API documentation
 
-- **Platform Support**: Linux containers (production), macOS/Windows (development)
-- **Browser Support**: Modern browsers with ES2022+ support
-- **Node.js**: Version 22+ (specified in engines field)
-- **Google APIs**: Gmail API v1, Google Drive API v3
+### Module Pattern
+```typescript
+auth/
+├── controllers/auth.controller.ts    # HTTP endpoints
+├── services/auth.service.ts          # Business logic
+├── dtos/                            # Request/response types
+│   ├── auth-logout-response.dto.ts
+│   ├── auth-profile-response.dto.ts
+│   └── index.ts                     # Barrel exports
+└── entities/                        # Database models
+    └── oauth-token.entity.ts
+```
 
-### Security & Compliance
+## Google API Integration
 
-- **Security Requirements**: 
-  - Google OAuth 2.0 domain restriction (@mavericks-consulting.com)
-  - HTTPS-only in production
-  - SQL injection protection via TypeORM parameterized queries
-  - XSS protection via React's built-in sanitization
-- **Data Protection**: Files stored in user's personal Google Drive (GDPR compliant)
-- **Authentication**: No password storage, Google-managed identity
+### Authentication Flow Implementation Details
 
-### Scalability & Reliability
+**OAuth Strategy Configuration**
+- **Client Setup**: Google OAuth2 strategy with passport-google-oauth20
+- **Scopes**: `['profile', 'email', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/drive.file']`
+- **Authorization Parameters**: `access_type: 'offline', prompt: 'consent'` for refresh token
+- **Domain Validation**: Hard-coded `@mavericks-consulting.com` restriction in GoogleOAuthStrategy.validate()
 
-- **Expected Load**: 50 concurrent users, 1000 claims/month
-- **Availability Requirements**: 99.5% uptime during business hours
-- **Growth Projections**: Horizontal scaling via container orchestration
-- **Job Processing**: RabbitMQ queue for async email processing with retry mechanisms
+**Session Management**
+- **JWT Tokens**: Generated by TokenService with 24-hour expiry
+- **Cookie Configuration**: HttpOnly, secure in production, sameSite: 'lax', 24-hour maxAge
+- **Token Storage**: Encrypted OAuth tokens in PostgreSQL with automatic refresh
 
-## Technical Decisions & Rationale
+**Rate Limiting Configuration**
+- **OAuth Initiate**: 10 requests per minute per IP
+- **OAuth Callback**: 20 requests per minute per IP  
+- **General Auth**: 100 requests per minute per IP
+- **Test Mode**: Unlimited for NODE_ENV=test or API_TEST_MODE=true
 
-### Decision Log
+### File Handling Strategy
+- **Client-Side Uploads**: Browser directly uploads to Google Drive
+- **Backend Metadata**: Only file references and permissions
+- **No Binary Storage**: Eliminates S3 costs and data migration
+- **Shareable URLs**: Generated via Google Drive API for email
 
-1. **TurboRepo over Lerna/Nx**: Better caching, simpler configuration, excellent TypeScript support
-2. **Google Drive over S3**: Leverages existing Google Workspace, maintains user data ownership, no additional storage costs
-3. **TypeORM over Prisma**: Better NestJS integration, migration-first approach, enterprise-grade features
-4. **TanStack Query over SWR**: Superior caching controls, better DevTools, optimistic updates
-5. **Object.freeze() over TypeScript enums**: Better tree-shaking, predictable JS output, const assertion compatibility
-6. **Client-side Google Drive uploads**: Reduces server load, improves upload speed, maintains Google's security model
+### Email Processing
+- **Synchronous**: Immediate Gmail API calls (no queuing)
+- **No Attachments**: Use shareable Google Drive URLs
+- **Error Handling**: Proper fallbacks for API failures
 
-## Known Limitations
+### Token Management Implementation
+- **Automatic Refresh**: Tokens refreshed on expiry using googleapis OAuth2 client
+- **Fallback Logic**: Reuse existing refresh tokens if new ones not provided
+- **Scope Tracking**: Store and validate required scopes in database
+- **Hard Delete**: Remove existing tokens before creating new ones to avoid constraints
 
-- **Google API Rate Limits**: Gmail API has sending quotas, Drive API has request limits (mitigated with retry logic)
-- **File Size Constraints**: 5MB limit enforced client-side and server-side for user experience
-- **Browser Dependency**: Requires modern browser with Google OAuth support (IE not supported)
-- **Domain Lock-in**: Tightly coupled to @mavericks-consulting.com Google Workspace (intentional design)
-- **Single Database**: No read replicas or sharding (acceptable for current scale, future consideration)
-- **Manual Status Updates**: Paid/unpaid status requires manual employee input (business requirement, not technical limitation)
+## Development Workflow
+
+### Commands
+```bash
+# Development
+pnpm run dev           # All workspaces
+make format && make lint # Code quality (mandatory)
+
+# Database
+make up                # PostgreSQL container
+make db/data/up        # Migrations + seed data
+
+# Testing
+make test/unit         # Backend unit tests
+make test/api          # Integration tests
+```
+
+### Quality Gates
+- **Pre-commit**: ESLint + Prettier + TypeScript compilation
+- **CI/CD**: Unit tests + integration tests + build verification
+- **Code Review**: Type safety + Google API patterns
+
+## Performance Considerations
+
+### Critical Paths
+- **Claim Submission**: <2 second response time
+- **Google Drive Upload**: Progress indicators for large files
+- **Email Sending**: Synchronous with proper timeout handling
+
+### Scalability Patterns
+- **Database Indexing**: Claims by user_id, created_at
+- **API Rate Limiting**: Google API quotas with exponential backoff
+- **Connection Pooling**: PostgreSQL connection management
+
+## Security Requirements
+
+### Authentication Implementation
+- **Google OAuth**: Domain restrictions to @mavericks-consulting.com enforced in strategy
+- **JWT Session**: 24-hour expiry with HttpOnly cookies
+- **Token Encryption**: OAuth tokens encrypted at rest in PostgreSQL
+- **Scope Validation**: Required scopes verified during token storage
+
+### Data Protection
+- **Employee File Ownership**: Files remain in employee's personal Google Drive
+- **Audit Trails**: All claim operations logged with timestamps
+- **Token Security**: Secure storage with automatic cleanup on logout
+
+### API Security
+- **Input Validation**: DTOs with class-validator decorators
+- **Rate Limiting**: Throttler guards on all endpoints with different limits
+- **CORS Configuration**: Restricted origins for frontend integration
+
+## Migration & Deployment
+
+### Environment Variables
+```bash
+DATABASE_URL=postgresql://...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:8080/api/auth/google/callback
+FRONTEND_URL=http://localhost:3000
+```
+
+### Deployment Strategy
+- **Database Migrations**: TypeORM migrations with rollback support
+- **Google Cloud Console**: Gmail API + Drive API enabled
+- **Environment Separation**: Development, staging, production configs
+
+## Technical Debt & Future Considerations
+
+### Current Limitations
+- **Synchronous Email Processing**: No retry mechanisms for failed sends
+- **Single Tenant Design**: Mavericks-specific domain hardcoded
+- **Limited Offline Support**: No cache for failed network requests
+
+### Evolution Path
+- **Multi-tenant Architecture**: Configurable domain restrictions
+- **Background Job Processing**: Queue system for email sending
+- **Enhanced Mobile App**: Offline capabilities with sync
+- **Integration APIs**: QuickBooks, Xero accounting system connectors
