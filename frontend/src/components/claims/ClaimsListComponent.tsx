@@ -25,6 +25,14 @@ import {
 
 interface ClaimsListComponentProps {
   className?: string;
+  /**
+   * Override default retry configuration for testing
+   * @internal This prop is used for testing purposes only
+   */
+  retryConfig?: {
+    retry?: number | boolean;
+    retryDelay?: (attemptIndex: number) => number;
+  };
 }
 
 /**
@@ -97,6 +105,7 @@ const getStatusDisplay = (status: ClaimStatus) => {
  */
 export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
   className,
+  retryConfig,
 }) => {
   // Query for all claims using GET /claims endpoint
   const {
@@ -108,8 +117,10 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
   } = useQuery<IClaimListResponse>({
     queryKey: ['claims', 'all'],
     queryFn: () => apiClient.get<IClaimListResponse>('/claims'),
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: retryConfig?.retry ?? 3,
+    retryDelay:
+      retryConfig?.retryDelay ??
+      ((attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)),
   });
 
   const claims = response?.claims || [];
