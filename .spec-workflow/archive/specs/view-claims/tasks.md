@@ -54,7 +54,7 @@
   - _Requirements: All requirements (comprehensive coverage)_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with expertise in React Testing Library and component testing | Task: Create comprehensive unit tests for ClaimsListComponent covering all requirements, using patterns from DraftClaimsList.test.tsx for API mocking, loading states, error handling, and responsive behavior testing | Restrictions: Must mock apiClient.get calls, test all claim statuses and their styling, verify responsive layout behavior, test accessibility features, do not test external dependencies directly | _Leverage: DraftClaimsList.test.tsx for testing patterns, @testing-library/react for component testing, existing test utilities | _Requirements: All requirements - comprehensive test coverage for loading states, error handling, status display, mobile responsiveness, and accessibility | Success: All component states tested with good coverage, status styling verified, responsive behavior tested, accessibility features validated, tests run independently and consistently | Instructions: Mark task as in-progress [-] in tasks.md, create test file, mark complete [x] when done_
 
-- [ ] 7. Manual testing and final integration validation
+- [x] 7. Manual testing and final integration validation
   - File: No specific file (testing activity)
   - Perform end-to-end testing of /claims route with real authentication
   - Test mobile responsiveness across different screen sizes and claim statuses
