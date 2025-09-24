@@ -1,6 +1,6 @@
 # Tasks Document
 
-- [ ] 1. Create ClaimsListComponent with basic structure and API integration
+- [x] 1. Create ClaimsListComponent with basic structure and API integration
   - File: frontend/src/components/claims/ClaimsListComponent.tsx
   - Create React component using TanStack Query to fetch all user claims
   - Implement loading states with skeleton UI following existing DraftClaimsList patterns
@@ -9,7 +9,7 @@
   - _Requirements: 1.1, 1.3_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer with expertise in TanStack Query and component architecture | Task: Create ClaimsListComponent.tsx that fetches all user claims using existing patterns from DraftClaimsList.tsx, implementing proper loading states and API integration with apiClient.get<IClaimListResponse>('/claims') | Restrictions: Must use existing DraftClaimsList.tsx as pattern reference, do not modify API endpoints, use existing IClaimListResponse and IClaimMetadata types, follow mobile-first responsive design | _Leverage: DraftClaimsList.tsx for query patterns, api-client.ts for HTTP calls, existing UI components (Card, CardHeader, CardContent) | _Requirements: Requirements 1.1 (authenticated user can view all claims at /claims), 1.3 (claims display newest first) | Success: Component renders with skeleton loading state, successfully fetches claims via GET /claims endpoint, handles loading and basic error states, follows existing DraftClaimsList patterns exactly | Instructions: First mark this task as in-progress in tasks.md by changing [ ] to [-], then implement the component, then mark as complete [x] when done_
 
-- [ ] 2. Add status-specific styling and visual indicators to ClaimsListComponent
+- [x] 2. Add status-specific styling and visual indicators to ClaimsListComponent
   - File: frontend/src/components/claims/ClaimsListComponent.tsx (continue from task 1)
   - Implement status badges with appropriate colors for draft, sent, paid, failed statuses
   - Add visual hierarchy and styling following design requirements
@@ -18,7 +18,7 @@
   - _Requirements: 3.1_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer specializing in UI/UX and responsive design | Task: Add status badges and visual styling to ClaimsListComponent.tsx following requirement 3.1, implementing draft (gray/neutral), sent (blue/info), paid (green/success), and failed (red/error) styling with mobile-responsive design | Restrictions: Must maintain dark mode exclusively as per product requirements, use existing Tailwind classes and component patterns, ensure 44px minimum touch targets on mobile, do not create new UI components | _Leverage: DraftClaimsList.tsx for mobile responsive patterns, Button component variant styles for color schemes | _Requirements: Requirement 3.1 (clear status visual indicators for each claim state) | Success: Status badges display correctly with appropriate colors, mobile-responsive layout works properly, dark mode styling is consistent, touch targets meet 44px minimum | Instructions: Mark task as in-progress [-] in tasks.md, implement status styling, mark complete [x] when done_
 
-- [ ] 3. Add error handling and empty state to ClaimsListComponent
+- [x] 3. Add error handling and empty state to ClaimsListComponent
   - File: frontend/src/components/claims/ClaimsListComponent.tsx (continue from task 2)
   - Implement comprehensive error handling for API failures and empty claims list
   - Add retry functionality and user-friendly error messages
@@ -27,7 +27,7 @@
   - _Requirements: 1.4, 1.5_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in error handling and user experience | Task: Implement comprehensive error handling and empty states in ClaimsListComponent.tsx following requirements 1.4 and 1.5, using patterns from DraftClaimsList.tsx for network errors, authentication failures, and empty claims scenarios | Restrictions: Must handle network failures gracefully with retry button, redirect auth failures to login (handled by auth provider), show encouraging empty state message, do not bypass existing auth provider error handling | _Leverage: DraftClaimsList.tsx for error UI patterns, auth provider for authentication error handling | _Requirements: Requirements 1.4 (graceful error handling), 1.5 (empty state when no claims exist) | Success: Network errors show retry button, authentication errors redirect properly, empty state displays encouraging message with CTA, all error scenarios provide clear user guidance | Instructions: Mark task as in-progress [-] in tasks.md, implement error handling, mark complete [x] when done_
 
-- [ ] 4. Add date formatting and mobile-responsive layout to ClaimsListComponent
+- [x] 4. Add date formatting and mobile-responsive layout to ClaimsListComponent
   - File: frontend/src/components/claims/ClaimsListComponent.tsx (continue from task 3)
   - Implement proper date formatting and ensure mobile-responsive card layout
   - Add accessibility features and proper semantic HTML structure
@@ -36,7 +36,7 @@
   - _Requirements: 1.2, 1.3_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer with expertise in responsive design and accessibility | Task: Complete ClaimsListComponent.tsx with proper date formatting, mobile-responsive layout, and accessibility features following requirements 1.2 and 1.3, using date formatting patterns from DraftClaimsList.tsx | Restrictions: Must display claims ordered by creation date (newest first), use proper semantic HTML, ensure accessibility with ARIA labels, maintain mobile-first responsive design exclusively dark mode | _Leverage: DraftClaimsList.tsx for date formatting functions (formatMonthYear, formatAmount), existing responsive layout patterns | _Requirements: Requirements 1.2 (proper date and amount formatting), 1.3 (newest claims first ordering) | Success: Dates display in readable format, claims ordered newest first, mobile layout works properly, accessibility standards met, component is fully production-ready | Instructions: Mark task as in-progress [-] in tasks.md, implement formatting and responsive design, mark complete [x] when done_
 
-- [ ] 5. Replace demo content in /claims page with ClaimsListComponent
+- [x] 5. Replace demo content in /claims page with ClaimsListComponent
   - File: frontend/src/app/claims/page.tsx (replace existing content)
   - Remove demo ClaimForm and replace with ClaimsListComponent
   - Ensure proper authentication guard and page structure
@@ -45,7 +45,7 @@
   - _Requirements: 1.1_
   - _Prompt: Implement the task for spec view-claims, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Next.js Developer with expertise in App Router and authentication | Task: Replace demo content in /claims page.tsx with ClaimsListComponent following requirement 1.1, maintaining existing authentication patterns and page layout structure | Restrictions: Must preserve existing authentication context, maintain page layout consistency with other pages, do not modify authentication guards, ensure proper imports and TypeScript types | _Leverage: Existing /claim/new/page.tsx for Next.js page patterns, auth-provider.tsx for authentication context | _Requirements: Requirement 1.1 (authenticated users can view all claims at /claims route) | Success: Page loads ClaimsListComponent correctly, authentication is preserved, page layout is consistent, TypeScript compiles without errors, route functions as intended | Instructions: Mark task as in-progress [-] in tasks.md, replace page content, mark complete [x] when done_
 
-- [ ] 6. Create comprehensive unit tests for ClaimsListComponent
+- [x] 6. Create comprehensive unit tests for ClaimsListComponent
   - File: frontend/src/components/claims/__tests__/ClaimsListComponent.test.tsx
   - Write tests covering loading, success, error, and empty states
   - Test status styling, responsive behavior, and accessibility
