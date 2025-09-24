@@ -6,7 +6,7 @@ import { ClaimsListComponent } from '@/components/claims/ClaimsListComponent';
 
 /**
  * Claims listing page - View all user claims across all statuses
- * URL: /claims
+ * URL: /claim
  * Following requirement 1.1 for authenticated claim viewing
  */
 const ClaimsPage: NextPage = () => {
