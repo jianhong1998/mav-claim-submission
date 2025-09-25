@@ -24,7 +24,7 @@
 
 ### Backend Testing - Controller Method Tests
 
-- [ ] 3. Add unit tests for enhanced status transition validation
+- [x] 3. Add unit tests for enhanced status transition validation
   - **File**: `backend/src/modules/claims/claims.controller.spec.ts` (create if doesn't exist)
   - **Test Cases**: Add tests for `paid → sent` transition validation in existing validateStatusTransition test suite
   - **Purpose**: Ensure new status transition validation works correctly and doesn't break existing logic
@@ -32,7 +32,7 @@
   - **_Requirements**: Requirement 3 - Mark Claim as Sent
   - **_Prompt**: Implement the task for spec claim-status-management, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with expertise in backend unit testing and Vitest framework | Task: Create or enhance ClaimsController unit tests to cover the new paid → sent status transition validation, following existing test patterns from claim-db.util.spec.ts using Vitest describe/it/expect structure | Restrictions: Use Vitest testing framework only, follow existing mock patterns with vi.fn(), test both success and failure scenarios, maintain test isolation | Leverage: Existing test structure from claim-db.util.spec.ts, Vitest mocking with vi.fn(), existing test data patterns | Requirements: Requirement 3 - validateStatusTransition must allow paid → sent transitions | Success: Tests verify paid → sent transition is allowed, existing transition rules still work, invalid transitions properly rejected, tests run independently and pass consistently
 
-- [ ] 4. Add unit tests for resend email endpoint
+- [x] 4. Add unit tests for resend email endpoint
   - **File**: `backend/src/modules/claims/claims.controller.spec.ts`
   - **Test Cases**: Test successful resend, ownership validation, status validation (sent/failed only), email service failures
   - **Purpose**: Comprehensive testing of email resend functionality with proper mocking
