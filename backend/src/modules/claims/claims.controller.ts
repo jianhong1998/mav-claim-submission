@@ -54,7 +54,8 @@ import {
   ClaimListResponseDto,
 } from './dto';
 import { IClaimCreationData } from './types/claim-creation-data.type';
-import { IClaimMetadata } from '@project/types';
+import { IClaimMetadata, IClaimEmailRequest } from '@project/types';
+import { EmailService } from '../email/services/email.service';
 
 @ApiTags('Claims')
 @Controller('claims')
@@ -74,7 +75,10 @@ import { IClaimMetadata } from '@project/types';
 export class ClaimsController {
   private readonly logger = new Logger(ClaimsController.name);
 
-  constructor(private readonly claimDBUtil: ClaimDBUtil) {}
+  constructor(
+    private readonly claimDBUtil: ClaimDBUtil,
+    private readonly emailService: EmailService,
+  ) {}
 
   /**
    * Get all claims for authenticated user with optional status filtering
@@ -697,7 +701,7 @@ export class ClaimsController {
   @ApiOperation({
     summary: 'Update claim status',
     description:
-      'Update the status of an existing claim with business rule validation for status transitions',
+      'Update the status of an existing claim with business rule validation for status transitions. Supports bidirectional transitions between paid and sent status for workflow corrections.',
   })
   @ApiParam({
     name: 'id',
@@ -729,6 +733,14 @@ export class ClaimsController {
         description: 'Change claim status back to draft',
         value: {
           status: 'draft',
+        },
+      },
+      markSentFromPaid: {
+        summary: 'Mark as sent (from paid)',
+        description:
+          'Change claim status from paid back to sent for workflow corrections',
+        value: {
+          status: 'sent',
         },
       },
     },
@@ -813,7 +825,7 @@ export class ClaimsController {
         statusCode: { type: 'number', example: 422 },
         message: {
           type: 'string',
-          example: 'Invalid status transition from paid to draft',
+          example: 'Invalid status transition from sent to failed',
         },
       },
     },
@@ -901,6 +913,183 @@ export class ClaimsController {
   }
 
   /**
+   * Resend claim email
+   * Requirements: Requirement 2 - Resend Claim Email
+   */
+  @Post(':id/resend')
+  @ApiOperation({
+    summary: 'Resend claim email',
+    description:
+      'Resend an email for a claim that is in sent or failed status. The claim must be owned by the authenticated user.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the claim to resend email',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email resent successfully',
+    type: ClaimResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        claim: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            userId: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            category: {
+              type: 'string',
+              enum: Object.values(ClaimCategory),
+              example: 'telco',
+            },
+            claimName: { type: 'string', example: 'Monthly phone bill' },
+            month: { type: 'number', example: 9 },
+            year: { type: 'number', example: 2025 },
+            totalAmount: { type: 'number', example: 50.0 },
+            status: {
+              type: 'string',
+              enum: Object.values(ClaimStatus),
+              example: 'sent',
+            },
+            submissionDate: {
+              type: 'string',
+              nullable: true,
+              example: '2025-09-17T10:00:00.000Z',
+            },
+            attachments: { type: 'array', items: { type: 'object' } },
+            createdAt: { type: 'string', example: '2025-09-17T09:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2025-09-17T10:00:00.000Z' },
+          },
+        },
+        error: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid request - claim not in sent or failed status',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: {
+          type: 'string',
+          example:
+            'Cannot resend email: Claim status is draft, expected sent or failed',
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Claim not found or not owned by user',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Claim not found' },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Email service error or server error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to resend claim email. Please try again.',
+        },
+      },
+    },
+  })
+  async resendClaimEmail(
+    @User() user: UserEntity,
+    @Param('id') id: string,
+  ): Promise<ClaimResponseDto> {
+    try {
+      this.logger.log(`Resending email for claim: ${id} for user: ${user.id}`);
+
+      // Check if claim exists and belongs to user
+      const existingClaim = await this.claimDBUtil.getOne({
+        criteria: { id, userId: user.id },
+      });
+
+      if (!existingClaim) {
+        this.logger.warn(
+          `Claim not found or unauthorized access: ${id} for user: ${user.id}`,
+        );
+        throw new NotFoundException('Claim not found');
+      }
+
+      // Validate claim status - only sent or failed claims can be resent
+      if (
+        existingClaim.status !== ClaimStatus.SENT &&
+        existingClaim.status !== ClaimStatus.FAILED
+      ) {
+        throw new BadRequestException(
+          `Cannot resend email: Claim status is ${existingClaim.status}, expected ${ClaimStatus.SENT} or ${ClaimStatus.FAILED}`,
+        );
+      }
+
+      // Use EmailService to resend the email
+      const emailRequest: IClaimEmailRequest = {
+        claimId: id,
+      };
+
+      const emailResult = await this.emailService.sendClaimEmail(
+        user.id,
+        emailRequest,
+      );
+
+      if (!emailResult.success) {
+        this.logger.error(
+          `Email resend failed for claim ${id}: ${emailResult.error}`,
+        );
+        throw new InternalServerErrorException(
+          emailResult.error || 'Failed to resend claim email',
+        );
+      }
+
+      // Fetch the updated claim with relations
+      const claimWithRelations = await this.claimDBUtil.getOne({
+        criteria: { id },
+        relation: { attachments: true },
+      });
+
+      if (!claimWithRelations) {
+        throw new InternalServerErrorException(
+          'Failed to retrieve updated claim',
+        );
+      }
+
+      const claimMetadata = this.mapClaimEntityToMetadata(claimWithRelations);
+
+      this.logger.log(
+        `Email resent successfully for claim: ${id} for user: ${user.id}`,
+      );
+
+      return ClaimResponseDto.success(claimMetadata);
+    } catch (error) {
+      this.logger.error(
+        `Failed to resend email for claim ${id} for user ${user.id}:`,
+        error,
+      );
+      this.handleClaimOperationError(error, 'resend claim email');
+    }
+  }
+
+  /**
    * Validate business rules for claim data
    * Requirements: 3.1 - Data Validation and Business Rules
    */
@@ -954,7 +1143,7 @@ export class ClaimsController {
         ClaimStatus.FAILED,
       ],
       [ClaimStatus.FAILED]: [ClaimStatus.DRAFT, ClaimStatus.SENT],
-      [ClaimStatus.PAID]: [], // No transitions allowed from paid
+      [ClaimStatus.PAID]: [ClaimStatus.SENT], // Allow paid → sent for workflow corrections
     };
 
     const allowedTransitions = validTransitions[currentStatus] || [];

@@ -85,7 +85,7 @@
 
 ### API Documentation Updates
 
-- [-] 9. Update Swagger documentation for enhanced status endpoint
+- [x] 9. Update Swagger documentation for enhanced status endpoint
   - **File**: `backend/src/modules/claims/claims.controller.ts`
   - **Update**: Enhance existing `updateClaimStatus()` Swagger documentation to include new paid ↔ sent transitions
   - **Purpose**: Document the expanded status transition capabilities for API consumers
