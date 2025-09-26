@@ -44,7 +44,7 @@
 
 ### Frontend UI - Status Management Buttons
 
-- [ ] 5. Create ClaimStatusButtons component
+- [x] 5. Create ClaimStatusButtons component
   - **File**: `frontend/src/components/claims/ClaimStatusButtons.tsx`
   - **Component**: Create reusable component with three buttons: "Mark as Paid", "Resend Email", "Mark as Sent"
   - **Props**: `{ claimId: string, currentStatus: ClaimStatus, onStatusChange: () => void }`
@@ -53,7 +53,7 @@
   - **_Requirements**: All three requirements - button interfaces for status management operations
   - **_Prompt**: Implement the task for spec claim-status-management, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer specializing in React components and UI interactions | Task: Create ClaimStatusButtons component using existing Button component patterns, implementing conditional button visibility based on claim status with proper loading states and error handling | Restrictions: Use existing Button component and variants only, follow existing component patterns from ClaimsListComponent, implement proper TypeScript typing with @project/types | Leverage: Button component from @/components/ui/button, ClaimStatus from @project/types, existing component patterns | Requirements: All requirements - buttons for mark paid, resend email, mark sent with proper visibility logic | Success: Component renders appropriate buttons based on status, handles loading and error states, integrates with existing design system, fully typed with TypeScript
 
-- [ ] 6. Add API client methods for status management
+- [x] 6. Add API client methods for status management
   - **File**: `frontend/src/lib/api-client.ts`
   - **Methods**: Add `resendClaimEmail(claimId: string)` and enhance existing status update method
   - **Purpose**: Provide typed API client functions for new status management operations
@@ -63,7 +63,7 @@
 
 ### Frontend Integration - Claims List Enhancement
 
-- [ ] 7. Integrate ClaimStatusButtons into ClaimsListComponent
+- [x] 7. Integrate ClaimStatusButtons into ClaimsListComponent
   - **File**: `frontend/src/components/claims/ClaimsListComponent.tsx`
   - **Integration**: Add ClaimStatusButtons to each claim card, handle status change callbacks to refresh data
   - **Purpose**: Provide status management functionality within existing claims list interface
@@ -73,7 +73,7 @@
 
 ### Frontend Testing - Component Tests
 
-- [ ] 8. Create unit tests for ClaimStatusButtons component
+- [x] 8. Create unit tests for ClaimStatusButtons component
   - **File**: `frontend/src/components/claims/__tests__/ClaimStatusButtons.test.tsx`
   - **Test Cases**: Button visibility based on status, loading states, error handling, API call integration
   - **Purpose**: Ensure component behaves correctly with different claim statuses and API states

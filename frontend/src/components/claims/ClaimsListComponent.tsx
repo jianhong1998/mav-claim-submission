@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import {
   Card,
@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Plus,
 } from 'lucide-react';
+import { ClaimStatusButtons } from './ClaimStatusButtons';
 
 interface ClaimsListComponentProps {
   className?: string;
@@ -107,6 +108,8 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
   className,
   retryConfig,
 }) => {
+  const queryClient = useQueryClient();
+
   // Query for all claims using GET /claims endpoint
   const {
     data: response,
@@ -129,6 +132,11 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
   const sortedClaims = claims.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+
+  const handleStatusChange = () => {
+    // Invalidate claims query to refresh data
+    void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
+  };
 
   if (error) {
     return (
@@ -358,6 +366,15 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
                       </span>
                     </div>
                   </footer>
+
+                  {/* Status Management Buttons */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <ClaimStatusButtons
+                      claimId={claim.id}
+                      currentStatus={claim.status}
+                      onStatusChange={handleStatusChange}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </article>

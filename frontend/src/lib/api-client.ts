@@ -1,4 +1,9 @@
 import { BACKEND_BASE_URL } from '@/constants';
+import {
+  IClaimResponse,
+  IClaimEmailResponse,
+  ClaimStatus,
+} from '@project/types';
 import axios from 'axios';
 
 export class ApiError extends Error {
@@ -44,6 +49,25 @@ export const apiClient = {
 
   delete: async <T>(endpoint: string): Promise<T> => {
     const response = await axiosInstance.delete<T>(endpoint);
+    return response.data;
+  },
+
+  // Claim-specific methods
+  updateClaimStatus: async (
+    claimId: string,
+    status: ClaimStatus,
+  ): Promise<IClaimResponse> => {
+    const response = await axiosInstance.put<IClaimResponse>(
+      `/claims/${claimId}/status`,
+      { status },
+    );
+    return response.data;
+  },
+
+  resendClaimEmail: async (claimId: string): Promise<IClaimEmailResponse> => {
+    const response = await axiosInstance.post<IClaimEmailResponse>(
+      `/claims/${claimId}/resend`,
+    );
     return response.data;
   },
 };

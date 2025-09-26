@@ -67,6 +67,24 @@ vi.mock('lucide-react', () => ({
       {...props}
     />
   ),
+  CheckCircle: (props: MockIconProps) => (
+    <span
+      data-testid="CheckCircle"
+      {...props}
+    />
+  ),
+  Mail: (props: MockIconProps) => (
+    <span
+      data-testid="Mail"
+      {...props}
+    />
+  ),
+  Send: (props: MockIconProps) => (
+    <span
+      data-testid="Send"
+      {...props}
+    />
+  ),
 }));
 
 const mockApiClient = {
@@ -560,31 +578,27 @@ describe('ClaimsListComponent', () => {
       });
     });
 
-    it(
-      'should implement retry logic with exponential backoff',
-      async () => {
-        // Mock consecutive failures then success
-        let callCount = 0;
-        mockApiClient.get.mockImplementation(() => {
-          callCount++;
-          if (callCount <= 3) {
-            return Promise.reject(new Error('Network Error'));
-          }
-          return Promise.resolve(createMockResponse([]));
-        });
+    it('should implement retry logic with exponential backoff', async () => {
+      // Mock consecutive failures then success
+      let callCount = 0;
+      mockApiClient.get.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 3) {
+          return Promise.reject(new Error('Network Error'));
+        }
+        return Promise.resolve(createMockResponse([]));
+      });
 
-        render(<ClaimsListComponent retryConfig={{ retry: 3 }} />, { wrapper });
+      render(<ClaimsListComponent retryConfig={{ retry: 3 }} />, { wrapper });
 
-        // Wait for retries to complete
-        await waitFor(
-          () => {
-            expect(mockApiClient.get).toHaveBeenCalledTimes(4); // Initial + 3 retries
-          },
-          { timeout: 15000 },
-        );
-      },
-      { timeout: 20000 },
-    );
+      // Wait for retries to complete
+      await waitFor(
+        () => {
+          expect(mockApiClient.get).toHaveBeenCalledTimes(4); // Initial + 3 retries
+        },
+        { timeout: 15000 },
+      );
+    }, 20000);
   });
 
   describe('Accessibility', () => {
