@@ -278,7 +278,7 @@ describe('EmailService', () => {
 
       expect(result).toEqual({
         success: false,
-        error: `Cannot send email: Claim status is ${ClaimStatus.SENT}, expected ${ClaimStatus.DRAFT}`,
+        error: `Cannot send email: Claim status is ${ClaimStatus.SENT}, expected ${ClaimStatus.DRAFT} or ${ClaimStatus.FAILED}`,
       });
 
       expect(mockGmailClient.sendEmail).not.toHaveBeenCalled();

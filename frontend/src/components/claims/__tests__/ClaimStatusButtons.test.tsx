@@ -88,7 +88,7 @@ describe('ClaimStatusButtons', () => {
       expect(screen.queryByTestId('status-button')).not.toBeInTheDocument();
     });
 
-    it('renders Mark as Paid and Resend Email buttons for SENT status', () => {
+    it('renders only Mark as Paid button for SENT status', () => {
       render(
         <ClaimStatusButtons
           {...defaultProps}
@@ -97,12 +97,12 @@ describe('ClaimStatusButtons', () => {
       );
 
       const buttons = screen.getAllByTestId('status-button');
-      expect(buttons).toHaveLength(2);
+      expect(buttons).toHaveLength(1);
 
       expect(screen.getByText('Mark as Paid')).toBeInTheDocument();
-      expect(screen.getByText('Resend Email')).toBeInTheDocument();
+      expect(screen.queryByText('Resend Email')).not.toBeInTheDocument();
       expect(screen.getByTestId('CheckCircle')).toBeInTheDocument();
-      expect(screen.getByTestId('Mail')).toBeInTheDocument();
+      expect(screen.queryByTestId('Mail')).not.toBeInTheDocument();
     });
 
     it('renders Mark as Paid and Resend Email buttons for FAILED status', () => {
@@ -139,7 +139,7 @@ describe('ClaimStatusButtons', () => {
   });
 
   describe('Button Variants and Styling', () => {
-    it('applies correct variants for SENT status buttons', () => {
+    it('applies correct variants for SENT status button', () => {
       render(
         <ClaimStatusButtons
           {...defaultProps}
@@ -150,12 +150,12 @@ describe('ClaimStatusButtons', () => {
       const markAsPaidButton = screen
         .getByText('Mark as Paid')
         .closest('button');
-      const resendButton = screen.getByText('Resend Email').closest('button');
 
       expect(markAsPaidButton).toHaveAttribute('data-variant', 'default');
-      expect(resendButton).toHaveAttribute('data-variant', 'outline');
       expect(markAsPaidButton).toHaveAttribute('data-size', 'sm');
-      expect(resendButton).toHaveAttribute('data-size', 'sm');
+
+      // Verify Resend Email button is not present for SENT status
+      expect(screen.queryByText('Resend Email')).not.toBeInTheDocument();
     });
 
     it('applies correct variant for PAID status button', () => {
@@ -281,7 +281,7 @@ describe('ClaimStatusButtons', () => {
       );
 
       expect(screen.getByText('Mark as Paid')).toBeInTheDocument();
-      expect(screen.getByText('Resend Email')).toBeInTheDocument();
+      expect(screen.queryByText('Resend Email')).not.toBeInTheDocument();
 
       rerender(
         <ClaimStatusButtons

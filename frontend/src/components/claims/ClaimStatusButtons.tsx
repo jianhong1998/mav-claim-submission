@@ -31,13 +31,6 @@ const getButtonsForStatus = (status: ClaimStatus): ButtonConfig[] => {
         action: 'mark-paid' as const,
         visible: true,
       },
-      {
-        label: 'Resend Email',
-        icon: <Mail className="h-4 w-4" />,
-        variant: 'outline' as const,
-        action: 'resend-email' as const,
-        visible: true,
-      },
     ],
     [ClaimStatus.FAILED]: [
       {
@@ -116,7 +109,7 @@ export const ClaimStatusButtons: React.FC<ClaimStatusButtonsProps> = ({
           size="sm"
           disabled={loadingAction !== null}
           onClick={() => handleButtonClick(button.action)}
-          className="min-h-[32px] touch-manipulation flex-shrink-0"
+          className="min-h-[32px] touch-manipulation flex-shrink-0 cursor-pointer"
         >
           {loadingAction === button.action ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-current" />

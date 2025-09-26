@@ -222,11 +222,14 @@ export class EmailService {
         };
       }
 
-      // Verify claim status
-      if (claim.status !== ClaimStatus.DRAFT) {
+      // Verify claim status - allow DRAFT (first send) or FAILED (retry)
+      if (
+        claim.status !== ClaimStatus.DRAFT &&
+        claim.status !== ClaimStatus.FAILED
+      ) {
         return {
           isValid: false,
-          error: `Cannot send email: Claim status is ${claim.status}, expected ${ClaimStatus.DRAFT}`,
+          error: `Cannot send email: Claim status is ${claim.status}, expected ${ClaimStatus.DRAFT} or ${ClaimStatus.FAILED}`,
         };
       }
 
