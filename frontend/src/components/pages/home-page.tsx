@@ -33,9 +33,9 @@ export const HomePage: NextPage = () => {
         <Button
           className="cursor-pointer disabled:cursor-not-allowed bg-blue-400 border-blue-700 text-blue-700 font-bold hover:bg-blue-500 hover:text-gray-300"
           // variant={'outline'}
-          onClick={() => router.push('/claim/new')}
+          onClick={() => router.push('/')}
         >
-          Create claims
+          Home Page
         </Button>
       </div>
     </div>

@@ -221,7 +221,7 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
             asChild
             className="min-h-[44px] touch-manipulation"
           >
-            <a href="/claim/new">
+            <a href="/new">
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Claim
             </a>

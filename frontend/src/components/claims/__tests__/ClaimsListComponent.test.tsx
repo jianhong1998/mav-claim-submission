@@ -206,7 +206,7 @@ describe('ClaimsListComponent', () => {
       await waitFor(() => {
         const ctaButton = screen.getByText('Create Your First Claim');
         expect(ctaButton).toBeInTheDocument();
-        expect(ctaButton.closest('a')).toHaveAttribute('href', '/claim/new');
+        expect(ctaButton.closest('a')).toHaveAttribute('href', '/new');
       });
     });
 

@@ -276,7 +276,7 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
       );
       // Redirect to claims list page after successful update
       if (typeof window !== 'undefined') {
-        window.location.href = '/claim';
+        window.location.href = '/';
       }
     },
     onError: (error, _claimIds) => {
