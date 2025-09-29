@@ -226,7 +226,6 @@ describe('EmailService', () => {
           category: ClaimCategory.TELCO,
           claimName: 'Monthly Phone Bill',
         }),
-        mockUser,
       );
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: mockEnvironmentVariables.emailRecipients,

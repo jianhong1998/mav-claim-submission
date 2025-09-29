@@ -88,10 +88,7 @@ export class EmailService {
         user,
         attachments,
       );
-      const emailSubject = this.emailTemplateService.generateSubject(
-        claim,
-        user,
-      );
+      const emailSubject = this.emailTemplateService.generateSubject(claim);
 
       // Step 3: Get email recipients from environment
       const emailRecipients =

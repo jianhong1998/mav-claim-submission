@@ -80,6 +80,18 @@ export class GmailClient {
       };
     } catch (error) {
       this.logger.error(`Email sending failed for user ${userId}:`, error);
+
+      // Handle our own exceptions first
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
       const gmailError = this.handleGmailError(error);
 
       return {
@@ -269,40 +281,36 @@ export class GmailClient {
     }
 
     if (this.hasErrorCode(error, 401)) {
-      return new BadRequestException('Gmail authentication failed');
+      return new Error('Gmail authentication failed');
     }
 
     if (this.hasErrorCode(error, 403)) {
       const errorMessage = this.getErrorMessage(error);
       if (errorMessage?.includes('quotaExceeded')) {
-        return new BadRequestException('Gmail quota exceeded');
+        return new Error('Gmail quota exceeded');
       }
       if (errorMessage?.includes('insufficientPermissions')) {
-        return new BadRequestException('Insufficient Gmail permissions');
+        return new Error('Insufficient Gmail permissions');
       }
-      return new BadRequestException('Gmail access forbidden');
+      return new Error('Gmail access forbidden');
     }
 
     if (this.hasErrorCode(error, 404)) {
-      return new BadRequestException('Gmail resource not found');
+      return new Error('Gmail resource not found');
     }
 
     if (this.hasErrorCode(error, 429)) {
-      return new BadRequestException(
-        'Gmail rate limit exceeded, please try again later',
-      );
+      return new Error('Gmail rate limit exceeded, please try again later');
     }
 
     // Generic server errors
     if (this.hasErrorCodeRange(error, 500, 599)) {
-      return new InternalServerErrorException(
-        'Gmail service temporarily unavailable',
-      );
+      return new Error('Gmail service temporarily unavailable');
     }
 
     // Default error handling
     this.logger.error('Unexpected Gmail error:', error);
-    return new InternalServerErrorException('Gmail operation failed');
+    return new Error('Gmail operation failed');
   }
 
   /**
