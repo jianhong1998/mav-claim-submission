@@ -69,9 +69,46 @@
 ```
 
 ### Email (`/email`)
-- `POST /email/send` - Send email via Gmail API (requires authentication)
-- `POST /email/check-access` - Check Gmail API access status
-- `POST /email/refresh-token` - Refresh Gmail OAuth token
+
+#### `POST /email/send`
+- **Purpose**: Send email via Gmail API with optional attachments (RFC 2822 multipart/mixed)
+- **Authentication**: Required (JWT)
+- **Request Body**:
+```json
+{
+  "to": "recipient@example.com",
+  "subject": "Email subject",
+  "body": "Email body content",
+  "isHtml": true,
+  "attachments": [
+    {
+      "filename": "document.pdf",
+      "content": "<Buffer>",
+      "mimeType": "application/pdf"
+    }
+  ]
+}
+```
+- **Attachment Support** (ADR-003):
+  - Small files (<5MB) sent as email attachments
+  - Large files (≥5MB) sent as Google Drive shareable links
+  - Maximum 20MB total attachment size (Gmail safety margin)
+  - Automatic fallback to Drive links on download failure
+- **Response**:
+```json
+{
+  "success": true,
+  "messageId": "gmail-message-id"
+}
+```
+
+#### `POST /email/check-access`
+- **Purpose**: Check Gmail API access status
+- **Authentication**: Required (JWT)
+
+#### `POST /email/refresh-token`
+- **Purpose**: Refresh Gmail OAuth token
+- **Authentication**: Required (JWT)
 
 ## Claims Management Endpoints
 

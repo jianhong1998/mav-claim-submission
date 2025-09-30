@@ -14,6 +14,7 @@ import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity'
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { GmailClient } from './gmail-client.service';
 import { EmailTemplateService } from './email-template.service';
+import { AttachmentProcessorService } from './attachment-processor.service';
 import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
 import { IClaimEmailRequest, IClaimEmailResponse } from '@project/types';
@@ -45,6 +46,7 @@ export class EmailService {
     private readonly userDBUtil: UserDBUtil,
     private readonly gmailClient: GmailClient,
     private readonly emailTemplateService: EmailTemplateService,
+    private readonly attachmentProcessorService: AttachmentProcessorService,
     private readonly environmentUtil: EnvironmentVariableUtil,
   ) {}
 
@@ -75,34 +77,47 @@ export class EmailService {
         };
       }
 
-      const { claim, user, attachments } = claimValidation;
+      const { claim, user, attachments = [] } = claimValidation;
 
       // Type assertions for safety - these should be defined after validation
       if (!claim || !user) {
         throw new InternalServerErrorException('Invalid validation result');
       }
 
-      // Step 2: Generate email content
+      // Step 2: Process attachments (hybrid strategy: download small files, link large files)
+      const processedAttachments =
+        await this.attachmentProcessorService.processAttachments(
+          userId,
+          attachments,
+        );
+
+      // Step 3: Generate email content with processed attachments
       const emailContent = this.emailTemplateService.generateClaimEmail(
         claim,
         user,
         attachments,
+        processedAttachments,
       );
-      const emailSubject = this.emailTemplateService.generateSubject(
-        claim,
-        user,
-      );
+      const emailSubject = this.emailTemplateService.generateSubject(claim);
 
-      // Step 3: Get email recipients from environment
+      // Step 4: Get email recipients from environment
       const emailRecipients =
         this.environmentUtil.getVariables().emailRecipients;
 
-      // Step 4: Send email first (outside transaction to avoid holding locks during external API call)
+      // Step 5: Map processed attachments to Gmail API format
+      const gmailAttachments = processedAttachments.attachments.map((att) => ({
+        filename: att.filename,
+        content: att.buffer,
+        mimeType: att.mimeType,
+      }));
+
+      // Step 6: Send email first (outside transaction to avoid holding locks during external API call)
       const emailResult = await this.gmailClient.sendEmail(userId, {
         to: emailRecipients,
         subject: emailSubject,
         body: emailContent,
         isHtml: true,
+        attachments: gmailAttachments,
       });
 
       if (!emailResult.success) {
@@ -123,7 +138,7 @@ export class EmailService {
         };
       }
 
-      // Step 5: Email succeeded - update claim status to sent with transaction
+      // Step 7: Email succeeded - update claim status to sent with transaction
       const updatedClaim = await this.updateClaimStatusWithTransaction(
         claimId,
         ClaimStatus.SENT,
@@ -222,11 +237,14 @@ export class EmailService {
         };
       }
 
-      // Verify claim status
-      if (claim.status !== ClaimStatus.DRAFT) {
+      // Verify claim status - allow DRAFT (first send) or FAILED (retry)
+      if (
+        claim.status !== ClaimStatus.DRAFT &&
+        claim.status !== ClaimStatus.FAILED
+      ) {
         return {
           isValid: false,
-          error: `Cannot send email: Claim status is ${claim.status}, expected ${ClaimStatus.DRAFT}`,
+          error: `Cannot send email: Claim status is ${claim.status}, expected ${ClaimStatus.DRAFT} or ${ClaimStatus.FAILED}`,
         };
       }
 

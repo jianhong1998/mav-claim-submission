@@ -544,7 +544,7 @@ describe('ClaimReviewComponent', () => {
         expect(mockToast.success).toHaveBeenCalledWith(
           expect.stringContaining('Successfully sent'),
         );
-        expect(mockLocation.href).toBe('/claims');
+        expect(mockLocation.href).toBe('/');
       });
     });
 

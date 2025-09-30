@@ -48,6 +48,10 @@ Uses NestJS modules with feature-based organization:
   - `guards/jwt-auth.guard.ts` - JWT authentication guard
   - `utils/token-db.util.ts` - OAuth token database operations with encryption
 - `src/modules/email/`: Gmail API integration for sending emails
+  - `services/gmail-client.service.ts` - Gmail API client for email sending
+  - `services/email-template.service.ts` - Email template generation
+  - `services/attachment-processor.service.ts` - Hybrid attachment processing (ADR-003)
+  - `services/email.service.ts` - Email orchestration service
 - `src/modules/drive/`: Google Drive API integration
 - `src/modules/claims/`: Claim entities and database utilities
 - `src/modules/user/`: User entity and database utilities
@@ -363,34 +367,57 @@ Example: `jason_lee_company_dinner_2025_09_1725456123000.pdf`
 
 #### Email Sending Process
 1. **Claim Creation**: API endpoint receives claim with Google Drive file details
-2. **Email Generation**: Generate email from HTML template with Google Drive shareable URLs
-3. **Email Sending**: Send email immediately via Gmail API using user's OAuth tokens
-4. **Status Update**: Update claim status to `sent` or `failed` based on email result
-5. **Response**: Return final status to client
+2. **Attachment Processing**: AttachmentProcessorService applies hybrid attachment strategy (ADR-003):
+   - Download small files (<5MB) from Google Drive as email attachments
+   - Keep large files (≥5MB) as Google Drive shareable links
+   - Apply 20MB total attachment size limit (Gmail safety margin)
+   - Fallback to Drive links on any download failure
+3. **Email Generation**: Generate email from HTML template with both attachments and Drive links
+4. **Email Sending**: Send multipart MIME email via Gmail API using user's OAuth tokens
+5. **Status Update**: Update claim status to `sent` or `failed` based on email result
+6. **Response**: Return final status to client
 
 #### Email Template Integration
 ```typescript
-// Email template with Google Drive URLs
+// Email template with hybrid attachments + links (ADR-003)
 interface EmailTemplateData {
   employeeName: string;
   category: string;
   month: string;
   year: number;
   totalAmount: number;
-  googleDriveUrls: Array<{
-    filename: string;
-    url: string;
-  }>;
+  processedAttachments?: {
+    attachments: Array<{
+      filename: string;
+      size: number;
+    }>;
+    links: Array<{
+      filename: string;
+      url: string;
+      size: number;
+    }>;
+  };
 }
 
-// Template example
+// Template renders both sections conditionally
 const emailTemplate = `
-  <p>Please find the claim documents at the following links:</p>
+  {{#if attachments.length}}
+  <h3>📎 Attached Files</h3>
   <ul>
-    {{#each googleDriveUrls}}
-    <li><a href="{{url}}">{{filename}}</a></li>
+    {{#each attachments}}
+    <li>{{filename}} ({{formatFileSize size}})</li>
     {{/each}}
   </ul>
+  {{/if}}
+
+  {{#if links.length}}
+  <h3>☁️ Files on Google Drive</h3>
+  <ul>
+    {{#each links}}
+    <li><a href="{{url}}">{{filename}}</a> ({{formatFileSize size}})</li>
+    {{/each}}
+  </ul>
+  {{/if}}
 `;
 ```
 

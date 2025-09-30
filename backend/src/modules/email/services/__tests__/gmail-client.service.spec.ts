@@ -755,4 +755,406 @@ describe('GmailClient', () => {
       });
     });
   });
+
+  describe('Multipart MIME message generation (Task 3.3)', () => {
+    /**
+     * Helper to call private createEmailMessage method for testing
+     */
+    function createEmailMessageHelper(
+      emailRequest: IEmailSendRequest,
+      recipients: string[],
+    ): string {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      return (gmailClient as any).createEmailMessage(emailRequest, recipients);
+    }
+
+    beforeEach(() => {
+      mockAuthService.getUserTokens.mockResolvedValue(mockTokenEntity);
+      mockTokenDBUtil.getDecryptedTokens.mockResolvedValue(mockDecryptedTokens);
+    });
+
+    describe('Simple message creation (no attachments)', () => {
+      it('should create simple message when attachments array is empty', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'No Attachments',
+          body: 'Simple body',
+          isHtml: false,
+          attachments: [],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('Content-Type: text/plain');
+        expect(decoded).not.toContain('multipart/mixed');
+        expect(decoded).not.toContain('boundary=');
+      });
+
+      it('should create simple message when attachments is undefined', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'No Attachments',
+          body: 'Simple body',
+          isHtml: false,
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).not.toContain('multipart/mixed');
+      });
+    });
+
+    describe('Multipart message creation (with attachments)', () => {
+      it('should create multipart/mixed message with single attachment', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'With Attachment',
+          body: 'Email body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'test.pdf',
+              content: Buffer.from('PDF content'),
+              mimeType: 'application/pdf',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('Content-Type: multipart/mixed; boundary=');
+        expect(decoded).toContain('MIME-Version: 1.0');
+      });
+
+      it('should include proper MIME boundaries in multipart message', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file.txt',
+              content: Buffer.from('content'),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        const boundaryMatch = decoded.match(/boundary="([^"]+)"/);
+        expect(boundaryMatch).toBeTruthy();
+
+        const boundary = boundaryMatch![1];
+        expect(decoded).toContain(`--${boundary}\r\n`);
+        expect(decoded).toContain(`--${boundary}--`);
+      });
+
+      it('should base64 encode attachment content', () => {
+        const content = Buffer.from('Test file content');
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'test.txt',
+              content,
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        const expectedBase64 = content.toString('base64');
+        expect(decoded).toContain(expectedBase64);
+        expect(decoded).toContain('Content-Transfer-Encoding: base64');
+      });
+
+      it('should handle multiple attachments correctly', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Multiple Files',
+          body: 'Email with attachments',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file1.pdf',
+              content: Buffer.from('PDF content 1'),
+              mimeType: 'application/pdf',
+            },
+            {
+              filename: 'file2.jpg',
+              content: Buffer.from('JPEG content'),
+              mimeType: 'image/jpeg',
+            },
+            {
+              filename: 'file3.txt',
+              content: Buffer.from('Text content'),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('filename="file1.pdf"');
+        expect(decoded).toContain('filename="file2.jpg"');
+        expect(decoded).toContain('filename="file3.txt"');
+
+        expect(decoded).toContain('Content-Type: application/pdf');
+        expect(decoded).toContain('Content-Type: image/jpeg');
+        expect(decoded).toContain('Content-Type: text/plain');
+
+        expect(decoded).toContain(
+          Buffer.from('PDF content 1').toString('base64'),
+        );
+        expect(decoded).toContain(
+          Buffer.from('JPEG content').toString('base64'),
+        );
+        expect(decoded).toContain(
+          Buffer.from('Text content').toString('base64'),
+        );
+      });
+
+      it('should include attachment filename in Content-Disposition header', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'document.pdf',
+              content: Buffer.from('PDF data'),
+              mimeType: 'application/pdf',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain(
+          'Content-Disposition: attachment; filename="document.pdf"',
+        );
+      });
+    });
+
+    describe('RFC 2822 MIME compliance', () => {
+      it('should use CRLF line endings in multipart message', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file.txt',
+              content: Buffer.from('content'),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('\r\n');
+        expect(decoded.split('\r\n').length).toBeGreaterThan(10);
+      });
+
+      it('should properly separate MIME parts with boundaries', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body text',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file1.txt',
+              content: Buffer.from('content1'),
+              mimeType: 'text/plain',
+            },
+            {
+              filename: 'file2.txt',
+              content: Buffer.from('content2'),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        const boundaryMatch = decoded.match(/boundary="([^"]+)"/);
+        const boundary = boundaryMatch![1];
+
+        // Count boundary occurrences
+        const boundaryCount = (
+          decoded.match(new RegExp(`--${boundary}`, 'g')) || []
+        ).length;
+        expect(boundaryCount).toBe(4); // body + 2 attachments + closing = 4
+
+        // Check closing boundary
+        expect(decoded).toContain(`--${boundary}--`);
+      });
+
+      it('should generate unique boundaries for each message', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file.txt',
+              content: Buffer.from('content'),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded1 = createEmailMessageHelper(request, [
+          'test@example.com',
+        ]);
+        const encoded2 = createEmailMessageHelper(request, [
+          'test@example.com',
+        ]);
+
+        const decoded1 = decodeEmailMessage(encoded1);
+        const decoded2 = decodeEmailMessage(encoded2);
+
+        const boundary1 = decoded1.match(/boundary="([^"]+)"/)?.[1];
+        const boundary2 = decoded2.match(/boundary="([^"]+)"/)?.[1];
+
+        expect(boundary1).not.toBe(boundary2);
+      });
+    });
+
+    describe('Edge cases for multipart messages', () => {
+      it('should handle empty attachment content', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'empty.txt',
+              content: Buffer.from(''),
+              mimeType: 'text/plain',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('filename="empty.txt"');
+        expect(decoded).toContain('Content-Type: text/plain');
+      });
+
+      it('should handle special characters in filename', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Test',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'file (copy) [1].pdf',
+              content: Buffer.from('content'),
+              mimeType: 'application/pdf',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('filename="file (copy) [1].pdf"');
+      });
+
+      it('should handle binary attachment content', () => {
+        const binaryContent = Buffer.from([
+          0x00, 0x01, 0x02, 0xff, 0xfe, 0xfd, 0x7f, 0x80,
+        ]);
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Binary',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'binary.dat',
+              content: binaryContent,
+              mimeType: 'application/octet-stream',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        const expectedBase64 = binaryContent.toString('base64');
+        expect(decoded).toContain(expectedBase64);
+      });
+
+      it('should handle large attachment content', () => {
+        const largeContent = Buffer.alloc(1024 * 1024); // 1MB
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'Large',
+          body: 'Body',
+          isHtml: false,
+          attachments: [
+            {
+              filename: 'large.bin',
+              content: largeContent,
+              mimeType: 'application/octet-stream',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('filename="large.bin"');
+        expect(decoded).toContain('Content-Type: application/octet-stream');
+      });
+
+      it('should handle HTML body with attachments', () => {
+        const request: IEmailSendRequest = {
+          to: 'test@example.com',
+          subject: 'HTML with attachment',
+          body: '<h1>HTML body</h1><p>Paragraph</p>',
+          isHtml: true,
+          attachments: [
+            {
+              filename: 'file.pdf',
+              content: Buffer.from('content'),
+              mimeType: 'application/pdf',
+            },
+          ],
+        };
+
+        const encoded = createEmailMessageHelper(request, ['test@example.com']);
+        const decoded = decodeEmailMessage(encoded);
+
+        expect(decoded).toContain('Content-Type: multipart/mixed');
+        expect(decoded).toContain('Content-Type: text/html; charset=utf-8');
+        expect(decoded).toContain('<h1>HTML body</h1>');
+      });
+    });
+  });
 });

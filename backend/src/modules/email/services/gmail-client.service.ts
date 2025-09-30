@@ -80,6 +80,18 @@ export class GmailClient {
       };
     } catch (error) {
       this.logger.error(`Email sending failed for user ${userId}:`, error);
+
+      // Handle our own exceptions first
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
       const gmailError = this.handleGmailError(error);
 
       return {
@@ -167,9 +179,28 @@ export class GmailClient {
 
   /**
    * Create RFC 2822 compliant email message
-   * Requirements: 1.1 - Gmail API sending
+   * Requirements: 1.1 - Gmail API sending, email-attachments-analysis 2.1 - multipart MIME
    */
   private createEmailMessage(
+    emailRequest: IEmailSendRequest,
+    recipients: string[],
+  ): string {
+    const { attachments = [] } = emailRequest;
+
+    // No attachments: use simple message format (current behavior)
+    if (attachments.length === 0) {
+      return this.createSimpleMessage(emailRequest, recipients);
+    }
+
+    // With attachments: use multipart/mixed format
+    return this.createMultipartMessage(emailRequest, recipients);
+  }
+
+  /**
+   * Create simple email message without attachments
+   * Requirements: 1.1 - Gmail API sending
+   */
+  private createSimpleMessage(
     emailRequest: IEmailSendRequest,
     recipients: string[],
   ): string {
@@ -193,6 +224,60 @@ export class GmailClient {
 
     // Encode to base64url as required by Gmail API
     return Buffer.from(emailContent, 'utf-8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
+
+  /**
+   * Create multipart MIME email message with attachments (RFC 2822)
+   * Requirements: email-attachments-analysis 2.1 - multipart/mixed support
+   */
+  private createMultipartMessage(
+    emailRequest: IEmailSendRequest,
+    recipients: string[],
+  ): string {
+    const { subject, body, isHtml = false, attachments = [] } = emailRequest;
+
+    // Generate unique boundary for MIME parts
+    const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+    // Build multipart message with headers
+    let message = [
+      `To: ${recipients.join(', ')}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      isHtml
+        ? 'Content-Type: text/html; charset=utf-8'
+        : 'Content-Type: text/plain; charset=utf-8',
+      '',
+      body,
+    ].join('\r\n');
+
+    // Add each attachment as a MIME part
+    for (const attachment of attachments) {
+      const base64Content = attachment.content.toString('base64');
+
+      message += [
+        '',
+        `--${boundary}`,
+        `Content-Type: ${attachment.mimeType}`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        'Content-Transfer-Encoding: base64',
+        '',
+        base64Content,
+      ].join('\r\n');
+    }
+
+    // Close multipart boundary
+    message += `\r\n--${boundary}--`;
+
+    // Encode to base64url for Gmail API
+    return Buffer.from(message, 'utf-8')
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
@@ -269,40 +354,36 @@ export class GmailClient {
     }
 
     if (this.hasErrorCode(error, 401)) {
-      return new BadRequestException('Gmail authentication failed');
+      return new Error('Gmail authentication failed');
     }
 
     if (this.hasErrorCode(error, 403)) {
       const errorMessage = this.getErrorMessage(error);
       if (errorMessage?.includes('quotaExceeded')) {
-        return new BadRequestException('Gmail quota exceeded');
+        return new Error('Gmail quota exceeded');
       }
       if (errorMessage?.includes('insufficientPermissions')) {
-        return new BadRequestException('Insufficient Gmail permissions');
+        return new Error('Insufficient Gmail permissions');
       }
-      return new BadRequestException('Gmail access forbidden');
+      return new Error('Gmail access forbidden');
     }
 
     if (this.hasErrorCode(error, 404)) {
-      return new BadRequestException('Gmail resource not found');
+      return new Error('Gmail resource not found');
     }
 
     if (this.hasErrorCode(error, 429)) {
-      return new BadRequestException(
-        'Gmail rate limit exceeded, please try again later',
-      );
+      return new Error('Gmail rate limit exceeded, please try again later');
     }
 
     // Generic server errors
     if (this.hasErrorCodeRange(error, 500, 599)) {
-      return new InternalServerErrorException(
-        'Gmail service temporarily unavailable',
-      );
+      return new Error('Gmail service temporarily unavailable');
     }
 
     // Default error handling
     this.logger.error('Unexpected Gmail error:', error);
-    return new InternalServerErrorException('Gmail operation failed');
+    return new Error('Gmail operation failed');
   }
 
   /**

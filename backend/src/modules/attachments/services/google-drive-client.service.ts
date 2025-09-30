@@ -334,6 +334,36 @@ export class GoogleDriveClient {
   }
 
   /**
+   * Download file from Google Drive as in-memory Buffer
+   * Requirements: email-attachments-analysis 1.1 - Download small files for email attachments
+   */
+  async downloadFile(userId: string, fileId: string): Promise<Buffer> {
+    const drive = await this.getDriveClient(userId);
+
+    try {
+      const result = await this.retryOperation(async () => {
+        const response = await drive.files.get(
+          {
+            fileId,
+            alt: 'media',
+          },
+          {
+            responseType: 'arraybuffer',
+          },
+        );
+
+        return Buffer.from(response.data as ArrayBuffer);
+      });
+
+      this.logger.debug(`File downloaded successfully: ${fileId}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to download file ${fileId}:`, error);
+      throw this.handleDriveError(error);
+    }
+  }
+
+  /**
    * Delete file from Google Drive
    * Requirements: 1.1 - File Management
    */

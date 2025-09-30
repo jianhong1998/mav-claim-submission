@@ -28,6 +28,7 @@ describe('EmailService Integration Tests', () => {
     generateClaimEmail: Mock;
     generateSubject: Mock;
   };
+  let mockAttachmentProcessorService: { processAttachments: Mock };
   let mockEnvironmentUtil: { getVariables: Mock };
 
   // Helper functions to create fresh mock objects for each test
@@ -104,6 +105,10 @@ describe('EmailService Integration Tests', () => {
       generateSubject: vi.fn(),
     };
 
+    mockAttachmentProcessorService = {
+      processAttachments: vi.fn(),
+    };
+
     mockEnvironmentUtil = {
       getVariables: vi.fn(),
     };
@@ -120,6 +125,12 @@ describe('EmailService Integration Tests', () => {
       'Claim Submission - Test',
     );
 
+    mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+      attachments: [],
+      links: [],
+      totalAttachmentSize: 0,
+    });
+
     // Mock transaction to call callback immediately
     mockDataSource.transaction.mockImplementation(
       async (callback: (manager: EntityManager) => Promise<unknown>) => {
@@ -135,6 +146,7 @@ describe('EmailService Integration Tests', () => {
       mockUserDBUtil as unknown as UserDBUtil,
       mockGmailClient as unknown as GmailClient,
       mockEmailTemplateService as unknown as EmailTemplateService,
+      mockAttachmentProcessorService as { processAttachments: Mock },
       mockEnvironmentUtil as unknown as EnvironmentVariableUtil,
     );
   });
@@ -189,12 +201,18 @@ describe('EmailService Integration Tests', () => {
         mockClaim,
         mockUser,
         mockAttachments,
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: 'admin@mavericks-consulting.com',
         subject: 'Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
+        attachments: [],
       });
       expect(mockDataSource.transaction).toHaveBeenCalled();
     });
@@ -452,6 +470,11 @@ describe('EmailService Integration Tests', () => {
         expect.objectContaining({ id: 'claim-123' }),
         expect.objectContaining({ id: 'user-123' }),
         [], // Empty attachments array
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
     });
 
@@ -485,6 +508,7 @@ describe('EmailService Integration Tests', () => {
         subject: 'Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
+        attachments: [],
       });
     });
   });
