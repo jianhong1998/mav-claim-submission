@@ -18,6 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ⚡ **[Development Commands](docs/project-info/development-commands.md)** - TurboRepo, Make, testing, and setup commands
 
+📝 **[Architecture Decision Records](docs/adr/)** - Key architectural decisions and their rationale
+
 ## Key Development Patterns
 
 ### Workspace Structure
@@ -57,7 +59,7 @@ make test/api          # API integration tests
 
 **Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata.
 
-**Synchronous Email Processing**: Gmail API sends emails immediately with Google Drive shareable URLs instead of file attachments.
+**Hybrid Email Attachments**: Gmail API sends small files (<5MB) as attachments, large files (≥5MB) as Google Drive shareable URLs. See [ADR-003](docs/adr/003-hybrid-email-attachments.md) for decision rationale.
 
 **Claim Status Flow**: `draft → sent ↔ paid`
 
@@ -157,6 +159,13 @@ Managed from root `.env` file:
 
 🚧 **In Development**:
 
+- **Hybrid Email Attachments** (Spec: `.spec-workflow/specs/email-attachments-analysis/`):
+  - ADR-003: Hybrid attachment decision documented ✅
+  - AttachmentProcessorService: Size-based decision logic (5MB threshold)
+  - GoogleDriveClient.downloadFile(): In-memory file download from Drive
+  - GmailClient: RFC 2822 multipart MIME support for attachments
+  - EmailTemplateService: Mixed attachment + link rendering
+  - Status: Task 0.1 complete (ADR), ready for implementation phase
 - **API Endpoints**: Implementing remaining endpoints:
   - Claims management endpoints (create, list, update)
   - Email send endpoint with Gmail API integration
@@ -164,9 +173,9 @@ Managed from root `.env` file:
 
 📋 **Next Phase**:
 
+- Complete hybrid email attachments implementation (Tasks 1.1-3.5)
 - Complete claim management API endpoints
 - Frontend claim submission and management interfaces
-- Email notification templates with Drive URLs
 
 ## Development Practices
 

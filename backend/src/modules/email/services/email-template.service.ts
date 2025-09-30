@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { ProcessedAttachments } from './attachment-processor.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -30,11 +31,27 @@ export class EmailTemplateService {
   /**
    * Generate HTML email content for claim submission
    * Requirements: 2.1, 2.4, 2.5, 2.6, 2.7
+   * Overload 1: Legacy support - renders Drive links only
    */
   generateClaimEmail(
     claim: ClaimEntity,
     user: UserEntity,
-    attachments: AttachmentEntity[] = [],
+    attachments: AttachmentEntity[],
+  ): string;
+  /**
+   * Overload 2: Hybrid attachments - renders both attached files and Drive links
+   */
+  generateClaimEmail(
+    claim: ClaimEntity,
+    user: UserEntity,
+    attachments: AttachmentEntity[],
+    processedAttachments: ProcessedAttachments,
+  ): string;
+  generateClaimEmail(
+    claim: ClaimEntity,
+    user: UserEntity,
+    attachments: AttachmentEntity[],
+    processedAttachments?: ProcessedAttachments,
   ): string {
     const template = fs.readFileSync(this.templatePath, 'utf8');
 
@@ -49,7 +66,9 @@ export class EmailTemplateService {
       totalAmount: this.formatCurrency(claim.totalAmount),
       submissionDate: this.formatDate(new Date()),
       attachmentCount: attachments.length.toString(),
-      attachmentsContent: this.generateAttachmentsContent(attachments),
+      attachmentsContent: processedAttachments
+        ? this.generateMixedAttachmentsContent(processedAttachments)
+        : this.generateAttachmentsContent(attachments),
     };
 
     return this.replaceTemplateVariables(template, variables);
@@ -159,7 +178,70 @@ export class EmailTemplateService {
   }
 
   /**
-   * Generate attachments content HTML
+   * Generate mixed attachments content HTML (hybrid mode)
+   * Renders separate sections for attached files and Drive links
+   */
+  private generateMixedAttachmentsContent(
+    processed: ProcessedAttachments,
+  ): string {
+    const sections: string[] = [];
+
+    // Section 1: Attached files
+    if (processed.attachments.length > 0) {
+      const attachmentItems = processed.attachments
+        .map(
+          (att) => `
+                        <li class="attachment-item">
+                            <span class="detail-value">${this.escapeHtml(att.filename)}</span>
+                            <span style="color: #6c757d; font-size: 12px;"> (${this.formatFileSize(att.size)})</span>
+                        </li>
+                    `,
+        )
+        .join('');
+
+      sections.push(`
+                <div class="attachments-section">
+                    <h3 style="color: #333; font-size: 16px; margin-bottom: 10px;">📎 Attached Files</h3>
+                    <ul class="attachment-list">${attachmentItems}</ul>
+                </div>
+            `);
+    }
+
+    // Section 2: Drive links
+    if (processed.links.length > 0) {
+      const linkItems = processed.links
+        .map(
+          (link) => `
+                        <li class="attachment-item">
+                            <a href="${this.escapeHtml(link.driveUrl)}"
+                               class="attachment-link"
+                               target="_blank"
+                               rel="noopener noreferrer">
+                                ${this.escapeHtml(link.filename)}
+                            </a>
+                            <span style="color: #6c757d; font-size: 12px;"> (${this.formatFileSize(link.size)})</span>
+                        </li>
+                    `,
+        )
+        .join('');
+
+      sections.push(`
+                <div class="attachments-section">
+                    <h3 style="color: #333; font-size: 16px; margin-bottom: 10px;">☁️ Files on Google Drive</h3>
+                    <ul class="attachment-list">${linkItems}</ul>
+                </div>
+            `);
+    }
+
+    if (sections.length === 0) {
+      return '<div class="no-attachments">No attachments included with this claim.</div>';
+    }
+
+    return sections.join('');
+  }
+
+  /**
+   * Generate attachments content HTML (legacy mode - Drive links only)
    */
   private generateAttachmentsContent(attachments: AttachmentEntity[]): string {
     if (attachments.length === 0) {
@@ -191,6 +273,17 @@ export class EmailTemplateService {
       .join('');
 
     return `<ul class="attachment-list">${attachmentItems}</ul>`;
+  }
+
+  /**
+   * Format file size for human-readable display
+   * Converts bytes to B, KB, or MB with appropriate precision
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
   /**

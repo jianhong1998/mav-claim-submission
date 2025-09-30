@@ -7,7 +7,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
 
 ---
 
-- [-] 0.1. Write ADR for hybrid approach
+- [x] 0.1. Write ADR for hybrid approach
   - File: docs/adr/003-hybrid-email-attachments.md
   - Document the "why" before writing code
   - Context: recipient accessibility vs system complexity
@@ -17,7 +17,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 30 minutes_
   - _Requirements: Design Phase 0_
 
-- [ ] 1.1. Add downloadFile() to GoogleDriveClient
+- [x] 1.1. Add downloadFile() to GoogleDriveClient
   - File: backend/src/modules/attachments/services/google-drive-client.service.ts
   - Download file from Google Drive as in-memory Buffer
   - Implement `downloadFile(userId, fileId): Promise<Buffer>`
@@ -27,7 +27,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 1 hour_
   - _Requirements: 1.2_
 
-- [ ] 1.2. Create AttachmentProcessorService
+- [x] 1.2. Create AttachmentProcessorService
   - File: backend/src/modules/email/services/attachment-processor.service.ts
   - Size-based decision logic: attach small files, link large files
   - Implement `processAttachments(userId, attachments[]): Promise<ProcessedAttachments>`
@@ -39,7 +39,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 3 hours_
   - _Requirements: 1.1_
 
-- [ ] 2.1. Update GmailClient for multipart MIME
+- [x] 2.1. Update GmailClient for multipart MIME
   - File: backend/src/modules/email/services/gmail-client.service.ts
   - Add RFC 2822 multipart/mixed support for email attachments
   - Add optional `attachments[]` to IEmailSendRequest interface
@@ -52,7 +52,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Requirements: 2.3_
   - _Parallel: Can run in parallel with Task 2.2_
 
-- [ ] 2.2. Update EmailTemplateService for mixed rendering
+- [x] 2.2. Update EmailTemplateService for mixed rendering
   - File: backend/src/modules/email/services/email-template.service.ts
   - Render both attached files and Drive links in email HTML
   - Add overload: `generateClaimEmail(..., processedAttachments?: ProcessedAttachments)`
@@ -64,7 +64,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Requirements: 2.3_
   - _Parallel: Can run in parallel with Task 2.1_
 
-- [ ] 2.3. Update EmailService orchestration
+- [x] 2.3. Update EmailService orchestration
   - File: backend/src/modules/email/services/email.service.ts
   - Wire AttachmentProcessorService into email sending workflow
   - Call `attachmentProcessorService.processAttachments()` after validation
@@ -75,7 +75,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 1 hour_
   - _Requirements: 1.2, 2.1, 2.2_
 
-- [ ] 3.1. Unit tests for GoogleDriveClient.downloadFile
+- [x] 3.1. Unit tests for GoogleDriveClient.downloadFile
   - File: backend/src/modules/attachments/services/__tests__/google-drive-client.service.spec.ts
   - Test: Downloads file as Buffer
   - Test: Retries on 503, throws on 404
@@ -84,7 +84,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 1 hour_
   - _Requirements: 1.1_
 
-- [ ] 3.2. Unit tests for AttachmentProcessorService
+- [x] 3.2. Unit tests for AttachmentProcessorService
   - File: backend/src/modules/email/services/__tests__/attachment-processor.service.spec.ts
   - Test: Attaches files <5MB, links files ≥5MB
   - Test: Respects 20MB total size limit
@@ -94,7 +94,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 2 hours_
   - _Requirements: 1.2_
 
-- [ ] 3.3. Unit tests for GmailClient multipart MIME
+- [x] 3.3. Unit tests for GmailClient multipart MIME
   - File: backend/src/modules/email/services/__tests__/gmail-client.service.spec.ts
   - Test: Creates simple message (no attachments)
   - Test: Creates multipart message (with attachments)
@@ -103,7 +103,7 @@ Straightforward implementation: download small files (<5MB), attach to email. La
   - _Time: 1.5 hours_
   - _Requirements: 2.1_
 
-- [ ] 3.4. Unit tests for EmailTemplateService
+- [x] 3.4. Unit tests for EmailTemplateService
   - File: backend/src/modules/email/services/__tests__/email-template.service.spec.ts
   - Test: Renders attachments section, links section, both sections
   - Test: Formats file sizes correctly (B, KB, MB)

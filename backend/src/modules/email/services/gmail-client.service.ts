@@ -179,9 +179,28 @@ export class GmailClient {
 
   /**
    * Create RFC 2822 compliant email message
-   * Requirements: 1.1 - Gmail API sending
+   * Requirements: 1.1 - Gmail API sending, email-attachments-analysis 2.1 - multipart MIME
    */
   private createEmailMessage(
+    emailRequest: IEmailSendRequest,
+    recipients: string[],
+  ): string {
+    const { attachments = [] } = emailRequest;
+
+    // No attachments: use simple message format (current behavior)
+    if (attachments.length === 0) {
+      return this.createSimpleMessage(emailRequest, recipients);
+    }
+
+    // With attachments: use multipart/mixed format
+    return this.createMultipartMessage(emailRequest, recipients);
+  }
+
+  /**
+   * Create simple email message without attachments
+   * Requirements: 1.1 - Gmail API sending
+   */
+  private createSimpleMessage(
     emailRequest: IEmailSendRequest,
     recipients: string[],
   ): string {
@@ -205,6 +224,60 @@ export class GmailClient {
 
     // Encode to base64url as required by Gmail API
     return Buffer.from(emailContent, 'utf-8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
+
+  /**
+   * Create multipart MIME email message with attachments (RFC 2822)
+   * Requirements: email-attachments-analysis 2.1 - multipart/mixed support
+   */
+  private createMultipartMessage(
+    emailRequest: IEmailSendRequest,
+    recipients: string[],
+  ): string {
+    const { subject, body, isHtml = false, attachments = [] } = emailRequest;
+
+    // Generate unique boundary for MIME parts
+    const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+    // Build multipart message with headers
+    let message = [
+      `To: ${recipients.join(', ')}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      isHtml
+        ? 'Content-Type: text/html; charset=utf-8'
+        : 'Content-Type: text/plain; charset=utf-8',
+      '',
+      body,
+    ].join('\r\n');
+
+    // Add each attachment as a MIME part
+    for (const attachment of attachments) {
+      const base64Content = attachment.content.toString('base64');
+
+      message += [
+        '',
+        `--${boundary}`,
+        `Content-Type: ${attachment.mimeType}`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        'Content-Transfer-Encoding: base64',
+        '',
+        base64Content,
+      ].join('\r\n');
+    }
+
+    // Close multipart boundary
+    message += `\r\n--${boundary}--`;
+
+    // Encode to base64url for Gmail API
+    return Buffer.from(message, 'utf-8')
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')

@@ -46,6 +46,10 @@ const mockEmailTemplateService = {
   generateSubject: vi.fn(),
 };
 
+const mockAttachmentProcessorService = {
+  processAttachments: vi.fn(),
+};
+
 const mockEnvironmentUtil = {
   getVariables: vi.fn(),
 };
@@ -74,6 +78,7 @@ describe('EmailService', () => {
       mockUserDBUtil as unknown as UserDBUtil,
       mockGmailClient as unknown as GmailClient,
       mockEmailTemplateService as unknown as EmailTemplateService,
+      mockAttachmentProcessorService as { processAttachments: Mock },
       mockEnvironmentUtil as unknown as EnvironmentVariableUtil,
     );
   });
@@ -149,6 +154,11 @@ describe('EmailService', () => {
       mockEmailTemplateService.generateSubject.mockReturnValue(
         'Claim Submission - Test',
       );
+      mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+        attachments: [],
+        links: [],
+        totalAttachmentSize: 0,
+      });
     });
 
     it('should successfully send claim email with complete workflow', async () => {
@@ -219,6 +229,11 @@ describe('EmailService', () => {
         }),
         mockUser,
         mockAttachments,
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
       expect(mockEmailTemplateService.generateSubject).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -232,6 +247,7 @@ describe('EmailService', () => {
         subject: 'Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
+        attachments: [],
       });
 
       // Verify transaction was used for status update
@@ -366,6 +382,11 @@ describe('EmailService', () => {
       mockEmailTemplateService.generateSubject.mockReturnValue(
         'Claim Submission - Test',
       );
+      mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+        attachments: [],
+        links: [],
+        totalAttachmentSize: 0,
+      });
     });
 
     it('should update claim status to SENT when email succeeds', async () => {
@@ -547,6 +568,11 @@ describe('EmailService', () => {
       mockEmailTemplateService.generateSubject.mockReturnValue(
         'Claim Submission - Test',
       );
+      mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+        attachments: [],
+        links: [],
+        totalAttachmentSize: 0,
+      });
     });
 
     it('should handle unexpected errors during email generation', async () => {
@@ -691,6 +717,11 @@ describe('EmailService', () => {
       mockEmailTemplateService.generateSubject.mockReturnValue(
         'Claim Submission - Test',
       );
+      mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+        attachments: [],
+        links: [],
+        totalAttachmentSize: 0,
+      });
     });
 
     it('should pass correct data between services', async () => {
@@ -727,6 +758,11 @@ describe('EmailService', () => {
             originalFilename: 'receipt.pdf',
           }),
         ]),
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
 
       // Verify GmailClient receives correct email data
@@ -735,6 +771,7 @@ describe('EmailService', () => {
         subject: expect.any(String),
         body: expect.any(String),
         isHtml: true,
+        attachments: [],
       });
     });
 
@@ -768,6 +805,11 @@ describe('EmailService', () => {
         }),
         mockUser,
         [], // Empty attachments array
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
     });
 
@@ -801,6 +843,11 @@ describe('EmailService', () => {
         }),
         mockUser,
         [], // Null converted to empty array
+        expect.objectContaining({
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        }),
       );
     });
 
@@ -830,6 +877,7 @@ describe('EmailService', () => {
         subject: expect.any(String),
         body: expect.any(String),
         isHtml: true,
+        attachments: [],
       });
     });
   });
@@ -860,6 +908,11 @@ describe('EmailService', () => {
       mockEmailTemplateService.generateSubject.mockReturnValue(
         'Claim Submission - Test',
       );
+      mockAttachmentProcessorService.processAttachments.mockResolvedValue({
+        attachments: [],
+        links: [],
+        totalAttachmentSize: 0,
+      });
     });
     it('should handle invalid validation result structure', async () => {
       // Create fresh claim object to avoid mutation from other tests
@@ -926,6 +979,7 @@ describe('EmailService', () => {
         subject: 'Long subject',
         body: longEmailContent,
         isHtml: true,
+        attachments: [],
       });
     });
 

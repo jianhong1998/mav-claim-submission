@@ -633,4 +633,562 @@ describe('EmailTemplateService', () => {
       expect(tagDifference).toBeLessThan(10); // Allow some variance for CSS and complex HTML
     });
   });
+
+  describe('Hybrid attachments feature (Task 3.4)', () => {
+    const mockProcessedAttachments = {
+      attachments: [
+        {
+          filename: 'small1.pdf',
+          buffer: Buffer.from('content1'),
+          mimeType: 'application/pdf',
+          size: 2 * 1024 * 1024, // 2MB
+        },
+        {
+          filename: 'small2.jpg',
+          buffer: Buffer.from('content2'),
+          mimeType: 'image/jpeg',
+          size: 3 * 1024 * 1024, // 3MB
+        },
+      ],
+      links: [
+        {
+          filename: 'large1.pdf',
+          driveUrl: 'https://drive.google.com/file/d/large1/view',
+          size: 8 * 1024 * 1024, // 8MB
+          reason: 'size-exceeded' as const,
+        },
+        {
+          filename: 'large2.bin',
+          driveUrl: 'https://drive.google.com/file/d/large2/view',
+          size: 15 * 1024 * 1024, // 15MB
+          reason: 'size-exceeded' as const,
+        },
+      ],
+      totalAttachmentSize: 5 * 1024 * 1024, // 5MB
+    };
+
+    describe('Mixed attachments rendering', () => {
+      it('should render both attachments section and links section', () => {
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          mockProcessedAttachments,
+        );
+
+        expect(html).toContain('📎 Attached Files');
+        expect(html).toContain('☁️ Files on Google Drive');
+        expect(html).toContain('small1.pdf');
+        expect(html).toContain('small2.jpg');
+        expect(html).toContain('large1.pdf');
+        expect(html).toContain('large2.bin');
+      });
+
+      it('should render only attachments section when no links', () => {
+        const attachmentsOnly = {
+          attachments: mockProcessedAttachments.attachments,
+          links: [],
+          totalAttachmentSize: 5 * 1024 * 1024,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          attachmentsOnly,
+        );
+
+        expect(html).toContain('📎 Attached Files');
+        expect(html).not.toContain('☁️ Files on Google Drive');
+      });
+
+      it('should render only links section when no attachments', () => {
+        const linksOnly = {
+          attachments: [],
+          links: mockProcessedAttachments.links,
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          linksOnly,
+        );
+
+        expect(html).not.toContain('📎 Attached Files');
+        expect(html).toContain('☁️ Files on Google Drive');
+      });
+
+      it('should show no attachments message when both are empty', () => {
+        const emptyProcessed = {
+          attachments: [],
+          links: [],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          [],
+          emptyProcessed,
+        );
+
+        expect(html).toContain('No attachments included with this claim.');
+        expect(html).not.toContain('📎 Attached Files');
+        expect(html).not.toContain('☁️ Files on Google Drive');
+      });
+    });
+
+    describe('File size formatting', () => {
+      it('should format file sizes correctly in bytes', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'tiny.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 0,
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('0 B');
+      });
+
+      it('should format file sizes correctly in KB', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'medium.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 1536, // 1.5 KB
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 1536,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('1.5 KB');
+      });
+
+      it('should format file sizes correctly in MB', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: 'large.pdf',
+              driveUrl: 'https://drive.google.com/file/d/large/view',
+              size: 5242880, // 5 MB
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('5.00 MB');
+      });
+
+      it('should format edge case sizes correctly', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'file1.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 1, // 1 B
+            },
+            {
+              filename: 'file2.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 1023, // 1023 B
+            },
+            {
+              filename: 'file3.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 1024, // 1.0 KB
+            },
+          ],
+          links: [
+            {
+              filename: 'file4.txt',
+              driveUrl: 'https://drive.google.com/file/d/file4/view',
+              size: 1048576, // 1.0 MB
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 2048,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('1 B');
+        expect(html).toContain('1023 B');
+        expect(html).toContain('1.0 KB');
+        expect(html).toContain('1.00 MB');
+      });
+    });
+
+    describe('HTML escaping in hybrid mode', () => {
+      it('should escape HTML in attached filenames', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: '<script>alert("XSS")</script>file.pdf',
+              buffer: Buffer.from('x'),
+              mimeType: 'application/pdf',
+              size: 1024,
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 1024,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).not.toContain('<script>');
+        expect(html).toContain('&lt;script&gt;');
+      });
+
+      it('should escape HTML in link filenames', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: '<img src=x onerror=alert(1)>file.pdf',
+              driveUrl: 'https://drive.google.com/file/d/test/view',
+              size: 5 * 1024 * 1024,
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).not.toContain('<img');
+        expect(html).toContain('&lt;img');
+      });
+
+      it('should escape HTML in Drive URLs', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: 'file.pdf',
+              driveUrl:
+                'https://drive.google.com/file/d/test"><script>alert(1)</script>',
+              size: 5 * 1024 * 1024,
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).not.toContain('"><script>');
+        expect(html).toContain('&quot;&gt;&lt;script&gt;');
+      });
+    });
+
+    describe('Fallback to legacy behavior', () => {
+      it('should fallback to legacy rendering when processedAttachments is undefined', () => {
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+        );
+
+        // Should use legacy attachment rendering (Drive links only)
+        expect(html).toContain('receipt.pdf');
+        expect(html).toContain('invoice.jpg');
+        expect(html).toContain(
+          'https://drive.google.com/file/d/drive-file-1/view',
+        );
+
+        // Should not contain hybrid sections
+        expect(html).not.toContain('📎 Attached Files');
+        expect(html).not.toContain('☁️ Files on Google Drive');
+      });
+
+      it('should render Drive links for all files in legacy mode', () => {
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+        );
+
+        mockAttachments.forEach((attachment) => {
+          expect(html).toContain(attachment.originalFilename);
+          if (attachment.googleDriveUrl) {
+            expect(html).toContain(attachment.googleDriveUrl);
+          }
+        });
+      });
+    });
+
+    describe('Edge cases for hybrid attachments', () => {
+      it('should handle special characters in filenames', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'résumé & cover_letter (final).pdf',
+              buffer: Buffer.from('x'),
+              mimeType: 'application/pdf',
+              size: 2048,
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 2048,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('résumé &amp; cover_letter (final).pdf');
+      });
+
+      it('should handle very large file sizes (>1GB)', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: 'huge-file.zip',
+              driveUrl: 'https://drive.google.com/file/d/huge/view',
+              size: 1.5 * 1024 * 1024 * 1024, // 1.5 GB
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        // Should still render in MB (1536.00 MB)
+        expect(html).toContain('1536.00 MB');
+      });
+
+      it('should handle multiple files with same name', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'document.pdf',
+              buffer: Buffer.from('x'),
+              mimeType: 'application/pdf',
+              size: 1024,
+            },
+          ],
+          links: [
+            {
+              filename: 'document.pdf',
+              driveUrl: 'https://drive.google.com/file/d/doc2/view',
+              size: 5 * 1024 * 1024,
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 1024,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        // Both should appear in different sections
+        expect(html).toContain('📎 Attached Files');
+        expect(html).toContain('☁️ Files on Google Drive');
+        const documentCount = (html.match(/document\.pdf/g) || []).length;
+        expect(documentCount).toBe(2);
+      });
+
+      it('should handle download-failed reason in links', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: 'failed.pdf',
+              driveUrl: 'https://drive.google.com/file/d/failed/view',
+              size: 2 * 1024 * 1024,
+              reason: 'download-failed' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('failed.pdf');
+        expect(html).toContain('☁️ Files on Google Drive');
+        expect(html).toContain('2.00 MB');
+      });
+    });
+
+    describe('formatFileSize helper validation', () => {
+      it('should format 0 bytes correctly', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'empty.txt',
+              buffer: Buffer.from(''),
+              mimeType: 'text/plain',
+              size: 0,
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('0 B');
+      });
+
+      it('should format bytes below 1024 correctly', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'file1.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 500,
+            },
+            {
+              filename: 'file2.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 999,
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 1499,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('500 B');
+        expect(html).toContain('999 B');
+      });
+
+      it('should format KB with one decimal place', () => {
+        const processed = {
+          attachments: [
+            {
+              filename: 'file.txt',
+              buffer: Buffer.from('x'),
+              mimeType: 'text/plain',
+              size: 1536, // 1.5 KB
+            },
+          ],
+          links: [],
+          totalAttachmentSize: 1536,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('1.5 KB');
+      });
+
+      it('should format MB with two decimal places', () => {
+        const processed = {
+          attachments: [],
+          links: [
+            {
+              filename: 'file.bin',
+              driveUrl: 'https://drive.google.com/file/d/file/view',
+              size: 1572864, // 1.5 MB
+              reason: 'size-exceeded' as const,
+            },
+          ],
+          totalAttachmentSize: 0,
+        };
+
+        const html = emailTemplateService.generateClaimEmail(
+          mockClaim,
+          mockUser,
+          mockAttachments,
+          processed,
+        );
+
+        expect(html).toContain('1.50 MB');
+      });
+    });
+  });
 });

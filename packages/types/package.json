@@ -9,6 +9,10 @@
     "clean": "rm -rf dist",
     "dev": "tsc --watch"
   },
+  "dependencies": {
+    "@types/node": "^24.6.0",
+    "ts-node": "^10.9.2"
+  },
   "devDependencies": {
     "typescript": "^5.7.3"
   },
