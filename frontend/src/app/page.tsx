@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NextPage } from 'next';
 import { useRouter } from 'next/navigation';
 import { ClaimsListComponent } from '@/components/claims/ClaimsListComponent';
@@ -24,6 +24,11 @@ const ClaimsPage: NextPage = () => {
     }
     router.push('/new');
   };
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+    router.push('/login');
+  }, [isAuthenticated, router]);
 
   return (
     <div className="container mx-auto py-4 sm:py-6 px-4">
