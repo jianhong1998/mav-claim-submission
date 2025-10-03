@@ -18,6 +18,14 @@ interface ClaimsControllerWithPrivateMethods {
     currentStatus: ClaimStatus,
     newStatus: ClaimStatus,
   ): void;
+  validateMonthlyLimit(
+    userId: string,
+    category: ClaimCategory,
+    month: number,
+    year: number,
+    newAmount: number,
+    excludeClaimId?: string,
+  ): Promise<void>;
   mapClaimEntityToMetadata(claim: ClaimEntity): unknown;
 }
 
@@ -563,6 +571,274 @@ describe('ClaimsController - Resend Email Endpoint', () => {
       await expect(
         controller.resendClaimEmail(mockUser, claimId),
       ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+});
+
+/**
+ * ClaimsController Monthly Limit Validation Tests
+ *
+ * Tests the validateMonthlyLimit method to ensure proper monthly limit
+ * enforcement for Telco and Fitness categories.
+ *
+ * Test Categories:
+ * - Limit exceeded scenarios (Telco $150, Fitness $50)
+ * - Under limit acceptance
+ * - Unlimited categories
+ * - Update with excludeClaimId
+ * - Edge cases (empty claims, exact boundary, non-limit field changes)
+ */
+describe('ClaimsController - Monthly Limit Validation', () => {
+  let controller: ClaimsController;
+  let mockClaimDBUtil: {
+    getAll: Mock;
+    getOne: Mock;
+  };
+  let mockEmailService: {
+    sendClaimEmail: Mock;
+  };
+  let mockLogger: {
+    log: Mock;
+    warn: Mock;
+    error: Mock;
+  };
+
+  beforeEach(() => {
+    // Clear all mocks before each test
+    vi.clearAllMocks();
+
+    // Create service mocks
+    mockClaimDBUtil = {
+      getAll: vi.fn(),
+      getOne: vi.fn(),
+    };
+
+    mockEmailService = {
+      sendClaimEmail: vi.fn(),
+    };
+
+    // Create controller instance with mocked dependencies
+    controller = new ClaimsController(mockClaimDBUtil, mockEmailService);
+
+    // Mock logger to prevent console noise
+    mockLogger = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (controller as any).logger = mockLogger;
+  });
+
+  describe('validateMonthlyLimit - Limit Exceeded', () => {
+    it('should reject Telco claim exceeding $150 limit', async () => {
+      const userId = 'user-123';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 80 },
+        { id: 'claim-2', totalAmount: 40 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          10,
+          2024,
+          50, // $80 + $40 + $50 = $170 > $150
+        ),
+      ).rejects.toThrow(
+        new UnprocessableEntityException(
+          'TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00',
+        ),
+      );
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Monthly limit validation failed'),
+      );
+    });
+
+    it('should reject Fitness claim exceeding $50 limit', async () => {
+      const userId = 'user-456';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 40 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.FITNESS,
+          11,
+          2024,
+          15, // $40 + $15 = $55 > $50
+        ),
+      ).rejects.toThrow(
+        new UnprocessableEntityException(
+          'FITNESS monthly limit of $50.00 exceeded. Current: $40.00, Proposed: $15.00, Total: $55.00',
+        ),
+      );
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Monthly limit validation failed'),
+      );
+    });
+  });
+
+  describe('validateMonthlyLimit - Under Limit', () => {
+    it('should accept Telco claim under $150 limit', async () => {
+      const userId = 'user-789';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 100 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          9,
+          2024,
+          40, // $100 + $40 = $140 < $150
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateMonthlyLimit - Unlimited Categories', () => {
+    it('should accept unlimited category (Dental)', async () => {
+      const userId = 'user-unlimited';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 300 },
+        { id: 'claim-2', totalAmount: 200 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          8,
+          2024,
+          500, // Dental has no limit
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateMonthlyLimit - Update with Exclude', () => {
+    it('should exclude current claim when updating', async () => {
+      const userId = 'user-update';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 80 },
+        { id: 'claim-2', totalAmount: 60 }, // This is the one being updated
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          7,
+          2024,
+          80, // $80 (claim-1) + $80 (new amount) = $160 > $150
+          'claim-2', // Exclude claim-2's $60
+        ),
+      ).rejects.toThrow(
+        new UnprocessableEntityException(
+          'TELCO monthly limit of $150.00 exceeded. Current: $80.00, Proposed: $80.00, Total: $160.00',
+        ),
+      );
+    });
+
+    it('should validate even when only non-limit fields change', async () => {
+      const userId = 'user-no-change';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 50 },
+        { id: 'claim-2', totalAmount: 40 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      // Updating claim-2 with same amount (only claimName changed)
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          6,
+          2024,
+          40, // Same amount as before
+          'claim-2', // Exclude claim-2's $40
+        ),
+      ).resolves.toBeUndefined();
+
+      // Validation was called and succeeded ($50 + $40 = $90 < $150)
+      expect(mockClaimDBUtil.getAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('validateMonthlyLimit - Edge Cases', () => {
+    it('should accept claim when no existing claims', async () => {
+      const userId = 'user-new';
+      mockClaimDBUtil.getAll.mockResolvedValue([]);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          5,
+          2024,
+          50, // $0 + $50 = $50 < $150
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should accept claim at exact limit boundary', async () => {
+      const userId = 'user-boundary';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 100 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateMonthlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          4,
+          2024,
+          50, // $100 + $50 = $150 (exactly at limit, not exceeding)
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
     });
   });
 });

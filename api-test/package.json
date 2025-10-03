@@ -10,7 +10,12 @@
   },
   "dependencies": {
     "@project/types": "workspace:*",
-    "axios": "^1.11.0"
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.15.5",
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

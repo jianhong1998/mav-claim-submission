@@ -40,6 +40,7 @@ import { User } from '../auth/decorators/user.decorator';
 import { UserEntity } from '../user/entities/user.entity';
 import { ClaimDBUtil } from './utils/claim-db.util';
 import { ClaimEntity } from './entities/claim.entity';
+import { CLAIM_MONTHLY_LIMITS } from './constants/claim-limits.constants';
 import {
   ClaimStatus,
   ClaimCategory,
@@ -313,15 +314,18 @@ export class ClaimsController {
     },
   })
   @ApiUnprocessableEntityResponse({
-    description: 'Business rule violation',
+    description:
+      'Business rule violation - monthly limit exceeded or other validation error',
     schema: {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 422 },
         message: {
           type: 'string',
-          example: 'Claim amount exceeds maximum limit of $10,000',
+          example:
+            'TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00',
         },
+        error: { type: 'string', example: 'Unprocessable Entity' },
       },
     },
   })
@@ -347,6 +351,15 @@ export class ClaimsController {
 
       // Validate business rules
       this.validateClaimBusinessRules(createClaimDto);
+
+      // Validate monthly limit for category
+      await this.validateMonthlyLimit(
+        user.id,
+        createClaimDto.category,
+        createClaimDto.month,
+        createClaimDto.year,
+        createClaimDto.totalAmount,
+      );
 
       const creationData: IClaimCreationData = {
         userId: user.id,
@@ -496,15 +509,18 @@ export class ClaimsController {
     },
   })
   @ApiUnprocessableEntityResponse({
-    description: 'Business rule violation',
+    description:
+      'Business rule violation - monthly limit exceeded or other validation error',
     schema: {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 422 },
         message: {
           type: 'string',
-          example: 'Cannot create claims for future years',
+          example:
+            'TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00',
         },
+        error: { type: 'string', example: 'Unprocessable Entity' },
       },
     },
   })
@@ -543,6 +559,16 @@ export class ClaimsController {
 
       // Validate business rules for updates
       this.validateClaimBusinessRules(updateClaimDto);
+
+      // Validate monthly limit for category
+      await this.validateMonthlyLimit(
+        user.id,
+        updateClaimDto.category ?? existingClaim.category,
+        updateClaimDto.month ?? existingClaim.month,
+        updateClaimDto.year ?? existingClaim.year,
+        updateClaimDto.totalAmount ?? Number(existingClaim.totalAmount),
+        existingClaim.id,
+      );
 
       // Update claim properties
       if (updateClaimDto.category !== undefined) {
@@ -1151,6 +1177,63 @@ export class ClaimsController {
       throw new UnprocessableEntityException(
         `Invalid status transition from ${currentStatus} to ${newStatus}`,
       );
+    }
+  }
+
+  /**
+   * Validate monthly claim limit for specified category
+   * Requirements: 1.1 - Create claim validation, 1.2 - Update claim validation, 3 - Error messages
+   * @param userId - User ID for claim ownership
+   * @param category - Claim category to validate
+   * @param month - Month for the claim (1-12)
+   * @param year - Year for the claim
+   * @param newAmount - Amount being added/updated
+   * @param excludeClaimId - Optional claim ID to exclude from calculation (for updates)
+   * @throws UnprocessableEntityException if monthly limit would be exceeded
+   */
+  private async validateMonthlyLimit(
+    userId: string,
+    category: ClaimCategory,
+    month: number,
+    year: number,
+    newAmount: number,
+    excludeClaimId?: string,
+  ): Promise<void> {
+    // Get limit for category, return early if no limit defined
+    const limit = CLAIM_MONTHLY_LIMITS[
+      category as keyof typeof CLAIM_MONTHLY_LIMITS
+    ] as number | undefined;
+    if (limit === undefined) {
+      return;
+    }
+
+    // Fetch existing claims for this user, category, month, and year
+    const existingClaims = await this.claimDBUtil.getAll({
+      criteria: { userId, category, month, year },
+    });
+
+    // Filter out the claim being updated if excludeClaimId provided
+    const relevantClaims = excludeClaimId
+      ? existingClaims.filter((c) => c.id !== excludeClaimId)
+      : existingClaims;
+
+    // Sum existing claim amounts (convert to number in case DB returns string)
+    const existingTotal = relevantClaims.reduce(
+      (sum, claim) => sum + Number(claim.totalAmount),
+      0,
+    );
+
+    // Calculate total with new amount
+    const total = existingTotal + newAmount;
+
+    // Throw exception if limit exceeded
+    // TypeScript knows limit is number here due to early return above
+    if (total > limit) {
+      const errorMessage = `${category.toUpperCase()} monthly limit of $${limit.toFixed(2)} exceeded. Current: $${existingTotal.toFixed(2)}, Proposed: $${newAmount.toFixed(2)}, Total: $${total.toFixed(2)}`;
+      this.logger.warn(
+        `Monthly limit validation failed for user ${userId}: ${errorMessage}`,
+      );
+      throw new UnprocessableEntityException(errorMessage);
     }
   }
 

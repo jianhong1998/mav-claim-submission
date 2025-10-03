@@ -4,7 +4,7 @@
 
 ### Phase 1: Core Validation Logic
 
-- [ ] 1. Create claim limits constants file
+- [x] 1. Create claim limits constants file
   - File: `backend/src/modules/claims/constants/claim-limits.constants.ts` (new file)
   - Export `CLAIM_MONTHLY_LIMITS` constant with Object.freeze() pattern
   - Import ClaimCategory from `../enums/claim-category.enum`
@@ -13,7 +13,7 @@
   - _Requirements: 1.1_
   - _Prompt: Implement the task for spec backend-claim-limit-validation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend developer creating module constants | Task: Create new file backend/src/modules/claims/constants/claim-limits.constants.ts. Import ClaimCategory from '../enums/claim-category.enum'. Export constant CLAIM_MONTHLY_LIMITS as Record<string, number> with { [ClaimCategory.TELCO]: 150, [ClaimCategory.FITNESS]: 50 }. Requirement 1.1 specifies Telco monthly limit $150 and Fitness $50. | Restrictions: Use Object.freeze() pattern (not TypeScript enum). Follow existing enum import patterns from claims module. Do not hardcode string values ('telco'), use ClaimCategory enum. File should be pure constants (no logic, no classes). | _Leverage: Existing ClaimCategory enum from backend/src/modules/claims/enums/claim-category.enum.ts, existing Object.freeze() pattern used in enums | _Requirements: 1.1 (monthly limit values) | Success: File created at backend/src/modules/claims/constants/claim-limits.constants.ts, CLAIM_MONTHLY_LIMITS constant exported, imports ClaimCategory correctly, contains exactly 2 limits (TELCO: 150, FITNESS: 50), TypeScript compiles without errors | Instructions: After implementing, mark this task as in-progress in tasks.md by changing [ ] to [-], then mark as complete [x] when done_
 
-- [ ] 2. Implement validateMonthlyLimit() method in controller
+- [x] 2. Implement validateMonthlyLimit() method in controller
   - File: `backend/src/modules/claims/claims.controller.ts`
   - Import CLAIM_MONTHLY_LIMITS from `./constants/claim-limits.constants`
   - Implement `private async validateMonthlyLimit()` method
@@ -23,7 +23,7 @@
   - _Requirements: 1.1, 1.2, 3_
   - _Prompt: Implement the task for spec backend-claim-limit-validation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend developer implementing business validation logic | Task: Add import statement for CLAIM_MONTHLY_LIMITS from './constants/claim-limits.constants' at top of ClaimsController file. Implement private async validateMonthlyLimit() method with signature (userId: string, category: ClaimCategory, month: number, year: number, newAmount: number, excludeClaimId?: string): Promise<void>. Logic flow: (1) Get limit from CLAIM_MONTHLY_LIMITS[category], if no limit return early; (2) Fetch existing claims with ClaimDBUtil.getAll({ criteria: { userId, category, month, year } }); (3) If excludeClaimId provided, filter it out: existingClaims.filter(c => c.id !== excludeClaimId); (4) Sum amounts: existingClaims.reduce((sum, claim) => sum + claim.totalAmount, 0); (5) Calculate total = existingTotal + newAmount; (6) If total > limit, throw UnprocessableEntityException with message format "TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00"; (7) Log warning with this.logger.warn(). Requirements 1.1, 1.2 specify validation logic, Requirement 3 specifies error message format. | Restrictions: Do not use raw SQL queries, use TypeORM via ClaimDBUtil. Do not add conditionals to skip validation when calling this method. Use CLAIM_MONTHLY_LIMITS constant (not hardcoded values). Follow existing error handling patterns in validateClaimBusinessRules(). Error message must use category.toUpperCase(), amounts formatted with .toFixed(2). | _Leverage: ClaimDBUtil.getAll() for fetching claims, existing UnprocessableEntityException pattern from validateClaimBusinessRules() line ~1101, existing logger pattern this.logger.warn() line ~360, CLAIM_MONTHLY_LIMITS from Task 1 | _Requirements: 1.1 (create claim validation), 1.2 (update claim validation), 3 (error messages with exact format) | Success: Import statement added for CLAIM_MONTHLY_LIMITS, validateMonthlyLimit() method implemented with correct signature, method gets limit from constant, fetches claims using ClaimDBUtil.getAll(), filters excludeClaimId correctly, sums amounts with reduce(), calculates total, throws 422 with exact message format on limit exceeded (category uppercase, amounts to 2 decimals), logs warnings on rejection, method compiles without TypeScript errors | Instructions: After implementing, mark this task as in-progress in tasks.md by changing [ ] to [-], then mark as complete [x] when done_
 
-- [ ] 3. Integrate validation into createClaim()
+- [x] 3. Integrate validation into createClaim()
   - File: `backend/src/modules/claims/claims.controller.ts` (modify existing method)
   - Location: Line ~349, immediately after `this.validateClaimBusinessRules(createClaimDto);`
   - Add: `await this.validateMonthlyLimit(user.id, createClaimDto.category, createClaimDto.month, createClaimDto.year, createClaimDto.totalAmount);`
@@ -32,7 +32,7 @@
   - _Requirements: 1.1_
   - _Prompt: Implement the task for spec backend-claim-limit-validation, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend developer integrating validation into existing endpoints | Task: In createClaim() method at line ~349, immediately after the line this.validateClaimBusinessRules(createClaimDto), add new line: await this.validateMonthlyLimit(user.id, createClaimDto.category, createClaimDto.month, createClaimDto.year, createClaimDto.totalAmount). No excludeClaimId parameter for create operations. Requirement 1.1 specifies validation must run on claim creation to prevent exceeding monthly limits. | Restrictions: Do not add conditional checks (if statements) before calling validation. Do not modify validateClaimBusinessRules() call. Do not change error handling logic. Must call validation after business rules but before claim creation (before claimDBUtil.create() call). Do not pass excludeClaimId parameter (only for updates). | _Leverage: Existing user object from @User() decorator (line ~297), createClaimDto validated by NestJS ValidationPipe, validateMonthlyLimit() method from Task 2 | _Requirements: 1.1 (create claim validation enforces monthly limits) | Success: validateMonthlyLimit() called in createClaim() at correct location (after validateClaimBusinessRules, before claim creation), all 5 parameters passed correctly (user.id, category, month, year, totalAmount), no conditional logic wrapping the validation call, no excludeClaimId parameter, code compiles and existing tests still pass | Instructions: After implementing, mark this task as in-progress in tasks.md by changing [ ] to [-], then mark as complete [x] when done_
 
-- [ ] 4. Integrate validation into updateClaim()
+- [x] 4. Integrate validation into updateClaim()
   - File: `backend/src/modules/claims/claims.controller.ts` (modify existing method)
   - Location: Line ~545, immediately after `this.validateClaimBusinessRules(updateClaimDto);`
   - Add: `await this.validateMonthlyLimit(user.id, updateClaimDto.category ?? existingClaim.category, updateClaimDto.month ?? existingClaim.month, updateClaimDto.year ?? existingClaim.year, updateClaimDto.totalAmount ?? existingClaim.totalAmount, existingClaim.id);`
@@ -43,7 +43,7 @@
 
 ### Phase 2: Unit Testing
 
-- [ ] 5. Write unit tests for validateMonthlyLimit()
+- [x] 5. Write unit tests for validateMonthlyLimit()
   - File: `backend/src/modules/claims/claims.controller.spec.ts` (add new test suite)
   - Test scenarios: Telco limit exceeded, Fitness limit exceeded, under limit, unlimited category, update excludes current claim, update without changes, empty existing claims, exact boundary
   - Mock ClaimDBUtil.getAll() to return test data
@@ -54,7 +54,7 @@
 
 ### Phase 3: Integration Testing
 
-- [ ] 6. Write integration tests for limit enforcement
+- [x] 6. Write integration tests for limit enforcement
   - File: `api-test/src/tests/claims.test.ts` (add new test suite)
   - Test scenarios: Sequential claims enforce limits, different categories independent, different months independent, update revalidates, deleted claims don't count, category change revalidates
   - Use real database with clean state before each test
@@ -65,7 +65,7 @@
 
 ### Phase 4: Documentation
 
-- [ ] 7. Update OpenAPI/Swagger documentation
+- [x] 7. Update OpenAPI/Swagger documentation
   - Files: `backend/src/modules/claims/claims.controller.ts` (modify decorators)
   - Add 422 response example to @ApiResponse decorators on createClaim() and updateClaim()
   - Response example: `{ "statusCode": 422, "message": "TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00", "error": "Unprocessable Entity" }`
@@ -76,7 +76,7 @@
 
 ### Phase 5: Database Optimization
 
-- [ ] 8. Add database index for query performance
+- [x] 8. Add database index for query performance
   - Create migration file for composite index
   - Index: `CREATE INDEX idx_claims_user_category_month_year ON claims(user_id, category, month, year) WHERE deleted_at IS NULL;`
   - Partial index excludes soft-deleted claims for better performance
@@ -87,7 +87,7 @@
 
 ### Phase 6: Code Quality & Validation
 
-- [ ] 9. Run formatting, linting, and all tests
+- [x] 9. Run formatting, linting, and all tests
   - Run `make format` to format all code
   - Run `make lint` to check for linting errors (fix all errors)
   - Run `make test/unit` to verify all unit tests pass
