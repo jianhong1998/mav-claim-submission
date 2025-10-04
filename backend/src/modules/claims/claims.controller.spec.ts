@@ -26,6 +26,13 @@ interface ClaimsControllerWithPrivateMethods {
     newAmount: number,
     excludeClaimId?: string,
   ): Promise<void>;
+  validateYearlyLimit(
+    userId: string,
+    category: ClaimCategory,
+    year: number,
+    newAmount: number,
+    excludeClaimId?: string,
+  ): Promise<void>;
   mapClaimEntityToMetadata(claim: ClaimEntity): unknown;
 }
 
@@ -652,7 +659,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
         ),
       ).rejects.toThrow(
         new UnprocessableEntityException(
-          'TELCO monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00',
+          'Telecommunications monthly limit of $150.00 exceeded. Current: $120.00, Proposed: $50.00, Total: $170.00',
         ),
       );
 
@@ -681,7 +688,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
         ),
       ).rejects.toThrow(
         new UnprocessableEntityException(
-          'FITNESS monthly limit of $50.00 exceeded. Current: $40.00, Proposed: $15.00, Total: $55.00',
+          'Fitness & Wellness monthly limit of $50.00 exceeded. Current: $40.00, Proposed: $15.00, Total: $55.00',
         ),
       );
 
@@ -717,7 +724,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
   });
 
   describe('validateMonthlyLimit - Unlimited Categories', () => {
-    it('should accept unlimited category (Dental)', async () => {
+    it('should accept category with no monthly limit (Dental)', async () => {
       const userId = 'user-unlimited';
       const existingClaims: Partial<ClaimEntity>[] = [
         { id: 'claim-1', totalAmount: 300 },
@@ -734,7 +741,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           ClaimCategory.DENTAL,
           8,
           2024,
-          500, // Dental has no limit
+          500, // Dental has no monthly limit (has yearly limit instead)
         ),
       ).resolves.toBeUndefined();
 
@@ -765,7 +772,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
         ),
       ).rejects.toThrow(
         new UnprocessableEntityException(
-          'TELCO monthly limit of $150.00 exceeded. Current: $80.00, Proposed: $80.00, Total: $160.00',
+          'Telecommunications monthly limit of $150.00 exceeded. Current: $80.00, Proposed: $80.00, Total: $160.00',
         ),
       );
     });
@@ -839,6 +846,349 @@ describe('ClaimsController - Monthly Limit Validation', () => {
       ).resolves.toBeUndefined();
 
       expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+});
+
+/**
+ * ClaimsController Yearly Limit Validation Tests
+ *
+ * Tests the validateYearlyLimit method to ensure proper yearly limit
+ * enforcement for Dental category ($300/year).
+ *
+ * Test Categories:
+ * - Limit exceeded scenarios (Dental $300)
+ * - Under limit acceptance
+ * - Unlimited categories (no yearly limit)
+ * - Update scenarios with claim exclusion
+ * - Edge cases (no existing claims, exact limit)
+ */
+describe('ClaimsController - Yearly Limit Validation', () => {
+  let controller: ClaimsController;
+  let mockClaimDBUtil: {
+    getAll: Mock;
+  };
+  let mockEmailService: {
+    sendClaimEmail: Mock;
+  };
+  let mockLogger: {
+    log: Mock;
+    warn: Mock;
+    error: Mock;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockClaimDBUtil = {
+      getAll: vi.fn(),
+    };
+
+    mockEmailService = {
+      sendClaimEmail: vi.fn(),
+    };
+
+    controller = new ClaimsController(
+      mockClaimDBUtil as never,
+      mockEmailService as never,
+    );
+
+    mockLogger = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (controller as any).logger = mockLogger;
+  });
+
+  describe('validateYearlyLimit - Limit Exceeded', () => {
+    it('should reject Dental claim exceeding $300 yearly limit', async () => {
+      const userId = 'user-123';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 200, month: 1 },
+        { id: 'claim-2', totalAmount: 50, month: 3 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100, // $200 + $50 + $100 = $350 > $300
+        ),
+      ).rejects.toThrow(UnprocessableEntityException);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Yearly limit validation failed'),
+      );
+    });
+
+    it('should reject Dental claim when existing yearly total plus new amount exceeds limit', async () => {
+      const userId = 'user-456';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 150, month: 2 },
+        { id: 'claim-2', totalAmount: 100, month: 6 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          51, // $150 + $100 + $51 = $301 > $300
+        ),
+      ).rejects.toThrow(UnprocessableEntityException);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Yearly limit validation failed'),
+      );
+    });
+  });
+
+  describe('validateYearlyLimit - Under Limit', () => {
+    it('should accept Dental claim under $300 yearly limit', async () => {
+      const userId = 'user-789';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 100, month: 1 },
+        { id: 'claim-2', totalAmount: 50, month: 5 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100, // $100 + $50 + $100 = $250 < $300
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should accept Dental claim across different months within yearly limit', async () => {
+      const userId = 'user-multi-month';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 75, month: 1 },
+        { id: 'claim-2', totalAmount: 50, month: 3 },
+        { id: 'claim-3', totalAmount: 75, month: 6 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          50, // $75 + $50 + $75 + $50 = $250 < $300
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateYearlyLimit - Unlimited Categories', () => {
+    it('should accept category with no yearly limit (Telco)', async () => {
+      const userId = 'user-unlimited';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 500, month: 1 },
+        { id: 'claim-2', totalAmount: 300, month: 6 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.TELCO,
+          2024,
+          1000, // Telco has no yearly limit (has monthly limit instead)
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should accept category with no yearly limit (Fitness)', async () => {
+      const userId = 'user-fitness';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 200, month: 2 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.FITNESS,
+          2024,
+          500, // Fitness has no yearly limit (has monthly limit instead)
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateYearlyLimit - Update with Exclude', () => {
+    it('should exclude current claim when updating', async () => {
+      const userId = 'user-update';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 150, month: 2 },
+        { id: 'claim-2', totalAmount: 100, month: 5 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100, // $150 (claim-1) + $100 (new amount) = $250 < $300
+          'claim-2', // Exclude claim-2 ($100) from calculation
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should reject update if yearly limit exceeded even with exclusion', async () => {
+      const userId = 'user-update-fail';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 200, month: 1 },
+        { id: 'claim-2', totalAmount: 50, month: 4 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          150, // $200 (claim-1) + $150 (new amount) = $350 > $300
+          'claim-2', // Exclude claim-2 from calculation
+        ),
+      ).rejects.toThrow(UnprocessableEntityException);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Yearly limit validation failed'),
+      );
+    });
+
+    it('should accept update when amount unchanged', async () => {
+      const userId = 'user-same-amount';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 150, month: 3 },
+        { id: 'claim-2', totalAmount: 100, month: 7 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100, // Same amount as claim-2
+          'claim-2',
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockClaimDBUtil.getAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('validateYearlyLimit - Edge Cases', () => {
+    it('should accept claim when no existing claims', async () => {
+      const userId = 'user-new';
+      mockClaimDBUtil.getAll.mockResolvedValue([]);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          150, // $0 + $150 = $150 < $300
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should accept claim at exact yearly limit', async () => {
+      const userId = 'user-exact';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 200, month: 2 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100, // $200 + $100 = $300 (exactly at limit, not exceeding)
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should reject claim at one cent over yearly limit', async () => {
+      const userId = 'user-over-by-one';
+      const existingClaims: Partial<ClaimEntity>[] = [
+        { id: 'claim-1', totalAmount: 200, month: 4 },
+      ];
+
+      mockClaimDBUtil.getAll.mockResolvedValue(existingClaims);
+
+      await expect(
+        (
+          controller as unknown as ClaimsControllerWithPrivateMethods
+        ).validateYearlyLimit(
+          userId,
+          ClaimCategory.DENTAL,
+          2024,
+          100.01, // $200 + $100.01 = $300.01 > $300
+        ),
+      ).rejects.toThrow(UnprocessableEntityException);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Yearly limit validation failed'),
+      );
     });
   });
 });

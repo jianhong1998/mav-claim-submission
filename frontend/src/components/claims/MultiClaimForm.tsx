@@ -147,8 +147,9 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
         toast.error(response.error || 'Failed to create claim');
       }
     },
-    onError: () => {
-      toast.error('Failed to create claim. Please try again.');
+    onError: (error: Error) => {
+      // Display the error message from the API
+      toast.error(error.message || 'Failed to create claim. Please try again.');
     },
     onSettled: () => {
       setIsCreating(false);
