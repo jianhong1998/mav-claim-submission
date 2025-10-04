@@ -19,7 +19,9 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['src/setup/custom-matchers.d.ts'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

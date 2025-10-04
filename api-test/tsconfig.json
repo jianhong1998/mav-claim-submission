@@ -26,5 +26,6 @@
       "@project/types": ["../packages/types/src"],
       "src": ["./src"]
     }
-  }
+  },
+  "include": ["src/**/*", "*.ts"]
 }
