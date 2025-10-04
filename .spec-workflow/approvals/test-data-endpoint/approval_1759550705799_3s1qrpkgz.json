@@ -1,0 +1,27 @@
+{
+  "id": "approval_1759550705799_3s1qrpkgz",
+  "title": "Requirements: Test Data Endpoint (Updated with DELETE endpoint)",
+  "filePath": ".spec-workflow/specs/test-data-endpoint/requirements.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-10-04T04:05:05.799Z",
+  "category": "spec",
+  "categoryName": "test-data-endpoint",
+  "response": "Feedback Summary (1 comments):\n\nSpecific Text Comments:\n1. \"{ id: string, email: string, name: string, googleI...\": To make the endpoint scalable for future enhancement, the response should be indicated that this piece of data is for which entity. Example as below:\n```\n{\n  \"user\": {\n    \"id\": string,\n    \"email\": string,\n    \"name\": string,\n    \"googleId\": string\n  }\n}\n```\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"To make the endpoint scalable for future enhancement, the response should be indicated that this piece of data is for which entity. Example as below:\\n```\\n{\\n  \\\"user\\\": {\\n    \\\"id\\\": string,\\n    \\\"email\\\": string,\\n    \\\"name\\\": string,\\n    \\\"googleId\\\": string\\n  }\\n}\\n```\",\n      \"timestamp\": \"2025-10-04T04:08:31.380Z\",\n      \"selectedText\": \"{ id: string, email: string, name: string, googleId: string }\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1759550911380_27zdf9dgt\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nSpecific Text Comments:\\n1. \\\"{ id: string, email: string, name: string, googleI...\\\": To make the endpoint scalable for future enhancement, the response should be indicated that this piece of data is for which entity. Example as below:\\n```\\n{\\n  \\\"user\\\": {\\n    \\\"id\\\": string,\\n    \\\"email\\\": string,\\n    \\\"name\\\": string,\\n    \\\"googleId\\\": string\\n  }\\n}\\n```\\n\",\n  \"timestamp\": \"2025-10-04T04:08:39.202Z\"\n}",
+  "respondedAt": "2025-10-04T04:08:39.211Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "To make the endpoint scalable for future enhancement, the response should be indicated that this piece of data is for which entity. Example as below:\n```\n{\n  \"user\": {\n    \"id\": string,\n    \"email\": string,\n    \"name\": string,\n    \"googleId\": string\n  }\n}\n```",
+      "timestamp": "2025-10-04T04:08:31.380Z",
+      "selectedText": "{ id: string, email: string, name: string, googleId: string }",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1759550911380_27zdf9dgt"
+    }
+  ]
+}
