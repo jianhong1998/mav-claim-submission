@@ -233,8 +233,7 @@ const MultiClaimSubmissionPage: NextPage = () => {
               Back to Upload
             </Button>
             <div className="text-sm text-muted-foreground text-center sm:text-right">
-              Use the &quot;Mark as Ready&quot; button above to finalize your
-              claims
+              Click on the button obove to finalise and submit your claim.
             </div>
           </div>
         </div>
