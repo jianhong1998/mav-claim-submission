@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/attachment-cache-invalidation-fix/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-06T03:22:42.456Z",
+      "trigger": "initial",
+      "approvalId": "approval_1759720962453_7zbfdi186",
+      "approvalTitle": "Requirements: Attachment Cache Invalidation Fix"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-06T03:47:35.755Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759722324562_bvk1tircw",
+      "approvalTitle": "Requirements: Attachment Cache Fix (Revised - Linus Approved)"
+    }
+  ]
+}
