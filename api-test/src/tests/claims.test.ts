@@ -329,3 +329,273 @@ describe('Monthly Limit Validation', () => {
     });
   });
 });
+
+/**
+ * Integration tests for yearly claim limit validation
+ *
+ * Tests the complete end-to-end flow:
+ * 1. Yearly limit enforcement across multiple months
+ * 2. Sequential claims affecting yearly limits
+ * 3. Update revalidation with yearly limits
+ * 4. Deleted claims exclusion from yearly totals
+ */
+describe('Yearly Limit Validation', () => {
+  const authHeaders = () => getAuthHeaders();
+
+  beforeEach(async () => {
+    // Clean database state before each test
+    // Delete all claims for the test user to ensure clean state
+    try {
+      // Get all claims for the user
+      const response = await axiosInstance.get('/claims', {
+        headers: authHeaders(),
+      });
+
+      if (response.data?.success && response.data?.claims) {
+        // Delete each claim (skip paid claims as they can't be deleted)
+        for (const claim of response.data.claims) {
+          if (claim.status !== 'paid') {
+            try {
+              await axiosInstance.delete(`/claims/${claim.id}`, {
+                headers: authHeaders(),
+              });
+            } catch (deleteError) {
+              // Log but continue with other claims
+              console.log(
+                `Failed to delete claim ${claim.id}:`,
+                (deleteError as Error).message,
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // If we can't get claims, log and continue
+      // Tests will fail if this is a real problem
+      console.log('Cleanup error:', (error as Error).message);
+    }
+  });
+
+  describe('Test 1: Yearly limit across multiple months', () => {
+    it('should enforce yearly limit across different months', async () => {
+      // Create dental claims across 3 different months totaling $300
+      const months = [1, 2, 3];
+      const amountPerMonth = 100;
+
+      for (const month of months) {
+        const dentalClaim: IClaimCreateRequest = {
+          category: ClaimCategory.DENTAL,
+          claimName: `Dental treatment month ${month}`,
+          month,
+          year: 2025,
+          totalAmount: amountPerMonth,
+        };
+
+        const response = await axiosInstance.post('/claims', dentalClaim, {
+          headers: authHeaders(),
+        });
+
+        expect(response.status).toBe(201);
+        expect(response.data.success).toBe(true);
+      }
+
+      // Now try to add another dental claim for month 4 ($50)
+      // This should fail as total would be $350 > $300 yearly limit
+      const month4Claim: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment month 4',
+        month: 4,
+        year: 2025,
+        totalAmount: 50,
+      };
+
+      try {
+        await axiosInstance.post('/claims', month4Claim, {
+          headers: authHeaders(),
+        });
+        expect.fail('Expected 422 error for exceeding Dental yearly limit');
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        expect(axiosError.response?.status).toBe(422);
+
+        // Verify error message format
+        const errorData = axiosError.response?.data as any;
+        expect(errorData.message).toContain('Dental');
+        expect(errorData.message).toContain('yearly limit');
+        expect(errorData.message).toContain('$300.00');
+        expect(errorData.message).toContain('Current: $300.00');
+        expect(errorData.message).toContain('Proposed: $50.00');
+        expect(errorData.message).toContain('Total: $350.00');
+      }
+    });
+  });
+
+  describe('Test 2: Yearly limit at exact threshold', () => {
+    it('should allow claims up to the exact yearly limit', async () => {
+      // Create dental claims totaling exactly $300
+      const claim1: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 1',
+        month: 1,
+        year: 2025,
+        totalAmount: 150,
+      };
+
+      const response1 = await axiosInstance.post('/claims', claim1, {
+        headers: authHeaders(),
+      });
+
+      expect(response1.status).toBe(201);
+
+      const claim2: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 2',
+        month: 2,
+        year: 2025,
+        totalAmount: 150,
+      };
+
+      const response2 = await axiosInstance.post('/claims', claim2, {
+        headers: authHeaders(),
+      });
+
+      expect(response2.status).toBe(201);
+      expect(response2.data.success).toBe(true);
+    });
+  });
+
+  describe('Test 3: Update revalidation with yearly limits', () => {
+    it('should revalidate yearly limits on update', async () => {
+      // Create dental claims across 2 months: $150 + $100 = $250
+      const claim1: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 1',
+        month: 1,
+        year: 2025,
+        totalAmount: 150,
+      };
+
+      const response1 = await axiosInstance.post('/claims', claim1, {
+        headers: authHeaders(),
+      });
+
+      expect(response1.status).toBe(201);
+
+      const claim2: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 2',
+        month: 2,
+        year: 2025,
+        totalAmount: 100,
+      };
+
+      const response2 = await axiosInstance.post('/claims', claim2, {
+        headers: authHeaders(),
+      });
+
+      expect(response2.status).toBe(201);
+      const claim2Id = response2.data.claim.id;
+
+      // Try to update claim2 to $200 (total would be $350 > $300 limit)
+      const updateClaim2: IClaimUpdateRequest = {
+        totalAmount: 200,
+      };
+
+      try {
+        await axiosInstance.put(`/claims/${claim2Id}`, updateClaim2, {
+          headers: authHeaders(),
+        });
+        expect.fail('Expected 422 error when update exceeds yearly limit');
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        expect(axiosError.response?.status).toBe(422);
+
+        // Verify error message format
+        const errorData = axiosError.response?.data as any;
+        expect(errorData.message).toContain('Dental');
+        expect(errorData.message).toContain('yearly limit');
+        expect(errorData.message).toContain('$300.00');
+      }
+    });
+  });
+
+  describe('Test 4: Deleted claims exclusion from yearly totals', () => {
+    it('should exclude deleted claims from yearly totals', async () => {
+      // Create dental claim: $200
+      const claim1: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 1',
+        month: 1,
+        year: 2025,
+        totalAmount: 200,
+      };
+
+      const response1 = await axiosInstance.post('/claims', claim1, {
+        headers: authHeaders(),
+      });
+
+      expect(response1.status).toBe(201);
+      const claim1Id = response1.data.claim.id;
+
+      // Delete the first claim
+      const deleteResponse = await axiosInstance.delete(`/claims/${claim1Id}`, {
+        headers: authHeaders(),
+      });
+
+      expect(deleteResponse.status).toBe(204);
+
+      // Create new dental claim: $300 in month 2
+      // Should succeed - deleted claim doesn't count towards yearly total
+      const claim2: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 2',
+        month: 2,
+        year: 2025,
+        totalAmount: 300,
+      };
+
+      const response2 = await axiosInstance.post('/claims', claim2, {
+        headers: authHeaders(),
+      });
+
+      expect(response2.status).toBe(201);
+      expect(response2.data.success).toBe(true);
+    });
+  });
+
+  describe('Test 5: Different years independent', () => {
+    it('should treat different years independently for yearly limits', async () => {
+      // Create dental claim for 2024: $300 (at limit for 2024)
+      const claim2024: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 2024',
+        month: 12,
+        year: 2024,
+        totalAmount: 300,
+      };
+
+      const response2024 = await axiosInstance.post('/claims', claim2024, {
+        headers: authHeaders(),
+      });
+
+      expect(response2024.status).toBe(201);
+
+      // Create dental claim for 2025: $300
+      // Should succeed - different year, independent limit
+      const claim2025: IClaimCreateRequest = {
+        category: ClaimCategory.DENTAL,
+        claimName: 'Dental treatment 2025',
+        month: 1,
+        year: 2025,
+        totalAmount: 300,
+      };
+
+      const response2025 = await axiosInstance.post('/claims', claim2025, {
+        headers: authHeaders(),
+      });
+
+      expect(response2025.status).toBe(201);
+      expect(response2025.data.success).toBe(true);
+    });
+  });
+});
