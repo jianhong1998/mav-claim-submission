@@ -31,6 +31,19 @@ describe('Internal Test Data Endpoints', () => {
     return axiosInstance.delete('/internal/test-data');
   };
 
+  /**
+   * Ensure test user exists after each test
+   * This is critical for other test files that depend on the test user existing
+   */
+  afterEach(async () => {
+    try {
+      // Recreate test user if it was deleted during the test
+      await createTestUser();
+    } catch {
+      // Ignore errors - user might already exist
+    }
+  });
+
   describe('POST /internal/test-data', () => {
     beforeEach(async () => {
       // Ensure clean state - delete test user if exists

@@ -8,5 +8,7 @@ export default defineConfig({
     hookTimeout: 10000,
     globalSetup: './src/setup/test-setup.ts',
     setupFiles: './src/setup/vitest-setup.ts',
+    // Run test files sequentially to avoid race conditions with shared test user
+    fileParallelism: false,
   },
 });

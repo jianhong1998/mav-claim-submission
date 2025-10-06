@@ -195,7 +195,7 @@
 
 ## Phase 6: Documentation & Cleanup
 
-- [ ] 6.1 Update project documentation
+- [x] 6.1 Update project documentation
   - Files:
     - `docs/project-info/api-endpoints.md` (modify - add internal endpoints if documented)
     - `CLAUDE.md` (modify - update status section)
@@ -206,7 +206,7 @@
   - _Requirements: All (documentation)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Technical Writer | Task: Update documentation: (1) if docs/project-info/api-endpoints.md exists, add section documenting POST and DELETE /internal/test-data endpoints with request/response formats and ENABLE_API_TEST_MODE requirement, (2) update CLAUDE.md status section to mark internal test endpoints as implemented, include note about feature flag and purpose | Restrictions: Follow existing documentation style and format, clearly mark endpoints as internal/test-only, include security warning about ENABLE_API_TEST_MODE flag, keep documentation concise | Success: Internal endpoints are properly documented, CLAUDE.md reflects implementation status, developers understand how to use feature flag | Instructions: After completing documentation updates, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.2 Code quality check and cleanup
+- [x] 6.2 Code quality check and cleanup
   - Run linting: `make lint`
   - Run formatting: `make format`
   - Review code for any TODOs or console.logs
@@ -215,7 +215,7 @@
   - _Requirements: All (code quality)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Code Quality Engineer | Task: Execute code quality checks: (1) run 'make format' from project root to format all code, (2) run 'make lint' to check for linting errors, fix any issues found, (3) search for console.log, TODO, FIXME in new code and remove/address them, (4) verify all new files follow project naming conventions and structure | Restrictions: Fix all linting errors, do not suppress warnings without justification, remove debug code (console.log), ensure code follows TypeScript strict mode | Success: make format completes without changes (code already formatted), make lint passes with no errors, no debug code remains, all new files follow conventions | Instructions: After all quality checks pass, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.3 Final verification and spec completion
+- [x] 6.3 Final verification and spec completion
   - Verify ENABLE_API_TEST_MODE behavior in both states (true/false)
   - Confirm api-test no longer has pg dependency
   - Validate implementation matches design.md
