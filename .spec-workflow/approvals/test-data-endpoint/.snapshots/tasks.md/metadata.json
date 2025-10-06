@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/test-data-endpoint/tasks.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-04T08:06:39.403Z",
+      "trigger": "initial",
+      "approvalId": "approval_1759565199400_h4x98c8j1",
+      "approvalTitle": "Tasks: Test Data Endpoint Implementation Plan"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-04T08:13:18.429Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1759565199400_h4x98c8j1",
+      "approvalTitle": "Tasks: Test Data Endpoint Implementation Plan"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2025-10-04T08:14:56.554Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759565626735_yt4cv83be",
+      "approvalTitle": "Tasks: Test Data Endpoint (Updated .env.template)"
+    }
+  ]
+}

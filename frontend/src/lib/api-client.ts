@@ -4,7 +4,7 @@ import {
   IClaimEmailResponse,
   ClaimStatus,
 } from '@project/types';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 export class ApiError extends Error {
   constructor(
@@ -25,6 +25,23 @@ const axiosInstance = axios.create({
   timeout: 10000,
   withCredentials: true,
 });
+
+// Add response interceptor to handle errors properly
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<{ message?: string; error?: string }>) => {
+    // Extract error message from response
+    const errorMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      'An unexpected error occurred';
+
+    const status = error.response?.status || 500;
+
+    throw new ApiError(errorMessage, status, error.response?.data);
+  },
+);
 
 export const apiClient = {
   get: async <T>(endpoint: string): Promise<T> => {

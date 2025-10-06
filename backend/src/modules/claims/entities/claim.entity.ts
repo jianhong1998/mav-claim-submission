@@ -23,6 +23,16 @@ import { ClaimCategory } from '../enums/claim-category.enum';
 @Index(['category'])
 @Index(['month', 'year'])
 @Index(['submissionDate'])
+@Index(
+  'idx_claims_user_category_month_year',
+  ['userId', 'category', 'month', 'year'],
+  {
+    where: '"deletedAt" IS NULL',
+  },
+)
+@Index('idx_claims_user_category_year', ['userId', 'category', 'year'], {
+  where: '"deletedAt" IS NULL',
+})
 @Check(`"totalAmount" > 0`)
 @Check(`"month" >= 1 AND "month" <= 12`)
 @Check(`"year" >= 2020 AND "year" <= 2100`)

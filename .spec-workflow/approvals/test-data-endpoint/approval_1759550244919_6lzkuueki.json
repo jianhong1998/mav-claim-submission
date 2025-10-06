@@ -1,0 +1,21 @@
+{
+  "id": "approval_1759550244919_6lzkuueki",
+  "title": "Design: Test Data Endpoint",
+  "filePath": ".spec-workflow/specs/test-data-endpoint/design.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-10-04T03:57:24.919Z",
+  "category": "spec",
+  "categoryName": "test-data-endpoint",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Consider the endpoint may be called multiple times in between the tests. We should have an endpoint to clean up all the data: DELETE`/internal/test-data`.\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Consider the endpoint may be called multiple times in between the tests. We should have an endpoint to clean up all the data: DELETE`/internal/test-data`.\",\n      \"timestamp\": \"2025-10-04T04:00:25.071Z\",\n      \"id\": \"comment_1759550425071_79prwuu13\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Consider the endpoint may be called multiple times in between the tests. We should have an endpoint to clean up all the data: DELETE`/internal/test-data`.\\n\\n\",\n  \"timestamp\": \"2025-10-04T04:00:26.613Z\"\n}",
+  "respondedAt": "2025-10-04T04:00:26.622Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Consider the endpoint may be called multiple times in between the tests. We should have an endpoint to clean up all the data: DELETE`/internal/test-data`.",
+      "timestamp": "2025-10-04T04:00:25.071Z",
+      "id": "comment_1759550425071_79prwuu13"
+    }
+  ]
+}

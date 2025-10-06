@@ -156,6 +156,15 @@ Managed from root `.env` file:
   - Metadata-only backend storage with AttachmentMetadataDto
   - Comprehensive error handling with exponential backoff retry logic
   - Unit and integration test coverage for all components
+- **Internal Test Data Endpoints**: HTTP endpoints for test data lifecycle management
+  - POST /internal/test-data: Idempotent test user creation
+  - DELETE /internal/test-data: Test user deletion with database CASCADE cleanup
+  - ApiTestModeGuard: Feature flag protection via ENABLE_API_TEST_MODE environment variable
+  - Shared TEST_USER_DATA constant in @project/types package
+  - API tests migrated from direct database access to HTTP endpoints
+  - Removed pg dependency from api-test workspace
+  - Comprehensive unit and integration test coverage
+  - **Security Note**: Feature flag must be disabled in production (returns 404 when disabled)
 
 🚧 **In Development**:
 

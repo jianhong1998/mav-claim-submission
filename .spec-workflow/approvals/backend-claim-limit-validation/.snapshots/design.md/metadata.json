@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/backend-claim-limit-validation/design.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-09-30T15:07:35.710Z",
+      "trigger": "initial",
+      "approvalId": "approval_1759244855707_cjnam68h3",
+      "approvalTitle": "Design: Backend Claim Limit Validation"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-09-30T15:13:10.069Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1759244855707_cjnam68h3",
+      "approvalTitle": "Design: Backend Claim Limit Validation"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2025-10-01T01:15:05.488Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759245314458_tl3khga03",
+      "approvalTitle": "Design (Revised): Backend Claim Limit Validation"
+    }
+  ]
+}

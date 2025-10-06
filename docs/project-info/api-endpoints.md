@@ -450,6 +450,85 @@ Claims API endpoints return the following status codes:
 - Rate limiting by IP address
 - Returns 429 Too Many Requests when exceeded
 
+## Internal Test Endpoints
+
+⚠️ **SECURITY WARNING**: These endpoints are for testing only and must be disabled in production by setting `ENABLE_API_TEST_MODE=false`.
+
+### `POST /internal/test-data`
+- **Purpose**: Create or return existing test user (idempotent)
+- **Authentication**: None (internal endpoint)
+- **Feature Flag**: Requires `ENABLE_API_TEST_MODE=true` in environment
+- **Request Body**: None
+- **Success Response** (200/201):
+```json
+{
+  "user": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "email": "test@mavericks-consulting.com",
+    "name": "Test User",
+    "googleId": "test-google-id-12345"
+  }
+}
+```
+- **Feature Disabled Response** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "Not Found"
+}
+```
+- **Behavior**:
+  - First call creates test user with predefined data from `TEST_USER_DATA` constant
+  - Subsequent calls return existing user (idempotent)
+  - Catches duplicate key errors and queries existing user
+- **Usage**: Integration tests use this endpoint to set up test data instead of direct database access
+
+### `DELETE /internal/test-data`
+- **Purpose**: Delete test user and all related data (idempotent)
+- **Authentication**: None (internal endpoint)
+- **Feature Flag**: Requires `ENABLE_API_TEST_MODE=true` in environment
+- **Request Body**: None
+- **Success Response** (200):
+```json
+{
+  "deleted": true,
+  "message": "Test data deleted successfully"
+}
+```
+- **User Not Found Response** (200):
+```json
+{
+  "deleted": false,
+  "message": "Test data not found (already deleted or never created)"
+}
+```
+- **Feature Disabled Response** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "Not Found"
+}
+```
+- **Behavior**:
+  - Deletes test user by predefined ID from `TEST_USER_DATA` constant
+  - Database CASCADE automatically removes related data (oauth_tokens, claims, attachments)
+  - Returns success even if user not found (idempotent)
+- **Usage**: Integration tests use this endpoint for cleanup between test runs
+
+### Feature Flag Configuration
+
+Add to `.env` file to enable internal endpoints:
+```bash
+# Enable internal test data endpoints (SECURITY: Set to false in production)
+ENABLE_API_TEST_MODE=true
+```
+
+**Important Notes**:
+- These endpoints are gated by `ApiTestModeGuard` which checks the `ENABLE_API_TEST_MODE` environment variable
+- When disabled, endpoints return 404 (not 403) to hide their existence in production
+- Never enable in production environments - for development and testing only
+- Test user data is defined in `@project/types` package as `TEST_USER_DATA` constant
+
 ## CORS Configuration
 
 Configured for development and production origins:
