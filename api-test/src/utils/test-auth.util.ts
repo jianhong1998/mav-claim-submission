@@ -1,10 +1,18 @@
 import * as jwt from 'jsonwebtoken';
+import { TEST_USER_DATA } from '@project/types';
 
 /**
  * Test Authentication Utility
  *
  * Provides JWT token generation for API testing
  */
+
+/**
+ * Test user credentials for integration tests
+ *
+ * Re-exported from @project/types for backward compatibility
+ */
+export const TEST_USER = TEST_USER_DATA;
 
 export interface JWTPayload extends jwt.JwtPayload {
   userId: string;
@@ -35,18 +43,6 @@ export function generateTestJWT(userId: string, email: string): string {
     expiresIn: '24h',
   });
 }
-
-/**
- * Test user credentials for integration tests
- *
- * These correspond to seeded test data in the database
- */
-export const TEST_USER = {
-  id: '00000000-0000-0000-0000-000000000001', // Valid UUID for test user
-  email: 'test@mavericks-consulting.com',
-  name: 'Test User',
-  googleId: 'test-google-id-12345',
-};
 
 /**
  * Get authentication headers for test requests

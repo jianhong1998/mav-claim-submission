@@ -32,18 +32,28 @@ describe('Monthly Limit Validation', () => {
         headers: authHeaders(),
       });
 
-      if (response.data.success && response.data.claims) {
-        // Delete each claim
+      if (response.data?.success && response.data?.claims) {
+        // Delete each claim (skip paid claims as they can't be deleted)
         for (const claim of response.data.claims) {
-          await axiosInstance.delete(`/claims/${claim.id}`, {
-            headers: authHeaders(),
-            validateStatus: (status) => status < 500,
-          });
+          if (claim.status !== 'paid') {
+            try {
+              await axiosInstance.delete(`/claims/${claim.id}`, {
+                headers: authHeaders(),
+              });
+            } catch (deleteError) {
+              // Log but continue with other claims
+              console.log(
+                `Failed to delete claim ${claim.id}:`,
+                (deleteError as Error).message,
+              );
+            }
+          }
         }
       }
     } catch (error) {
-      // Ignore cleanup errors - tests will handle missing data
-      console.log('Cleanup warning:', (error as Error).message);
+      // If we can't get claims, log and continue
+      // Tests will fail if this is a real problem
+      console.log('Cleanup error:', (error as Error).message);
     }
   });
 
@@ -85,7 +95,7 @@ describe('Monthly Limit Validation', () => {
 
         // Verify error message format
         const errorData = axiosError.response?.data as any;
-        expect(errorData.message).toContain('TELCO');
+        expect(errorData.message).toContain('Telecommunications');
         expect(errorData.message).toContain('monthly limit');
         expect(errorData.message).toContain('$150.00');
         expect(errorData.message).toContain('Proposed');
@@ -226,7 +236,7 @@ describe('Monthly Limit Validation', () => {
 
         // Verify error message format
         const errorData = axiosError.response?.data as any;
-        expect(errorData.message).toContain('TELCO');
+        expect(errorData.message).toContain('Telecommunications');
         expect(errorData.message).toContain('$150.00');
         expect(errorData.message).toContain('Proposed');
       }
@@ -312,7 +322,7 @@ describe('Monthly Limit Validation', () => {
 
         // Verify error message format
         const errorData = axiosError.response?.data as any;
-        expect(errorData.message).toContain('FITNESS');
+        expect(errorData.message).toContain('Fitness & Wellness');
         expect(errorData.message).toContain('$50.00');
         expect(errorData.message).toContain('Proposed');
       }

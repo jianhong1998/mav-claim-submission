@@ -36,7 +36,7 @@
   - _Requirements: Requirement 1 (Feature Flag Control)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: NestJS Backend Developer | Task: Create ApiTestModeGuard in backend/src/modules/internal/guards/api-test-mode.guard.ts implementing CanActivate interface, check process.env.ENABLE_API_TEST_MODE === 'true', throw NotFoundException if false/undefined | Restrictions: Do not use ConfigService (read env directly), throw NotFoundException (not ForbiddenException), keep implementation under 10 lines, no logging in guard | Success: Guard blocks requests when ENABLE_API_TEST_MODE is not 'true', throws 404 (not 403), compiles without errors | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 2.2 Create response DTOs
+- [x] 2.2 Create response DTOs
   - Files:
     - `backend/src/modules/internal/dtos/test-data-response.dto.ts` (create)
     - `backend/src/modules/internal/dtos/test-data-delete-response.dto.ts` (create)
@@ -48,7 +48,7 @@
   - _Requirements: Requirement 5 (Request/Response Contract), Requirement 3 (Test Data Cleanup Endpoint)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: NestJS Backend Developer | Task: Create TestDataResponseDTO with structure { user: { id, email, name, googleId } } accepting UserEntity in constructor, create TestDataDeleteResponseDTO with structure { deleted: boolean, message: string }, add barrel export index.ts | Restrictions: DTOs should only extract required fields from UserEntity (id, email, name, googleId), no validation decorators needed (internal endpoints), follow existing DTO constructor pattern from health-check.dto.ts | Success: Both DTOs compile correctly, TestDataResponseDTO properly maps UserEntity fields, responses match requirement specification | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 2.3 Implement InternalController with both endpoints
+- [x] 2.3 Implement InternalController with both endpoints
   - Files:
     - `backend/src/modules/internal/controllers/internal.controller.ts` (create)
   - Implement POST /internal/test-data with idempotent create logic
@@ -59,7 +59,7 @@
   - _Requirements: Requirement 2 (Test User Creation Endpoint), Requirement 3 (Test Data Cleanup Endpoint)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: NestJS Backend Developer | Task: Create InternalController with POST /internal/test-data endpoint that tries userDBUtil.create(TEST_USER_DATA), catches duplicate error (code 23505) and queries existing user, returns TestDataResponseDTO; implement DELETE /internal/test-data that finds user by TEST_USER_DATA.id, calls userDBUtil.remove() if found, returns TestDataDeleteResponseDTO; apply ApiTestModeGuard to both endpoints | Restrictions: Controller only, no service layer, use existing UserDBUtil methods (create, findOne, remove), let database CASCADE handle related data deletion, follow design.md error handling strategy, keep controller under 60 lines total | Success: POST endpoint creates or returns existing user idempotently, DELETE endpoint removes user with CASCADE (tokens, claims, attachments auto-deleted), proper error handling for duplicate constraint violation, both endpoints return correct DTO format | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 2.4 Create and register InternalModule
+- [x] 2.4 Create and register InternalModule
   - Files:
     - `backend/src/modules/internal/internal.module.ts` (create)
     - `backend/src/modules/app/app.module.ts` (modify - add import)
@@ -84,7 +84,7 @@
 
 ## Phase 3: API Test Migration
 
-- [ ] 3.1 Update API test setup to use HTTP endpoints
+- [x] 3.1 Update API test setup to use HTTP endpoints
   - Files:
     - `api-test/src/setup/test-setup.ts` (modify)
     - `api-test/src/setup/vitest-setup.ts` (review - may need update if setup() is called from there)
@@ -96,7 +96,7 @@
   - _Requirements: Requirement 4 (Remove Direct Database Access from Tests)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Test Infrastructure Engineer | Task: Replace PostgreSQL Pool connection in api-test/src/setup/test-setup.ts with HTTP calls using axios: first DELETE /internal/test-data for cleanup, then POST /internal/test-data to create test user, store response.data.user, remove all pg-related imports and code | Restrictions: Use existing axios configuration from api-test/src/config/axios, remove pg Pool creation entirely, maintain setup() function signature, ensure cleanup runs before creation for test isolation | Success: setup() function uses HTTP instead of direct database access, test user is created via endpoint, no pg package imports remain, tests can still authenticate with created user | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 3.2 Remove pg package dependency
+- [x] 3.2 Remove pg package dependency
   - Files:
     - `api-test/package.json` (modify)
   - Remove pg and @types/pg from dependencies
@@ -106,7 +106,7 @@
   - _Requirements: Requirement 4 (Remove Direct Database Access from Tests)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: DevOps Engineer | Task: Remove 'pg' and '@types/pg' packages from api-test/package.json dependencies section, run 'pnpm install' in api-test directory to update lockfile | Restrictions: Only remove pg-related packages, do not remove other dependencies, ensure pnpm install succeeds without errors | Success: pg package is removed from package.json, pnpm install completes successfully, api-test no longer has database driver dependency | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 3.3 Verify API tests pass with new setup
+- [x] 3.3 Verify API tests pass with new setup
   - Command: `make test/api` (from project root)
   - Verify all existing API tests pass
   - Confirm test user authentication works
@@ -117,7 +117,7 @@
 
 ## Phase 4: Unit Tests
 
-- [ ] 4.1 Create ApiTestModeGuard unit tests
+- [x] 4.1 Create ApiTestModeGuard unit tests
   - Files:
     - `backend/src/modules/internal/guards/api-test-mode.guard.spec.ts` (create)
   - Test guard allows requests when ENABLE_API_TEST_MODE=true
@@ -127,7 +127,7 @@
   - _Requirements: Requirement 1 (Feature Flag Control)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with NestJS testing expertise | Task: Create unit tests for ApiTestModeGuard in backend/src/modules/internal/guards/api-test-mode.guard.spec.ts covering: (1) canActivate returns true when process.env.ENABLE_API_TEST_MODE='true', (2) throws NotFoundException when 'false', (3) throws NotFoundException when undefined | Restrictions: Mock process.env properly, restore original value after tests, test only the guard logic (no integration), use Jest framework following existing test patterns | Success: 3 test cases pass, all scenarios covered (true/false/undefined), guard behavior is verified, tests are isolated and repeatable | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 4.2 Create InternalController.createTestData unit tests
+- [x] 4.2 Create InternalController.createTestData unit tests
   - Files:
     - `backend/src/modules/internal/controllers/internal.controller.spec.ts` (create)
   - Test successful user creation returns TestDataResponseDTO
@@ -138,7 +138,7 @@
   - _Requirements: Requirement 2 (Test User Creation Endpoint)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with NestJS testing expertise | Task: Create unit tests for InternalController.createTestData() in backend/src/modules/internal/controllers/internal.controller.spec.ts covering: (1) userDBUtil.create() succeeds → returns TestDataResponseDTO with user data, (2) create throws error with code '23505' → findOne called → returns existing user, (3) create throws unknown error → error is re-thrown | Restrictions: Mock UserDBUtil entirely, do not test database behavior, focus on controller logic only, follow existing controller test patterns from auth.controller.spec.ts or app.controller.spec.ts if they exist | Success: 3 test cases pass, idempotent creation logic verified, error handling tested, mock interactions verified | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 4.3 Create InternalController.deleteTestData unit tests
+- [x] 4.3 Create InternalController.deleteTestData unit tests
   - Files:
     - `backend/src/modules/internal/controllers/internal.controller.spec.ts` (modify - add tests)
   - Test user exists → remove called → success response
@@ -148,7 +148,7 @@
   - _Requirements: Requirement 3 (Test Data Cleanup Endpoint)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer with NestJS testing expertise | Task: Add unit tests for InternalController.deleteTestData() to backend/src/modules/internal/controllers/internal.controller.spec.ts covering: (1) findOne returns user → remove called → returns { deleted: true, message: '...' }, (2) findOne returns null → remove not called → returns { deleted: false, message: '...' } | Restrictions: Mock UserDBUtil methods (findOne, remove), verify remove is only called when user exists, do not test CASCADE behavior (database responsibility), use same mock setup as task 4.2 | Success: 2 test cases pass, idempotent deletion logic verified, remove called only when appropriate, response format verified | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 4.4 Run backend unit tests
+- [x] 4.4 Run backend unit tests
   - Command: `make test/unit` (from project root)
   - Verify all unit tests pass including new internal module tests
   - Purpose: Ensure no regressions and new tests pass
@@ -158,7 +158,7 @@
 
 ## Phase 5: Integration Tests & Validation
 
-- [ ] 5.1 Create integration tests for internal endpoints
+- [x] 5.1 Create integration tests for internal endpoints
   - Files:
     - `api-test/src/tests/internal-test-data.test.ts` (create)
   - Test POST /internal/test-data creates user on first call
@@ -171,7 +171,7 @@
   - _Requirements: All requirements (integration validation)_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Integration Engineer | Task: Create comprehensive integration tests in api-test/src/tests/internal-test-data.test.ts covering: (1) POST creates user first time, (2) POST returns same user second time, (3) DELETE removes user when exists, (4) DELETE succeeds when user not found, (5) both endpoints return 404 with ENABLE_API_TEST_MODE=false (requires env manipulation or separate test environment) | Restrictions: Use existing axios configuration, test actual HTTP responses, verify response structure matches DTOs, ensure test isolation (cleanup between tests), follow existing test patterns from api-test/src/tests/ | Success: 5+ integration tests pass, idempotency verified for both endpoints, response formats validated, feature flag behavior confirmed | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 5.2 Verify database CASCADE delete behavior
+- [x] 5.2 Verify database CASCADE delete behavior
   - Files:
     - `api-test/src/tests/internal-test-data.test.ts` (modify - add CASCADE verification test)
   - Create test user with related data (oauth token, claim with attachment)
@@ -182,7 +182,7 @@
   - _Requirements: Requirement 3 (Test Data Cleanup Endpoint), database CASCADE design_
   - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Integration Engineer | Task: Add integration test to api-test/src/tests/internal-test-data.test.ts that creates test user, creates related oauth token (via auth flow if possible), creates claim with attachment (if endpoints exist), then calls DELETE /internal/test-data and verifies all related data is removed (query via API or check that subsequent operations confirm deletion) | Restrictions: Use existing API endpoints to create related data if available, do not directly query database (use HTTP endpoints), if related data creation is complex, simplify test to verify at least one CASCADE relationship, focus on verifying user deletion triggers CASCADE | Success: Test verifies that deleting user also removes related data via database CASCADE, confirms design.md CASCADE configuration works as expected | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 5.3 Run full test suite and validation
+- [x] 5.3 Run full test suite and validation
   - Commands:
     - `make test/unit` (backend unit tests)
     - `make test/api` (API integration tests)

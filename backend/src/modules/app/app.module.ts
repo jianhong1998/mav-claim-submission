@@ -8,6 +8,7 @@ import { EmailModule } from '../email/email.module';
 import { DriveModule } from '../drive/drive.module';
 import { ClaimsModule } from '../claims/claims.module';
 import { AttachmentModule } from '../attachments/attachment.module';
+import { InternalModule } from '../internal/internal.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AttachmentModule } from '../attachments/attachment.module';
     DriveModule,
     ClaimsModule,
     AttachmentModule,
+    InternalModule,
   ],
   controllers: [AppController],
   providers: [AppService],
