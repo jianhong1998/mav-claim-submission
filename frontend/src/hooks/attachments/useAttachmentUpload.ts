@@ -377,6 +377,10 @@ export const useAttachmentUpload = (claimId: string) => {
       void queryClient.invalidateQueries({
         queryKey: attachmentQueryKeys.list(claimId),
       });
+      // Invalidate claims cache to refresh attachment counts
+      void queryClient.invalidateQueries({
+        queryKey: ['claims', 'draft'],
+      });
 
       // Remove from current uploads on success
       setUploadState((prev) => {

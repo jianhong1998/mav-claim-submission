@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { getQueryKey, QueryGroup, QueryType } from './queries/keys';
 import {
   IClaimMetadata,
   IClaimCreateRequest,
@@ -59,15 +58,7 @@ export const useMultiClaim = () => {
   >({});
 
   // Query key for draft claims
-  const draftClaimsQueryKey = useMemo(
-    () =>
-      getQueryKey({
-        group: QueryGroup.EMAIL,
-        type: QueryType.LIST,
-        key: 'draft-claims',
-      }),
-    [],
-  );
+  const draftClaimsQueryKey = useMemo(() => ['claims', 'draft'], []);
 
   // Fetch draft claims
   const {

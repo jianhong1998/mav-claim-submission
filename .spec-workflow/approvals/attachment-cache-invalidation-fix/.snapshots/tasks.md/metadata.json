@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/attachment-cache-invalidation-fix/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-06T03:53:04.248Z",
+      "trigger": "initial",
+      "approvalId": "approval_1759722784246_0cys9wskn",
+      "approvalTitle": "Tasks: 2-Line Fix (Linus Approved)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-06T04:00:00.141Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759722784246_0cys9wskn",
+      "approvalTitle": "Tasks: 2-Line Fix (Linus Approved)"
+    }
+  ]
+}
