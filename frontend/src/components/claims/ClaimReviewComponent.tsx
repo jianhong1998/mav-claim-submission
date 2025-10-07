@@ -268,13 +268,14 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
     onMutate: (claimIds) => {
       setUpdatingClaims(new Set(claimIds));
     },
-    onSuccess: (results) => {
-      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+    onSuccess: async (results) => {
+      // Option 2: Await cache invalidation to prevent race conditions before redirect
+      await queryClient.invalidateQueries({ queryKey: ['claims'] });
       const successCount = results.filter((r) => r.success).length;
       toast.success(
         `Successfully sent ${successCount} claim email${successCount !== 1 ? 's' : ''} and marked as ready`,
       );
-      // Redirect to claims list page after successful update
+      // Redirect to claims list page after cache is cleared
       if (typeof window !== 'undefined') {
         window.location.href = '/';
       }

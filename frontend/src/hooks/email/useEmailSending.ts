@@ -31,9 +31,9 @@ export const useEmailSending = () => {
         emailRequest,
       );
     },
-    onSuccess: (data, variables) => {
-      // Invalidate claim-related queries to refresh status
-      void queryClient.invalidateQueries({
+    onSuccess: async (data, variables) => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({
         queryKey: getQueryKey({
           group: QueryGroup.ATTACHMENTS,
           type: QueryType.LIST,
@@ -41,16 +41,20 @@ export const useEmailSending = () => {
         }),
       });
 
-      // Invalidate any claim detail queries if they exist
-      // Note: Claims module query keys would be defined there
-      // This is a defensive approach in case they exist
-      void queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ['claims', 'one', { claimId: variables.claimId }],
       });
 
-      // Invalidate general claims list to show updated status
-      void queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ['claims', 'list'],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ['claims', 'all'],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ['claims', 'draft'],
       });
     },
     onError: (error) => {

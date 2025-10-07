@@ -372,14 +372,16 @@ export const useAttachmentUpload = (claimId: string) => {
     onError: (error, { file }) => {
       handleUploadError(error, file.name);
     },
-    onSuccess: (data, { file }) => {
-      // Invalidate attachment queries to refresh lists
-      void queryClient.invalidateQueries({
+    onSuccess: async (data, { file }) => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({
         queryKey: attachmentQueryKeys.list(claimId),
       });
-      // Invalidate claims cache to refresh attachment counts
-      void queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ['claims', 'draft'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['claims', 'all'],
       });
 
       // Remove from current uploads on success

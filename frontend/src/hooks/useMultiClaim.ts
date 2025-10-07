@@ -92,10 +92,10 @@ export const useMultiClaim = () => {
     mutationFn: async (claimData) => {
       return apiClient.post<IClaimResponse>('/claims', claimData);
     },
-    onSuccess: () => {
-      // Invalidate and refetch draft claims to get the new claim
-      void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
+    onSuccess: async () => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
@@ -108,10 +108,10 @@ export const useMultiClaim = () => {
     mutationFn: async ({ id, data }) => {
       return apiClient.put<IClaimResponse>(`/claims/${id}`, data);
     },
-    onSuccess: () => {
-      // Invalidate and refetch draft claims to get updated data
-      void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
+    onSuccess: async () => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
@@ -120,10 +120,10 @@ export const useMultiClaim = () => {
     mutationFn: async (claimId) => {
       return apiClient.delete(`/claims/${claimId}`);
     },
-    onSuccess: () => {
-      // Invalidate and refetch draft claims
-      void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
+    onSuccess: async () => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
@@ -138,9 +138,10 @@ export const useMultiClaim = () => {
       );
       await Promise.all(promises);
     },
-    onSuccess: () => {
-      // Invalidate draft claims query since they're no longer draft
-      void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+    onSuccess: async () => {
+      // Option 2: Await cache invalidation to prevent race conditions
+      await queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
       // Reset to creation phase for next multi-claim session
       setCurrentPhase(MultiClaimPhase.CREATION);
       setUploadProgress({});

@@ -111,6 +111,7 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
   const queryClient = useQueryClient();
 
   // Query for all claims using GET /claims endpoint
+  // Option 1: Force fresh data on mount to prevent stale cache issues
   const {
     data: response,
     isLoading,
@@ -124,6 +125,8 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
     retryDelay:
       retryConfig?.retryDelay ??
       ((attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)),
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch on component mount
   });
 
   const claims = response?.claims || [];
