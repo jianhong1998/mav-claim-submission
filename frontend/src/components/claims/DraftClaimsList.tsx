@@ -90,6 +90,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
       apiClient.delete<IClaimResponse>(`/claims/${claimId}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['claims', 'draft'] });
+      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
       toast.success('Claim deleted successfully');
     },
     onError: () => {

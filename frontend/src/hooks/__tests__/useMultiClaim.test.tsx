@@ -49,11 +49,14 @@ const createTestWrapper = () => {
     },
   });
 
+  // Spy on invalidateQueries to verify cache invalidation
+  vi.spyOn(queryClient, 'invalidateQueries');
+
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
   TestWrapper.displayName = 'TestWrapper';
-  return TestWrapper;
+  return { TestWrapper, queryClient };
 };
 
 const createMockClaim = (
@@ -91,11 +94,14 @@ const createMockClaimResponse = (claim: IClaimMetadata): IClaimResponse => ({
 });
 
 describe('useMultiClaim', () => {
-  let wrapper: ReturnType<typeof createTestWrapper>;
+  let wrapper: ReturnType<typeof createTestWrapper>['TestWrapper'];
+  let queryClient: ReturnType<typeof createTestWrapper>['queryClient'];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    wrapper = createTestWrapper();
+    const testUtils = createTestWrapper();
+    wrapper = testUtils.TestWrapper;
+    queryClient = testUtils.queryClient;
   });
 
   describe('Initial State', () => {
@@ -232,6 +238,14 @@ describe('useMultiClaim', () => {
 
       expect(mockApiClient.post).toHaveBeenCalledWith('/claims', newClaimData);
       expect(response!).toEqual(createResponse);
+
+      // Verify both query keys are invalidated
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'draft'],
+      });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'all'],
+      });
     });
 
     it('should show creating state during claim creation', async () => {
@@ -292,6 +306,14 @@ describe('useMultiClaim', () => {
         updateData,
       );
       expect(response!).toEqual(updateResponse);
+
+      // Verify both query keys are invalidated
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'draft'],
+      });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'all'],
+      });
     });
 
     it('should show updating state during claim update', async () => {
@@ -337,6 +359,14 @@ describe('useMultiClaim', () => {
       });
 
       expect(mockApiClient.delete).toHaveBeenCalledWith('/claims/claim-1');
+
+      // Verify both query keys are invalidated
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'draft'],
+      });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['claims', 'all'],
+      });
     });
 
     it('should clear upload progress when deleting a claim', async () => {

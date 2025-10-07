@@ -26,9 +26,9 @@ const ClaimsPage: NextPage = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) return;
+    if (isLoading || isAuthenticated) return;
     router.push('/login');
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
 
   return (
     <div className="container mx-auto py-4 sm:py-6 px-4">

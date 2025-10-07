@@ -95,6 +95,7 @@ export const useMultiClaim = () => {
     onSuccess: () => {
       // Invalidate and refetch draft claims to get the new claim
       void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
@@ -110,6 +111,7 @@ export const useMultiClaim = () => {
     onSuccess: () => {
       // Invalidate and refetch draft claims to get updated data
       void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
@@ -121,6 +123,7 @@ export const useMultiClaim = () => {
     onSuccess: () => {
       // Invalidate and refetch draft claims
       void queryClient.invalidateQueries({ queryKey: draftClaimsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: ['claims', 'all'] });
     },
   });
 
