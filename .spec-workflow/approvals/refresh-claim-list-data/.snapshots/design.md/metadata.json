@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/refresh-claim-list-data/design.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-07T01:44:43.762Z",
+      "trigger": "initial",
+      "approvalId": "approval_1759801483759_6mnk29if2",
+      "approvalTitle": "Design: Claim List Cache Invalidation Bug Fix"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-07T01:51:05.292Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759801483759_6mnk29if2",
+      "approvalTitle": "Design: Claim List Cache Invalidation Bug Fix"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2025-10-07T01:56:05.184Z",
+      "trigger": "approved",
+      "approvalId": "approval_1759802115810_av230bltf",
+      "approvalTitle": "Design: Cache Invalidation Fix (Simplified)"
+    }
+  ]
+}
