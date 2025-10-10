@@ -149,7 +149,7 @@ jobs:
           environment: << parameters.environment >>
 
   # -----------------------------------------------------------------------------
-  # ci-test: Run linting, build, and tests for continuous integration
+  # test: Run linting, build, and tests for continuous integration
   # -----------------------------------------------------------------------------
   # Purpose: Validate code quality on every push/PR before merging
   # Runs: Lint check, build all workspaces, unit tests, UI tests
@@ -157,7 +157,68 @@ jobs:
   # Node version: 22 (matches development environment)
   # Package manager: pnpm 9.0.0
   # -----------------------------------------------------------------------------
-  ci-test:
+  test:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+    steps:
+      - checkout
+
+      # Restore pnpm dependencies cache
+      - restore_cache:
+          keys:
+            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+
+      # Install dependencies
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+
+      # Save pnpm dependencies cache
+      - save_cache:
+          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+
+      # Run backend unit tests
+      - run:
+          name: Run backend unit tests
+          command: make test/unit
+
+      # Run frontend UI tests
+      - run:
+          name: Run frontend UI tests
+          command: make test/ui
+
+  build-check:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+    steps:
+      - checkout
+
+      # Restore pnpm dependencies cache
+      - restore_cache:
+          keys:
+            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+
+      # Install dependencies
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+
+      # Save pnpm dependencies cache
+      - save_cache:
+          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+
+      # Build all workspaces
+      - run:
+          name: Build all workspaces
+          command: pnpm run build
+
+  lint-check:
     docker:
       - image: cimg/node:22.11
     resource_class: medium
@@ -183,29 +244,13 @@ jobs:
       # Run lint check
       - run:
           name: Lint check
-          command: pnpm run lint
-
-      # Build all workspaces
-      - run:
-          name: Build all workspaces
-          command: pnpm run build
-
-      # Run backend unit tests
-      - run:
-          name: Run backend unit tests
-          command: make test/unit
-
-      # Run frontend UI tests
-      - run:
-          name: Run frontend UI tests
-          command: make test/ui
-
+          command: make lint
 # =============================================================================
 # UNIFIED CI/CD WORKFLOW
 # =============================================================================
 # One workflow with conditional deployment paths based on branch/tag rules.
 #
-# Flow: ci-test (always) → conditional deployments based on filters
+# Flow: test (always) → conditional deployments based on filters
 #
 # Deployment paths:
 # 1. Dev: ANY branch (no tags) → manual approval → dev builds
@@ -224,7 +269,9 @@ workflows:
       # This job runs automatically on every push
       # Tests MUST pass before ANY deployment approval gates appear
       # =======================================================================
-      - ci-test
+      - test
+      - build-check
+      - lint-check
 
       # =======================================================================
       # DEV DEPLOYMENT PATH
@@ -236,7 +283,9 @@ workflows:
       - hold-dev:
           type: approval
           requires:
-            - ci-test
+            - test
+            - build-check
+            - lint-check
           filters:
             tags:
               ignore: /.*/
@@ -284,7 +333,9 @@ workflows:
       - hold-staging:
           type: approval
           requires:
-            - ci-test
+            - test
+            - build-check
+            - lint-check
           filters:
             branches:
               only: main
@@ -341,7 +392,9 @@ workflows:
       - hold-production:
           type: approval
           requires:
-            - ci-test
+            - test
+            - build-check
+            - lint-check
           filters:
             branches:
               only: main
