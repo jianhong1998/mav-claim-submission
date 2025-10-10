@@ -168,19 +168,17 @@ jobs:
       - restore_cache:
           keys:
             - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
-            - pnpm-deps-v1-
 
       # Install dependencies
       - run:
           name: Install dependencies
-          command: pnpm install
+          command: pnpm install --frozen-lockfile
 
       # Save pnpm dependencies cache
       - save_cache:
           key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
           paths:
             - ~/.local/share/pnpm/store
-            - node_modules
 
       # Run lint check
       - run:
