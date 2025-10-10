@@ -147,55 +147,109 @@ jobs:
           repository: jianhong1998/mav-claim-submission-<< parameters.service >>
           environment: << parameters.environment >>
 
+  # -----------------------------------------------------------------------------
+  # ci-test: Run linting, build, and tests for continuous integration
+  # -----------------------------------------------------------------------------
+  # Purpose: Validate code quality on every push/PR before merging
+  # Runs: Lint check, build all workspaces, unit tests, UI tests
+  # Used by: ci workflow (automatic, no manual approval)
+  # Node version: 22 (matches development environment)
+  # Package manager: pnpm 9.0.0
+  # -----------------------------------------------------------------------------
+  ci-test:
+    docker:
+      - image: cimg/node:22.11
+    steps:
+      - checkout
+
+      # Install pnpm package manager
+      - run:
+          name: Install pnpm
+          command: |
+            curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=9.0.0 sh -
+            echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> $BASH_ENV
+            echo 'export PATH="$PNPM_HOME:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+
+      # Restore pnpm dependencies cache
+      - restore_cache:
+          keys:
+            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+            - pnpm-deps-v1-
+
+      # Install dependencies
+      - run:
+          name: Install dependencies
+          command: pnpm install
+
+      # Save pnpm dependencies cache
+      - save_cache:
+          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+            - node_modules
+
+      # Run lint check
+      - run:
+          name: Lint check
+          command: pnpm run lint
+
+      # Build all workspaces
+      - run:
+          name: Build all workspaces
+          command: pnpm run build
+
+      # Run backend unit tests
+      - run:
+          name: Run backend unit tests
+          command: make test/unit
+
+      # Run frontend UI tests
+      - run:
+          name: Run frontend UI tests
+          command: make test/ui
+
 # =============================================================================
-# WORKFLOWS - CI/CD PIPELINES FOR DIFFERENT ENVIRONMENTS
+# UNIFIED CI/CD WORKFLOW
 # =============================================================================
-# Three environment-specific workflows with different trigger rules:
+# One workflow with conditional deployment paths based on branch/tag rules.
 #
-# 1. dev-build (Development)
-#    - Triggers: ANY branch push (feature branches, bugfixes, etc.)
-#    - Tag filter: Ignores all git tags
-#    - Tagging: Uses commit SHA (first 7 chars)
-#    - Manual approval: Required before build
-#    - Use case: Testing changes in development environment
+# Flow: ci-test (always) → conditional deployments based on filters
 #
-# 2. staging-build (Staging)
-#    - Triggers: ONLY main branch pushes
-#    - Tag filter: Ignores all git tags
-#    - Tagging: Uses commit SHA (first 7 chars)
-#    - Manual approval: Required before build
-#    - Use case: Pre-production testing on main branch
+# Deployment paths:
+# 1. Dev: ANY branch (no tags) → manual approval → dev builds
+# 2. Staging: main branch only (no tags) → manual approval → staging builds
+# 3. Production: main branch + semantic version tag → manual approval → prod builds
 #
-# 3. production-build (Production)
-#    - Triggers: ONLY main branch with semantic version tags (v1.0.0, v2.3.4, etc.)
-#    - Tag filter: Only accepts tags matching /^v\d+\.\d+\.\d+$/
-#    - Tagging: Uses git tag (semantic version)
-#    - Manual approval: Required before build (CRITICAL for production)
-#    - Use case: Production releases with version tags
-#
-# Following Linus's principle: "No special cases - same job, different parameters."
+# Following Linus's principle: "Eliminate special cases by making them normal cases."
 # =============================================================================
 
 workflows:
-  # ===========================================================================
-  # DEV-BUILD WORKFLOW
-  # ===========================================================================
-  # Trigger rules:
-  #   - Branch: ALL branches (no filter)
-  #   - Tags: IGNORE all tags
-  # Tagging strategy: SHA (commit hash)
-  # Manual approval: YES (prevents accidental builds)
-  # ===========================================================================
-  dev-build:
+  ci-cd:
     jobs:
-      # Manual approval gate to prevent accidental builds
+      # =======================================================================
+      # STEP 1: Always run tests first (ALL branches, ALL tags)
+      # =======================================================================
+      # This job runs automatically on every push
+      # Tests MUST pass before ANY deployment approval gates appear
+      # =======================================================================
+      - ci-test
+
+      # =======================================================================
+      # DEV DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: ANY branch (no tags)
+      # Tagging: SHA (first 7 chars of commit)
+      # Manual approval required after tests pass
+      # =======================================================================
       - hold-dev:
           type: approval
+          requires:
+            - ci-test
           filters:
             tags:
               ignore: /.*/
 
-      # Build backend service with SHA tagging
       - build-and-push:
           name: build-backend-dev
           service: backend
@@ -207,7 +261,6 @@ workflows:
             tags:
               ignore: /.*/
 
-      # Build frontend service with SHA tagging
       - build-and-push:
           name: build-frontend-dev
           service: frontend
@@ -219,7 +272,6 @@ workflows:
             tags:
               ignore: /.*/
 
-      # Build db-migration service with SHA tagging
       - build-and-push:
           name: build-db-migration-dev
           service: db-migration
@@ -231,27 +283,23 @@ workflows:
             tags:
               ignore: /.*/
 
-  # ===========================================================================
-  # STAGING-BUILD WORKFLOW
-  # ===========================================================================
-  # Trigger rules:
-  #   - Branch: ONLY main branch
-  #   - Tags: IGNORE all tags
-  # Tagging strategy: SHA (commit hash)
-  # Manual approval: YES (prevents accidental staging deployments)
-  # ===========================================================================
-  staging-build:
-    jobs:
-      # Manual approval gate to prevent accidental staging deployments
+      # =======================================================================
+      # STAGING DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: main branch ONLY (no tags)
+      # Tagging: SHA (first 7 chars of commit)
+      # Manual approval required after tests pass
+      # =======================================================================
       - hold-staging:
           type: approval
+          requires:
+            - ci-test
           filters:
             branches:
               only: main
             tags:
               ignore: /.*/
 
-      # Build backend service with SHA tagging for staging
       - build-and-push:
           name: build-backend-staging
           service: backend
@@ -265,7 +313,6 @@ workflows:
             tags:
               ignore: /.*/
 
-      # Build frontend service with SHA tagging for staging
       - build-and-push:
           name: build-frontend-staging
           service: frontend
@@ -279,7 +326,6 @@ workflows:
             tags:
               ignore: /.*/
 
-      # Build db-migration service with SHA tagging for staging
       - build-and-push:
           name: build-db-migration-staging
           service: db-migration
@@ -293,28 +339,24 @@ workflows:
             tags:
               ignore: /.*/
 
-  # ===========================================================================
-  # PRODUCTION-BUILD WORKFLOW
-  # ===========================================================================
-  # Trigger rules:
-  #   - Branch: ONLY main branch
-  #   - Tags: ONLY semantic version tags (v1.0.0 format)
-  # Tagging strategy: TAG (uses semantic version from git tag)
-  # Manual approval: YES (CRITICAL for production safety)
-  # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
-  # ===========================================================================
-  production-build:
-    jobs:
-      # Manual approval gate - CRITICAL for production deployments
+      # =======================================================================
+      # PRODUCTION DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: main branch + semantic version tag (v1.0.0 format)
+      # Tagging: TAG (uses semantic version)
+      # Manual approval CRITICAL - only after tests pass
+      # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+      # =======================================================================
       - hold-production:
           type: approval
+          requires:
+            - ci-test
           filters:
             branches:
               only: main
             tags:
               only: /^v\d+\.\d+\.\d+$/
 
-      # Build backend service with semantic version tagging for production
       - build-and-push:
           name: build-backend-production
           service: backend
@@ -328,7 +370,6 @@ workflows:
             tags:
               only: /^v\d+\.\d+\.\d+$/
 
-      # Build frontend service with semantic version tagging for production
       - build-and-push:
           name: build-frontend-production
           service: frontend
@@ -342,7 +383,6 @@ workflows:
             tags:
               only: /^v\d+\.\d+\.\d+$/
 
-      # Build db-migration service with semantic version tagging for production
       - build-and-push:
           name: build-db-migration-production
           service: db-migration
