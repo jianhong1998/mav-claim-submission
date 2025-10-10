@@ -1,0 +1,111 @@
+# =======================================================
+# Production Frontend Dockerfile - Multi-Stage Build
+# =======================================================
+# Optimized for Next.js standalone output with minimal runtime image
+# Follows Requirement 5 (multi-stage builds) and Requirement 10 (TurboRepo integration)
+
+# =======================================================
+# Stage 1: Dependencies - Install all dependencies
+# =======================================================
+FROM node:22-alpine AS deps
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+WORKDIR /app
+
+# Copy workspace configuration files (layer caching optimization)
+# These files change infrequently, so they're copied first
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json ./
+
+# Copy package.json files for all required workspaces
+# This enables pnpm to resolve workspace dependencies correctly
+COPY packages/types/package.json ./packages/types/
+COPY frontend/package.json ./frontend/
+
+# Install all dependencies with frozen lockfile for reproducible builds
+# Uses frozen-lockfile to ensure exact versions from pnpm-lock.yaml
+RUN pnpm install --frozen-lockfile
+
+
+# =======================================================
+# Stage 2: Build - Build Next.js with standalone output
+# =======================================================
+FROM node:22-alpine AS build
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+WORKDIR /app
+
+# Copy dependencies from deps stage (reuse installed node_modules)
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=deps /app/turbo.json ./
+
+# Copy workspace package.json files
+COPY --from=deps /app/packages/types/package.json ./packages/types/
+COPY --from=deps /app/frontend/package.json ./frontend/
+
+# Copy source code for packages/types (build dependency for frontend)
+COPY packages/types/ ./packages/types/
+
+# Copy frontend source code
+COPY frontend/ ./frontend/
+
+# Build packages/types first (required by frontend)
+RUN pnpm --filter=@project/types run build
+
+# Build frontend application with Next.js standalone output
+# Standalone mode creates a minimal production build in .next/standalone
+RUN pnpm --filter=frontend run build
+
+
+# =======================================================
+# Stage 3: Runtime - Minimal production image
+# =======================================================
+FROM node:22-alpine AS runtime
+
+# Install dumb-init for proper signal handling (PID 1)
+# dumb-init ensures SIGTERM signals are properly forwarded to the Node.js process
+RUN apk add --no-cache dumb-init
+
+# Create non-root user and group
+# nodejs:nodejs with UID:GID 1001:1001 for security best practices
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
+
+WORKDIR /app
+
+# Set ownership of working directory to non-root user
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Copy Next.js standalone output from build stage
+# Standalone mode includes only necessary files and dependencies
+COPY --from=build --chown=nodejs:nodejs /app/frontend/.next/standalone ./
+
+# Copy static assets from build stage
+# Static files are served by Next.js server
+COPY --from=build --chown=nodejs:nodejs /app/frontend/.next/static ./frontend/.next/static
+
+# Copy public directory (if exists)
+# Public files are served at root level
+COPY --from=build --chown=nodejs:nodejs /app/frontend/public ./frontend/public
+
+# Expose frontend port
+EXPOSE 3000
+
+# Set working directory to frontend for runtime
+WORKDIR /app/frontend
+
+# Use dumb-init as PID 1 for proper signal handling
+# Runs as non-root user (nodejs:1001)
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start Next.js server in standalone mode
+# Standalone mode uses server.js as entry point
+CMD ["node", "server.js"]

@@ -1,13 +1,24 @@
 # =======================================================
-# Docker ignore file - Optimized for monorepo development
+# Docker Ignore File - Production Build Optimization
 # =======================================================
+# Purpose: Minimize Docker build context size and exclude
+# unnecessary files from production container images.
+# This reduces build time, network transfer, and final image size.
 
-# Git and version control
+# ------------------------------------------------------
+# Version Control (Security + Size)
+# ------------------------------------------------------
+# Exclude: Git history is not needed in production containers
+# and can contain sensitive information about development process
 .git
 .gitignore
 .gitattributes
 
-# Documentation and notes
+# ------------------------------------------------------
+# Documentation (Build Performance)
+# ------------------------------------------------------
+# Exclude: Documentation is for developers, not runtime
+# Reduces build context by ~5-10MB depending on docs size
 *.md
 README*
 CHANGELOG*
@@ -16,7 +27,11 @@ docs/
 instruction.md
 PLAN.md
 
-# IDE and editor files
+# ------------------------------------------------------
+# IDE and Editor Files (Security + Size)
+# ------------------------------------------------------
+# Exclude: IDE configs can leak developer environment info
+# and contain workspace-specific settings not needed in container
 .vscode/
 .idea/
 *.swp
@@ -25,76 +40,137 @@ PLAN.md
 .DS_Store
 Thumbs.db
 
-# Development and testing
-.turbo/
+# ------------------------------------------------------
+# Test Files (Build Performance + Image Size)
+# ------------------------------------------------------
+# Exclude: Test files not needed in production runtime
+# Typical savings: 20-30% of source code size
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+vitest.config.*
+test-results/
 coverage/
+
+# ------------------------------------------------------
+# Development Artifacts (Build Performance)
+# ------------------------------------------------------
+# Exclude: TurboRepo cache and logs are local dev artifacts
+# .turbo/ can be large (100MB+) and contains cached task outputs
+.turbo/
+.cache/
 *.log
 *.tmp
-.cache/
-test-results/
-
-# Node.js development artifacts
-node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .pnpm-debug.log*
 
-# Build outputs (will be built inside Docker)
+# ------------------------------------------------------
+# Node Modules (Build Strategy)
+# ------------------------------------------------------
+# Exclude: node_modules will be installed fresh inside container
+# using pnpm install to ensure consistent dependencies
+# Typical savings: 200-500MB from build context
+node_modules/
+
+# ------------------------------------------------------
+# Build Outputs (Build Strategy)
+# ------------------------------------------------------
+# Exclude: Will be built inside Docker during multi-stage build
+# Frontend (.next/) and backend (dist/) are rebuilt in container
+# to ensure platform-specific optimizations (amd64/arm64)
 dist/
 build/
 .next/
 out/
 
-# Database files
+# ------------------------------------------------------
+# Database Files (Security + Size)
+# ------------------------------------------------------
+# Exclude: Local database files should never be in containers
+# Database runs as separate service in production
 postgres-data/
 *.db
 *.sqlite
 *.sqlite3
 
-# Environment files (copied explicitly when needed)
+# ------------------------------------------------------
+# Environment Files (Security)
+# ------------------------------------------------------
+# Exclude: Local env files may contain secrets
+# Production containers use environment variables from orchestrator
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Docker files and compose
+# ------------------------------------------------------
+# Docker Files (Build Strategy)
+# ------------------------------------------------------
+# Exclude: Docker configuration files not needed inside images
+# These are used by the build process, not the runtime
 docker-compose*.yml
 Dockerfile*
 .dockerignore
 
-# Makefile (not needed in container)
+# ------------------------------------------------------
+# CI/CD and Testing Workspaces (Production Exclusion)
+# ------------------------------------------------------
+# Exclude: api-test workspace not needed in production images
+# Contains integration tests and test utilities
+api-test/
+
+# ------------------------------------------------------
+# Build Tools (Build Performance)
+# ------------------------------------------------------
+# Exclude: Makefile is for local development only
+# Container orchestration tools (K8s, Docker Compose) handle lifecycle
 Makefile
 
-# Temporary directories
+# ------------------------------------------------------
+# Temporary Directories (Size + Security)
+# ------------------------------------------------------
+# Exclude: Temporary files can contain sensitive data or waste space
 tmp/
 temp/
 .tmp/
 
-# OS generated files
+# ------------------------------------------------------
+# OS Generated Files (Size)
+# ------------------------------------------------------
+# Exclude: OS-specific files serve no purpose in Linux containers
 .DS_Store?
 ehthumbs.db
 Icon?
 
-# Package manager lockfiles (copied explicitly)
-# Commented out as we need these for dependency installation
-# pnpm-lock.yaml
-# package-lock.json
-# yarn.lock
-
-# Vitest and testing
-vitest.config.*
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
-
-# Linting and formatting
+# ------------------------------------------------------
+# Linting and Formatting (Build Performance)
+# ------------------------------------------------------
+# Exclude: Linting configs are for development only
+# Production containers don't run linters
 .eslintrc*
 .prettierrc*
 .prettierignore
 eslint.config.*
 
-# TypeScript config (copied when needed)
-# tsconfig*.json - commented as needed for builds
+# ------------------------------------------------------
+# Spec Workflow (Build Performance)
+# ------------------------------------------------------
+# Exclude: Specification documents not needed in runtime
+# Contains requirements, design docs, and task tracking
+.spec-workflow/
+
+# =======================================================
+# IMPORTANT: Files Below Are INCLUDED (Not Ignored)
+# =======================================================
+# ✅ pnpm-lock.yaml    - Required for reproducible dependency installs
+# ✅ package.json      - Required for workspace dependency resolution
+# ✅ turbo.json        - Required for TurboRepo task orchestration
+# ✅ tsconfig*.json    - Required for TypeScript compilation in container
+#
+# These files are critical for multi-stage Docker builds.
+# Excluding them will cause build failures.
