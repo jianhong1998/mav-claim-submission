@@ -113,6 +113,7 @@ jobs:
   build-and-push:
     docker:
       - image: cimg/base:stable
+    resource_class: medium
     parameters:
       service:
         type: enum
@@ -159,17 +160,9 @@ jobs:
   ci-test:
     docker:
       - image: cimg/node:22.11
+    resource_class: medium
     steps:
       - checkout
-
-      # Install pnpm package manager
-      # - run:
-      #     name: Install pnpm
-      #     command: |
-      #       curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=9.0.0 sh -
-      #       echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> $BASH_ENV
-      #       echo 'export PATH="$PNPM_HOME:$PATH"' >> $BASH_ENV
-      #       source $BASH_ENV
 
       # Restore pnpm dependencies cache
       - restore_cache:
