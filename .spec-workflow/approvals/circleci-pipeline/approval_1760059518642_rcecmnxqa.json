@@ -1,0 +1,12 @@
+{
+  "id": "approval_1760059518642_rcecmnxqa",
+  "title": "Initialize CircleCI pipeline spec",
+  "filePath": ".spec-workflow/init",
+  "type": "action",
+  "status": "rejected",
+  "createdAt": "2025-10-10T01:25:18.642Z",
+  "category": "spec",
+  "categoryName": "circleci-pipeline",
+  "response": "No document found",
+  "respondedAt": "2025-10-10T01:30:46.491Z"
+}
