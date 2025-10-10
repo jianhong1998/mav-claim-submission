@@ -1,0 +1,357 @@
+version: 2.1
+
+# =============================================================================
+# REUSABLE COMMANDS FOR DOCKER OPERATIONS
+# =============================================================================
+# These commands implement core Docker functionality used across all workflows.
+# Following Linus's principle: "Eliminate special cases by making them reusable."
+
+commands:
+  # -----------------------------------------------------------------------------
+  # docker-login: Authenticate to Docker Hub
+  # -----------------------------------------------------------------------------
+  # Purpose: Securely authenticates to Docker Hub using CircleCI secrets
+  # Used by: All build workflows (dev, staging, production)
+  # Security: Uses environment variables DOCKERHUB_USERNAME and DOCKERHUB_PASSWORD
+  #           configured in CircleCI project settings (never hardcoded)
+  # -----------------------------------------------------------------------------
+  docker-login:
+    description: "Authenticate to Docker Hub using CircleCI environment variables"
+    steps:
+      - run:
+          name: Login to Docker Hub
+          command: echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+  # -----------------------------------------------------------------------------
+  # setup-buildx: Configure Docker buildx for multi-platform builds
+  # -----------------------------------------------------------------------------
+  # Purpose: Enables building Docker images for multiple CPU architectures
+  # Platforms: linux/amd64 (Intel/AMD) and linux/arm64 (Apple Silicon, ARM servers)
+  # Used by: All build workflows
+  # Implementation: Creates a buildx builder instance with docker-container driver
+  # -----------------------------------------------------------------------------
+  setup-buildx:
+    description: "Configure Docker buildx for multi-platform builds with caching"
+    steps:
+      - run:
+          name: Set up Docker buildx
+          command: |
+            docker buildx create --use --name multiarch-builder --driver docker-container
+            docker buildx inspect --bootstrap
+
+  # -----------------------------------------------------------------------------
+  # build-and-push-image: Build and push multi-platform Docker image
+  # -----------------------------------------------------------------------------
+  # Purpose: Core build logic for all service images (backend, frontend, db-migration)
+  # Parameters:
+  #   - service: Service name determines which Dockerfile to use
+  #   - tag: Image version tag (SHA for dev/staging, semantic version for production)
+  #   - dockerfile: Path to Dockerfile in docker/deployment/
+  #   - repository: Docker Hub repository (jianhong1998/mav-claim-submission-{service})
+  #   - environment: Target environment (dev/staging/production) for latest tag
+  # Optimization: Uses registry cache for faster builds (cache-from/cache-to)
+  # Multi-arch: Builds for linux/amd64 and linux/arm64 simultaneously
+  # Tags: Pushes both specific version tag and latest-{environment} tag
+  # -----------------------------------------------------------------------------
+  build-and-push-image:
+    description: "Build and push Docker image for multiple platforms with registry caching"
+    parameters:
+      service:
+        type: string
+        description: "Service name (backend, frontend, db-migration)"
+      tag:
+        type: string
+        description: "Image tag (e.g., commit SHA or semantic version)"
+      dockerfile:
+        type: string
+        description: "Path to Dockerfile"
+      repository:
+        type: string
+        description: "Docker Hub repository name"
+      environment:
+        type: string
+        description: "Environment (dev, staging, production)"
+    steps:
+      - run:
+          name: Build and push << parameters.service >> image
+          command: |
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --tag << parameters.repository >>:<< parameters.tag >> \
+              --tag << parameters.repository >>:latest-<< parameters.environment >> \
+              --cache-from type=registry,ref=<< parameters.repository >>:buildcache \
+              --cache-to type=registry,ref=<< parameters.repository >>:buildcache,mode=max \
+              --file << parameters.dockerfile >> \
+              --push \
+              .
+
+# =============================================================================
+# REUSABLE JOB FOR BUILDING AND PUSHING SERVICE IMAGES
+# =============================================================================
+# This single parameterized job handles all 9 build combinations:
+#   - 3 services (backend, frontend, db-migration)
+#   - 3 environments (dev, staging, production)
+# Following Linus's principle: "ONE job definition for all special cases."
+#
+# Parameters:
+#   - service: Which microservice to build (backend/frontend/db-migration)
+#   - environment: Target environment determines latest tag (dev/staging/production)
+#   - tag_strategy: How to tag the image:
+#       * "sha" → Uses first 7 chars of git commit SHA (for dev/staging)
+#       * "tag" → Uses git tag (semantic version for production)
+#
+# Job flow:
+#   1. Checkout code from git
+#   2. Setup remote Docker (required for buildx multi-platform builds)
+#   3. Determine image tag based on tag_strategy
+#   4. Authenticate to Docker Hub
+#   5. Configure buildx for multi-arch builds
+#   6. Build and push image for both amd64 and arm64
+# =============================================================================
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:stable
+    parameters:
+      service:
+        type: enum
+        enum: ["backend", "frontend", "db-migration"]
+        description: "Service to build"
+      environment:
+        type: enum
+        enum: ["dev", "staging", "production"]
+        description: "Target environment"
+      tag_strategy:
+        type: enum
+        enum: ["sha", "tag"]
+        description: "Tagging strategy (sha for commit, tag for release)"
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Determine image tag
+          command: |
+            if [ "<< parameters.tag_strategy >>" = "sha" ]; then
+              echo "export IMAGE_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            else
+              echo "export IMAGE_TAG=${CIRCLE_TAG}" >> $BASH_ENV
+            fi
+      - docker-login
+      - setup-buildx
+      - build-and-push-image:
+          service: << parameters.service >>
+          tag: ${IMAGE_TAG}
+          dockerfile: docker/deployment/Dockerfile.<< parameters.service >>
+          repository: jianhong1998/mav-claim-submission-<< parameters.service >>
+          environment: << parameters.environment >>
+
+# =============================================================================
+# WORKFLOWS - CI/CD PIPELINES FOR DIFFERENT ENVIRONMENTS
+# =============================================================================
+# Three environment-specific workflows with different trigger rules:
+#
+# 1. dev-build (Development)
+#    - Triggers: ANY branch push (feature branches, bugfixes, etc.)
+#    - Tag filter: Ignores all git tags
+#    - Tagging: Uses commit SHA (first 7 chars)
+#    - Manual approval: Required before build
+#    - Use case: Testing changes in development environment
+#
+# 2. staging-build (Staging)
+#    - Triggers: ONLY main branch pushes
+#    - Tag filter: Ignores all git tags
+#    - Tagging: Uses commit SHA (first 7 chars)
+#    - Manual approval: Required before build
+#    - Use case: Pre-production testing on main branch
+#
+# 3. production-build (Production)
+#    - Triggers: ONLY main branch with semantic version tags (v1.0.0, v2.3.4, etc.)
+#    - Tag filter: Only accepts tags matching /^v\d+\.\d+\.\d+$/
+#    - Tagging: Uses git tag (semantic version)
+#    - Manual approval: Required before build (CRITICAL for production)
+#    - Use case: Production releases with version tags
+#
+# Following Linus's principle: "No special cases - same job, different parameters."
+# =============================================================================
+
+workflows:
+  # ===========================================================================
+  # DEV-BUILD WORKFLOW
+  # ===========================================================================
+  # Trigger rules:
+  #   - Branch: ALL branches (no filter)
+  #   - Tags: IGNORE all tags
+  # Tagging strategy: SHA (commit hash)
+  # Manual approval: YES (prevents accidental builds)
+  # ===========================================================================
+  dev-build:
+    jobs:
+      # Manual approval gate to prevent accidental builds
+      - hold-dev:
+          type: approval
+          filters:
+            tags:
+              ignore: /.*/
+
+      # Build backend service with SHA tagging
+      - build-and-push:
+          name: build-backend-dev
+          service: backend
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+      # Build frontend service with SHA tagging
+      - build-and-push:
+          name: build-frontend-dev
+          service: frontend
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+      # Build db-migration service with SHA tagging
+      - build-and-push:
+          name: build-db-migration-dev
+          service: db-migration
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+  # ===========================================================================
+  # STAGING-BUILD WORKFLOW
+  # ===========================================================================
+  # Trigger rules:
+  #   - Branch: ONLY main branch
+  #   - Tags: IGNORE all tags
+  # Tagging strategy: SHA (commit hash)
+  # Manual approval: YES (prevents accidental staging deployments)
+  # ===========================================================================
+  staging-build:
+    jobs:
+      # Manual approval gate to prevent accidental staging deployments
+      - hold-staging:
+          type: approval
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      # Build backend service with SHA tagging for staging
+      - build-and-push:
+          name: build-backend-staging
+          service: backend
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      # Build frontend service with SHA tagging for staging
+      - build-and-push:
+          name: build-frontend-staging
+          service: frontend
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      # Build db-migration service with SHA tagging for staging
+      - build-and-push:
+          name: build-db-migration-staging
+          service: db-migration
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+  # ===========================================================================
+  # PRODUCTION-BUILD WORKFLOW
+  # ===========================================================================
+  # Trigger rules:
+  #   - Branch: ONLY main branch
+  #   - Tags: ONLY semantic version tags (v1.0.0 format)
+  # Tagging strategy: TAG (uses semantic version from git tag)
+  # Manual approval: YES (CRITICAL for production safety)
+  # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+  # ===========================================================================
+  production-build:
+    jobs:
+      # Manual approval gate - CRITICAL for production deployments
+      - hold-production:
+          type: approval
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      # Build backend service with semantic version tagging for production
+      - build-and-push:
+          name: build-backend-production
+          service: backend
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      # Build frontend service with semantic version tagging for production
+      - build-and-push:
+          name: build-frontend-production
+          service: frontend
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      # Build db-migration service with semantic version tagging for production
+      - build-and-push:
+          name: build-db-migration-production
+          service: db-migration
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
