@@ -16,7 +16,7 @@ commands:
   #           configured in CircleCI project settings (never hardcoded)
   # -----------------------------------------------------------------------------
   docker-login:
-    description: "Authenticate to Docker Hub using CircleCI environment variables"
+    description: 'Authenticate to Docker Hub using CircleCI environment variables'
     steps:
       - run:
           name: Login to Docker Hub
@@ -31,7 +31,7 @@ commands:
   # Implementation: Creates a buildx builder instance with docker-container driver
   # -----------------------------------------------------------------------------
   setup-buildx:
-    description: "Configure Docker buildx for multi-platform builds with caching"
+    description: 'Configure Docker buildx for multi-platform builds with caching'
     steps:
       - run:
           name: Set up Docker buildx
@@ -54,23 +54,23 @@ commands:
   # Tags: Pushes both specific version tag and latest-{environment} tag
   # -----------------------------------------------------------------------------
   build-and-push-image:
-    description: "Build and push Docker image for multiple platforms with registry caching"
+    description: 'Build and push Docker image for multiple platforms with registry caching'
     parameters:
       service:
         type: string
-        description: "Service name (backend, frontend, db-migration)"
+        description: 'Service name (backend, frontend, db-migration)'
       tag:
         type: string
-        description: "Image tag (e.g., commit SHA or semantic version)"
+        description: 'Image tag (e.g., commit SHA or semantic version)'
       dockerfile:
         type: string
-        description: "Path to Dockerfile"
+        description: 'Path to Dockerfile'
       repository:
         type: string
-        description: "Docker Hub repository name"
+        description: 'Docker Hub repository name'
       environment:
         type: string
-        description: "Environment (dev, staging, production)"
+        description: 'Environment (dev, staging, production)'
     steps:
       - run:
           name: Build and push << parameters.service >> image
@@ -116,16 +116,16 @@ jobs:
     parameters:
       service:
         type: enum
-        enum: ["backend", "frontend", "db-migration"]
-        description: "Service to build"
+        enum: ['backend', 'frontend', 'db-migration']
+        description: 'Service to build'
       environment:
         type: enum
-        enum: ["dev", "staging", "production"]
-        description: "Target environment"
+        enum: ['dev', 'staging', 'production']
+        description: 'Target environment'
       tag_strategy:
         type: enum
-        enum: ["sha", "tag"]
-        description: "Tagging strategy (sha for commit, tag for release)"
+        enum: ['sha', 'tag']
+        description: 'Tagging strategy (sha for commit, tag for release)'
     steps:
       - checkout
       - setup_remote_docker:
@@ -163,13 +163,17 @@ jobs:
       - checkout
 
       # Install pnpm package manager
+      # - run:
+      #     name: Install pnpm
+      #     command: |
+      #       curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=9.0.0 sh -
+      #       echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> $BASH_ENV
+      #       echo 'export PATH="$PNPM_HOME:$PATH"' >> $BASH_ENV
+      #       source $BASH_ENV
       - run:
           name: Install pnpm
           command: |
-            curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=9.0.0 sh -
-            echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> $BASH_ENV
-            echo 'export PATH="$PNPM_HOME:$PATH"' >> $BASH_ENV
-            source $BASH_ENV
+            npm i -g pnpm
 
       # Restore pnpm dependencies cache
       - restore_cache:
