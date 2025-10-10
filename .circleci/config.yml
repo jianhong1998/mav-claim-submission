@@ -170,10 +170,6 @@ jobs:
       #       echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> $BASH_ENV
       #       echo 'export PATH="$PNPM_HOME:$PATH"' >> $BASH_ENV
       #       source $BASH_ENV
-      - run:
-          name: Install pnpm
-          command: |
-            npm i -g pnpm
 
       # Restore pnpm dependencies cache
       - restore_cache:
