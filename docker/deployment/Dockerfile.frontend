@@ -97,7 +97,7 @@ COPY --from=build --chown=nodejs:nodejs /app/frontend/.next/static ./frontend/.n
 COPY --from=build --chown=nodejs:nodejs /app/frontend/public ./frontend/public
 
 # Expose frontend port
-EXPOSE 3000
+# EXPOSE 3000
 
 # Set working directory to frontend for runtime
 WORKDIR /app/frontend

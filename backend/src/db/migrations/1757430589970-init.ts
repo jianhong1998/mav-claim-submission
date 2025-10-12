@@ -5,6 +5,9 @@ export class Init1757430589970 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+        `);
+    await queryRunner.query(`
             CREATE TYPE "public"."oauth_tokens_provider_enum" AS ENUM('google')
         `);
     await queryRunner.query(`
@@ -202,6 +205,9 @@ export class Init1757430589970 implements MigrationInterface {
         `);
     await queryRunner.query(`
             DROP TYPE "public"."oauth_tokens_provider_enum"
+        `);
+    await queryRunner.query(`
+            DROP EXTENSION IF EXISTS "uuid-ossp"
         `);
   }
 }
