@@ -180,6 +180,11 @@ jobs:
           paths:
             - ~/.local/share/pnpm/store
 
+      # Build all workspaces
+      - run:
+          name: Build all workspaces
+          command: pnpm run build
+
       # Run backend unit tests
       - run:
           name: Run backend unit tests
@@ -189,34 +194,6 @@ jobs:
       - run:
           name: Run frontend UI tests
           command: make test/ui
-
-  build-check:
-    docker:
-      - image: cimg/node:22.11
-    resource_class: medium
-    steps:
-      - checkout
-
-      # Restore pnpm dependencies cache
-      - restore_cache:
-          keys:
-            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
-
-      # Install dependencies
-      - run:
-          name: Install dependencies
-          command: pnpm install --frozen-lockfile
-
-      # Save pnpm dependencies cache
-      - save_cache:
-          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
-          paths:
-            - ~/.local/share/pnpm/store
-
-      # Build all workspaces
-      - run:
-          name: Build all workspaces
-          command: pnpm run build
 
   lint-check:
     docker:
@@ -270,7 +247,6 @@ workflows:
       # Tests MUST pass before ANY deployment approval gates appear
       # =======================================================================
       - test
-      - build-check
       - lint-check
 
       # =======================================================================
@@ -284,7 +260,6 @@ workflows:
           type: approval
           requires:
             - test
-            - build-check
             - lint-check
           filters:
             tags:
@@ -334,7 +309,6 @@ workflows:
           type: approval
           requires:
             - test
-            - build-check
             - lint-check
           filters:
             branches:
@@ -393,7 +367,6 @@ workflows:
           type: approval
           requires:
             - test
-            - build-check
             - lint-check
           filters:
             branches:
