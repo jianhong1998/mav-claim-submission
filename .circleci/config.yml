@@ -28,17 +28,19 @@ commands:
   # Purpose: Enables building Docker images for multiple CPU architectures
   # Platforms: linux/amd64 (Intel/AMD) and linux/arm64 (Apple Silicon, ARM servers)
   # Used by: All build workflows
-  # Implementation: Creates a buildx builder instance with docker-container driver
-  # Note: Registry caching disabled to avoid credential isolation issues
+  # Implementation: Uses QEMU emulation with default builder to avoid credential issues
+  # Note: Default builder has access to Docker auth, docker-container driver does not
   # -----------------------------------------------------------------------------
   setup-buildx:
-    description: 'Configure Docker buildx for multi-platform builds'
+    description: 'Configure Docker buildx for multi-platform builds with QEMU'
     steps:
       - run:
-          name: Set up Docker buildx
+          name: Set up QEMU for multi-platform builds
           command: |
-            docker buildx create --use --name multiarch-builder --driver docker-container
-            docker buildx inspect --bootstrap
+            docker run --rm --privileged tonistiigi/binfmt:latest --install all
+      - run:
+          name: Verify buildx platforms
+          command: docker buildx ls
 
   # -----------------------------------------------------------------------------
   # build-and-push-image: Build and push multi-platform Docker image
