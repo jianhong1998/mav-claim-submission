@@ -23,23 +23,6 @@ commands:
           command: echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
   # -----------------------------------------------------------------------------
-  # setup-buildx: Configure Docker buildx for multi-platform builds
-  # -----------------------------------------------------------------------------
-  # Purpose: Enables building Docker images for multiple CPU architectures
-  # Platforms: linux/amd64 (Intel/AMD) and linux/arm64 (Apple Silicon, ARM servers)
-  # Used by: All build workflows
-  # Implementation: Creates a buildx builder instance with docker-container driver
-  # -----------------------------------------------------------------------------
-  setup-buildx:
-    description: 'Configure Docker buildx for multi-platform builds with caching'
-    steps:
-      - run:
-          name: Set up Docker buildx
-          command: |
-            docker buildx create --use --name multiarch-builder --driver docker-container
-            docker buildx inspect --bootstrap
-
-  # -----------------------------------------------------------------------------
   # build-and-push-image: Build and push multi-platform Docker image
   # -----------------------------------------------------------------------------
   # Purpose: Core build logic for all service images (backend, frontend, db-migration)
@@ -140,7 +123,6 @@ jobs:
               echo "export IMAGE_TAG=${CIRCLE_TAG}" >> $BASH_ENV
             fi
       - docker-login
-      - setup-buildx
       - build-and-push-image:
           service: << parameters.service >>
           tag: ${IMAGE_TAG}
