@@ -132,7 +132,7 @@ jobs:
   build-and-push:
     docker:
       - image: cimg/base:stable
-    resource_class: medium
+    resource_class: large
     parameters:
       service:
         type: enum
