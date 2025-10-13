@@ -54,6 +54,11 @@ COPY packages/types/ ./packages/types/
 # Copy frontend source code
 COPY frontend/ ./frontend/
 
+# Restore workspace node_modules from deps stage (fixes pnpm workspace symlinks)
+# Source code copy above overwrites node_modules, so we restore them here
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+
 # Build packages/types first (required by frontend)
 RUN pnpm --filter=@project/types run build
 

@@ -54,6 +54,11 @@ COPY packages/types/ ./packages/types/
 # Copy backend source code
 COPY backend/ ./backend/
 
+# Restore workspace node_modules from deps stage (fixes pnpm workspace symlinks)
+# Source code copy above overwrites node_modules, so we restore them here
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+
 # Build packages/types first (required by backend)
 RUN pnpm --filter=@project/types run build
 
