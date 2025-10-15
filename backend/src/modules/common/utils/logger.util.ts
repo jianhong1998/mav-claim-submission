@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConsoleLogger, Injectable } from '@nestjs/common';
 
 import { EnvironmentVariableUtil } from './environment-variable.util';
 
@@ -10,9 +10,17 @@ export class LoggerUtil {
     this.varList = envVarUtil.getVariables();
   }
 
-  public createLogger(logKey: string): Logger {
-    const shouldLogTimestamp = this.varList.nodeEnv === 'local';
+  public createLogger(logKey: string): ConsoleLogger {
+    const isLocal = this.varList.nodeEnv === 'local';
 
-    return new Logger(logKey, { timestamp: shouldLogTimestamp });
+    const shouldLogTimestamp = isLocal;
+    const shouldColoriseLog = isLocal;
+    const shouldOutputInJson = !isLocal;
+
+    return new ConsoleLogger(logKey, {
+      timestamp: shouldLogTimestamp,
+      colors: shouldColoriseLog,
+      json: shouldOutputInJson,
+    });
   }
 }
