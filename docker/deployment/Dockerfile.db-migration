@@ -124,4 +124,4 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # Run TypeORM migrations using production command
 # This executes all pending migrations against the database
-CMD ["pnpm", "run", "migration:run"]
+CMD ["sh", "-c", "pnpm run migration:run && exit 0"]
