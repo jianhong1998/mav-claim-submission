@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import React from 'react';
 import './globals.css';
 import { AppTitle } from '@/components/headers/app-title';
+import { RuntimeConfigScript } from '@/components/runtime-config-script';
 
 export const metadata: Metadata = {
   title: 'Mavericks Claim Submission',
@@ -23,6 +24,7 @@ const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
       className="dark"
     >
       <body className={`antialiased`}>
+        <RuntimeConfigScript />
         <ReactQueryProvider>
           <AuthProvider>
             <div className="min-h-screen bg-background">
