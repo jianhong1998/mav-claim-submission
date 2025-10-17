@@ -18,7 +18,6 @@ type IEnvironmentVariableList = {
   googleDriveScope: string;
   tokenEncryptionKey: string;
   jwtSecret: string;
-  frontendBaseUrl: string;
 
   // Database Related
   databaseHost: string;
@@ -121,10 +120,6 @@ export class EnvironmentVariableUtil {
       jwtSecret: this.configService.get(
         'BACKEND_JWT_SECRET',
         'mav-claim-jwt-secret-default-key',
-      ),
-      frontendBaseUrl: this.configService.get(
-        'BACKEND_FRONTEND_BASE_URL',
-        'http://localhost:3000',
       ),
       databaseHost: this.configService.get('DATABASE_HOST', 'localhost'),
       databasePort: this.configService.get<number>('DATABASE_PORT', 5432),
