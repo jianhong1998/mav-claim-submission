@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_DB: ${DATABASE_DB}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_DB}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  server:
+    image: 'jianhong1998/mav-claim-submission-backend:latest-prod'
+    platform: linux/arm64
+    ports:
+      - '3011:3011'
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_DB: ${DATABASE_DB}
+      BACKEND_PORT: ${BACKEND_PORT}
+      BACKEND_BUILD_MODE: ${BACKEND_BUILD_MODE}
+      BACKEND_CLIENT_HOST: ${BACKEND_CLIENT_HOST}
+      BACKEND_COOKIE_SECRET: ${BACKEND_COOKIE_SECRET}
+      BACKEND_COOKIE_DOMAIN_NAME: ${BACKEND_COOKIE_DOMAIN_NAME}
+      BACKEND_TOKEN_ENCRYPTION_KEY: ${BACKEND_TOKEN_ENCRYPTION_KEY}
+      BACKEND_JWT_SECRET: ${BACKEND_JWT_SECRET}
+      BACKEND_EMAIL_RECIPIENT: ${BACKEND_EMAIL_RECIPIENT}
+      BACKEND_GOOGLE_CLIENT_ID: ${BACKEND_GOOGLE_CLIENT_ID}
+      BACKEND_GOOGLE_CLIENT_SECRET: ${BACKEND_GOOGLE_CLIENT_SECRET}
+      BACKEND_GOOGLE_REDIRECT_URI: ${BACKEND_GOOGLE_REDIRECT_URI}
+      ENABLE_API_TEST_MODE: ${ENABLE_API_TEST_MODE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      db-migration-service:
+        condition: service_completed_successfully
+  db-migration-service:
+    image: 'jianhong1998/mav-claim-submission-db-migration:latest-prod'
+    platform: linux/arm64
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_DB: ${DATABASE_DB}
+      BACKEND_PORT: ${BACKEND_PORT}
+    restart: on-failure:3
+  client:
+    image: 'jianhong1998/mav-claim-submission-frontend:latest-prod'
+    platform: linux/arm64
+    ports:
+      - '${FRONTEND_PORT}:3000'
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      FRONTEND_PORT: ${FRONTEND_PORT}
+      FRONTEND_BACKEND_BASE_URL: ${FRONTEND_BACKEND_BASE_URL}
+
+volumes:
+  postgres_data:
+
+networks:
+  iokg844ogck04sc48gk0ksoo:
+    name: iokg844ogck04sc48gk0ksoo
+    external: true
+
+configs:
+
+secrets:
