@@ -109,6 +109,10 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=build --chown=nodejs:nodejs /app/packages/types/dist ./packages/types/dist
 COPY --from=build --chown=nodejs:nodejs /app/backend/dist ./backend/dist
 
+# Copy HTML templates to match __dirname-based path resolution
+# Runtime code at dist/backend/src/modules/email/services/ expects ../templates/
+COPY --from=build --chown=nodejs:nodejs /app/backend/src/modules/email/templates ./backend/dist/backend/src/modules/email/templates
+
 # Expose backend API port
 # EXPOSE 8080
 
