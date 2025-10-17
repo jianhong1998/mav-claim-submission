@@ -9,13 +9,6 @@ declare global {
 }
 
 export const getRuntimeConfig = (): RuntimeConfig => {
-  // TODO: Remove this after debugging
-  // eslint-disable-next-line no-console
-  console.log({
-    // window,
-    url: process.env.FRONTEND_BACKEND_BASE_URL,
-  });
-
   // Server-side: read from environment
   if (typeof window === 'undefined') {
     return {
