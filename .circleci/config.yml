@@ -269,8 +269,14 @@ workflows:
       # This job runs automatically on every push
       # Tests MUST pass before ANY deployment approval gates appear
       # =======================================================================
-      - test
-      - lint-check
+      - test:
+        filters:
+          tags:
+            only: /.*/
+      - lint-check:
+        filters:
+          tags:
+            only: /.*/
 
       # =======================================================================
       # DEV DEPLOYMENT PATH
