@@ -384,7 +384,7 @@ workflows:
       # Trigger: semantic version tag ONLY (v1.0.0 format)
       # Tagging: TAG (uses semantic version)
       # Manual approval CRITICAL - only after tests pass
-      # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+      # Tag regex: /^\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
       # Note: Ignores all branches - only triggered by pushing tags
       # =======================================================================
       - hold-production:
@@ -396,7 +396,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-backend-production
@@ -409,7 +409,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-frontend-production
@@ -422,7 +422,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-db-migration-production
@@ -435,4 +435,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
