@@ -255,7 +255,7 @@ jobs:
 # Deployment paths:
 # 1. Dev: ANY branch (no tags) → manual approval → dev builds
 # 2. Staging: main branch only (no tags) → manual approval → staging builds
-# 3. Production: main branch + semantic version tag → manual approval → prod builds
+# 3. Production: semantic version tag ONLY (1.0.0) → manual approval → prod builds
 #
 # Following Linus's principle: "Eliminate special cases by making them normal cases."
 # =============================================================================
@@ -269,8 +269,14 @@ workflows:
       # This job runs automatically on every push
       # Tests MUST pass before ANY deployment approval gates appear
       # =======================================================================
-      - test
-      - lint-check
+      - test:
+          filters:
+            tags:
+              only: /.*/
+      - lint-check:
+          filters:
+            tags:
+              only: /.*/
 
       # =======================================================================
       # DEV DEPLOYMENT PATH
@@ -381,10 +387,11 @@ workflows:
       # =======================================================================
       # PRODUCTION DEPLOYMENT PATH
       # =======================================================================
-      # Trigger: main branch + semantic version tag (v1.0.0 format)
+      # Trigger: semantic version tag ONLY (1.0.0 format, NO 'v' prefix)
       # Tagging: TAG (uses semantic version)
       # Manual approval CRITICAL - only after tests pass
-      # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+      # Tag regex: /^\d+\.\d+\.\d+$/ matches 1.0.0, 2.3.4, etc.
+      # Note: Ignores all branches - only triggered by pushing tags
       # =======================================================================
       - hold-production:
           type: approval
@@ -393,9 +400,9 @@ workflows:
             - lint-check
           filters:
             branches:
-              only: main
+              ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-backend-production
@@ -406,9 +413,9 @@ workflows:
             - hold-production
           filters:
             branches:
-              only: main
+              ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-frontend-production
@@ -419,9 +426,9 @@ workflows:
             - hold-production
           filters:
             branches:
-              only: main
+              ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
 
       - build-and-push:
           name: build-db-migration-production
@@ -432,6 +439,6 @@ workflows:
             - hold-production
           filters:
             branches:
-              only: main
+              ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
+              only: /^\d+\.\d+\.\d+$/
