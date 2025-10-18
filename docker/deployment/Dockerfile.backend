@@ -1,0 +1,128 @@
+# =======================================================
+# Production Backend Dockerfile - Multi-Stage Build
+# =======================================================
+# Optimized for TurboRepo monorepo with minimal runtime image
+# Follows Requirement 5 (multi-stage builds) and Requirement 10 (TurboRepo integration)
+
+# =======================================================
+# Stage 1: Dependencies - Install all dependencies
+# =======================================================
+FROM node:22-alpine AS deps
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+WORKDIR /app
+
+# Copy workspace configuration files (layer caching optimization)
+# These files change infrequently, so they're copied first
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json ./
+
+# Copy package.json files for all required workspaces
+# This enables pnpm to resolve workspace dependencies correctly
+COPY packages/types/package.json ./packages/types/
+COPY backend/package.json ./backend/
+
+# Install all dependencies with frozen lockfile for reproducible builds
+# Uses frozen-lockfile to ensure exact versions from pnpm-lock.yaml
+RUN pnpm install --frozen-lockfile
+
+
+# =======================================================
+# Stage 2: Build - Compile TypeScript to JavaScript
+# =======================================================
+FROM node:22-alpine AS build
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+WORKDIR /app
+
+# Copy dependencies from deps stage (reuse installed node_modules)
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=deps /app/turbo.json ./
+
+# Copy workspace package.json files
+COPY --from=deps /app/packages/types/package.json ./packages/types/
+COPY --from=deps /app/backend/package.json ./backend/
+
+# Copy source code for packages/types (build dependency for backend)
+COPY packages/types/ ./packages/types/
+
+# Copy backend source code
+COPY backend/ ./backend/
+
+# Restore workspace node_modules from deps stage (fixes pnpm workspace symlinks)
+# Source code copy above overwrites node_modules, so we restore them here
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+
+# Build packages/types first (required by backend)
+RUN pnpm --filter=@project/types run build
+
+# Build backend application
+RUN pnpm --filter=backend run build
+
+
+# =======================================================
+# Stage 3: Runtime - Minimal production image
+# =======================================================
+FROM node:22-alpine AS runtime
+
+# Install dumb-init for proper signal handling (PID 1)
+# dumb-init ensures SIGTERM signals are properly forwarded to the Node.js process
+RUN apk add --no-cache dumb-init
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+# Create non-root user and group
+# nodejs:nodejs with UID:GID 1001:1001 for security best practices
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
+
+WORKDIR /app
+
+# Set ownership of working directory to non-root user
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user for dependency installation
+USER nodejs
+
+# Copy workspace configuration files
+COPY --chown=nodejs:nodejs package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY --chown=nodejs:nodejs turbo.json ./
+
+# Copy package.json files for runtime workspaces
+COPY --chown=nodejs:nodejs packages/types/package.json ./packages/types/
+COPY --chown=nodejs:nodejs backend/package.json ./backend/
+
+# Install ONLY production dependencies (omit dev dependencies for minimal image)
+# --frozen-lockfile ensures reproducible builds
+# --prod excludes devDependencies to reduce image size
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy compiled artifacts from build stage
+# Only dist/ directories are copied - no source code in production image
+COPY --from=build --chown=nodejs:nodejs /app/packages/types/dist ./packages/types/dist
+COPY --from=build --chown=nodejs:nodejs /app/backend/dist ./backend/dist
+
+# Copy HTML templates to match __dirname-based path resolution
+# Runtime code at dist/backend/src/modules/email/services/ expects ../templates/
+COPY --from=build --chown=nodejs:nodejs /app/backend/src/modules/email/templates ./backend/dist/backend/src/modules/email/templates
+
+# Expose backend API port
+# EXPOSE 8080
+
+# Set working directory to backend for runtime
+WORKDIR /app/backend
+
+# Use dumb-init as PID 1 for proper signal handling
+# Runs as non-root user (nodejs:1001)
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start backend in production mode
+# Uses the compiled main.js from dist/src/ directory
+CMD ["node", "dist/backend/src/main.js"]

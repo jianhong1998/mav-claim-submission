@@ -15,18 +15,18 @@ down:
 	@docker compose \
 		-p ${PROJECT_NAME} \
 		down && \
-		$(MAKE) clean-image
+		$(MAKE) clean/image
 
 down/clean:
 	@$(MAKE) down && \
 		$(MAKE) clean && \
-		$(MAKE) clean-image
+		$(MAKE) clean/image
 
 clean:
 	@rm -rf ./backend/temp
 	@rm -rf postgres-data
 
-clean-image:
+clean/image:
 	@docker image prune -f
 
 clean/dist:
@@ -34,6 +34,9 @@ clean/dist:
 
 clean/turbo:
 	@rm -rf ./.turbo **/.turbo **/**/.turbo 
+
+clean/pnpm-store:
+	@pnpm store prune
 
 # TurboRepo delegated commands
 build:

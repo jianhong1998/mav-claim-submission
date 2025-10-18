@@ -1,0 +1,437 @@
+version: 2.1
+
+# =============================================================================
+# REUSABLE COMMANDS FOR DOCKER OPERATIONS
+# =============================================================================
+# These commands implement core Docker functionality used across all workflows.
+# Following Linus's principle: "Eliminate special cases by making them reusable."
+
+commands:
+  # -----------------------------------------------------------------------------
+  # docker-login: Authenticate to Docker Hub
+  # -----------------------------------------------------------------------------
+  # Purpose: Securely authenticates to Docker Hub using CircleCI secrets
+  # Used by: All build workflows (dev, staging, production)
+  # Security: Uses environment variables DOCKERHUB_USERNAME and DOCKERHUB_PASSWORD
+  #           configured in CircleCI project settings (never hardcoded)
+  # -----------------------------------------------------------------------------
+  docker-login:
+    description: 'Authenticate to Docker Hub using CircleCI environment variables'
+    steps:
+      - run:
+          name: Login to Docker Hub
+          command: echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+  # -----------------------------------------------------------------------------
+  # setup-qemu: Set up QEMU for cross-platform emulation
+  # -----------------------------------------------------------------------------
+  # Purpose: Enable building ARM images on AMD64 machines via emulation
+  # Used by: Multi-platform build workflows
+  # -----------------------------------------------------------------------------
+  setup-qemu:
+    description: 'Set up QEMU for cross-platform emulation'
+    steps:
+      - run:
+          name: Install QEMU static binaries
+          command: |
+            docker run --rm --privileged tonistiigi/binfmt:latest --install all
+
+  # -----------------------------------------------------------------------------
+  # setup-buildx: Set up Docker Buildx for multi-platform builds
+  # -----------------------------------------------------------------------------
+  # Purpose: Configure buildx builder with docker-container driver
+  # Used by: All build workflows (dev, staging, production)
+  # Registry caching: Works on CircleCI free plan (no paid features required)
+  # -----------------------------------------------------------------------------
+  setup-buildx:
+    description: 'Set up Docker Buildx for multi-platform builds with registry caching'
+    steps:
+      - run:
+          name: Set up Docker Buildx
+          command: |
+            # Create and bootstrap buildx builder with docker-container driver
+            docker buildx create --name multiplatform --driver docker-container --use
+            docker buildx inspect --bootstrap
+
+  # -----------------------------------------------------------------------------
+  # build-and-push-image: Build and push multi-platform Docker image
+  # -----------------------------------------------------------------------------
+  # Purpose: Core build logic for all service images (backend, frontend, db-migration)
+  # Strategy: Use buildx to build both platforms in parallel with registry caching
+  # Registry caching eliminates need for CircleCI's paid layer caching feature
+  # Parameters:
+  #   - service: Service name determines which Dockerfile to use
+  #   - tag: Image version tag (SHA for dev/staging, semantic version for production)
+  #   - dockerfile: Path to Dockerfile in docker/deployment/
+  #   - repository: Docker Hub repository (jianhong1998/mav-claim-submission-{service})
+  #   - environment: Target environment (dev/staging/production) for latest tag
+  # -----------------------------------------------------------------------------
+  build-and-push-image:
+    description: 'Build and push multi-platform Docker image using buildx with registry caching'
+    parameters:
+      service:
+        type: string
+        description: 'Service name (backend, frontend, db-migration)'
+      tag:
+        type: string
+        description: 'Image tag (e.g., commit SHA or semantic version)'
+      dockerfile:
+        type: string
+        description: 'Path to Dockerfile'
+      repository:
+        type: string
+        description: 'Docker Hub repository name'
+      environment:
+        type: string
+        description: 'Environment (dev, staging, production)'
+    steps:
+      - run:
+          name: Build and push << parameters.service >> images for multiple platforms
+          command: |
+            REPO="<< parameters.repository >>"
+            TAG="<< parameters.tag >>"
+            ENV="<< parameters.environment >>"
+            DOCKERFILE="<< parameters.dockerfile >>"
+
+            # Build and push multi-platform image with registry caching
+            # --cache-from: Pull cache from registry (reuses previous build layers)
+            # --cache-to: Push cache to registry (saves layers for next build)
+            # mode=max: Cache all layers (not just final image)
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --tag ${REPO}:${TAG} \
+              --tag ${REPO}:latest-${ENV} \
+              --file ${DOCKERFILE} \
+              --cache-from type=registry,ref=${REPO}:buildcache \
+              --cache-to type=registry,ref=${REPO}:buildcache,mode=max \
+              --push \
+              .
+
+# =============================================================================
+# REUSABLE JOB FOR BUILDING AND PUSHING SERVICE IMAGES
+# =============================================================================
+# This single parameterized job handles all 9 build combinations:
+#   - 3 services (backend, frontend, db-migration)
+#   - 3 environments (dev, staging, production)
+# Following Linus's principle: "ONE job definition for all special cases."
+#
+# Parameters:
+#   - service: Which microservice to build (backend/frontend/db-migration)
+#   - environment: Target environment determines latest tag (dev/staging/production)
+#   - tag_strategy: How to tag the image:
+#       * "sha" → Uses first 7 chars of git commit SHA (for dev/staging)
+#       * "tag" → Uses git tag (semantic version for production)
+#
+# Job flow:
+#   1. Checkout code from git
+#   2. Setup remote Docker (required for buildx multi-platform builds)
+#   3. Determine image tag based on tag_strategy
+#   4. Authenticate to Docker Hub
+#   5. Configure buildx for multi-arch builds
+#   6. Build and push image for both amd64 and arm64
+# =============================================================================
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:stable
+    resource_class: large
+    parameters:
+      service:
+        type: enum
+        enum: ['backend', 'frontend', 'db-migration']
+        description: 'Service to build'
+      environment:
+        type: enum
+        enum: ['dev', 'staging', 'production']
+        description: 'Target environment'
+      tag_strategy:
+        type: enum
+        enum: ['sha', 'tag']
+        description: 'Tagging strategy (sha for commit, tag for release)'
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: false
+      - run:
+          name: Determine image tag
+          command: |
+            if [ "<< parameters.tag_strategy >>" = "sha" ]; then
+              echo "export IMAGE_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            else
+              echo "export IMAGE_TAG=${CIRCLE_TAG}" >> $BASH_ENV
+            fi
+      - docker-login
+      - setup-qemu
+      - setup-buildx
+      - build-and-push-image:
+          service: << parameters.service >>
+          tag: ${IMAGE_TAG}
+          dockerfile: docker/deployment/Dockerfile.<< parameters.service >>
+          repository: jianhong1998/mav-claim-submission-<< parameters.service >>
+          environment: << parameters.environment >>
+
+  # -----------------------------------------------------------------------------
+  # test: Run linting, build, and tests for continuous integration
+  # -----------------------------------------------------------------------------
+  # Purpose: Validate code quality on every push/PR before merging
+  # Runs: Lint check, build all workspaces, unit tests, UI tests
+  # Used by: ci workflow (automatic, no manual approval)
+  # Node version: 22 (matches development environment)
+  # Package manager: pnpm 9.0.0
+  # -----------------------------------------------------------------------------
+  test:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+    steps:
+      - checkout
+
+      # Restore pnpm dependencies cache
+      - restore_cache:
+          keys:
+            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+
+      # Install dependencies
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+
+      # Save pnpm dependencies cache
+      - save_cache:
+          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+
+      # Build all workspaces
+      - run:
+          name: Build all workspaces
+          command: pnpm run build
+
+      # Run backend unit tests
+      - run:
+          name: Run backend unit tests
+          command: make test/unit
+
+      # Run frontend UI tests
+      - run:
+          name: Run frontend UI tests
+          command: make test/ui
+
+  lint-check:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+    steps:
+      - checkout
+
+      # Restore pnpm dependencies cache
+      - restore_cache:
+          keys:
+            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+
+      # Install dependencies
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+
+      # Save pnpm dependencies cache
+      - save_cache:
+          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+
+      # Run lint check
+      - run:
+          name: Lint check
+          command: make lint
+# =============================================================================
+# UNIFIED CI/CD WORKFLOW
+# =============================================================================
+# One workflow with conditional deployment paths based on branch/tag rules.
+#
+# Flow: test (always) → conditional deployments based on filters
+#
+# Deployment paths:
+# 1. Dev: ANY branch (no tags) → manual approval → dev builds
+# 2. Staging: main branch only (no tags) → manual approval → staging builds
+# 3. Production: main branch + semantic version tag → manual approval → prod builds
+#
+# Following Linus's principle: "Eliminate special cases by making them normal cases."
+# =============================================================================
+
+workflows:
+  ci-cd:
+    jobs:
+      # =======================================================================
+      # STEP 1: Always run tests first (ALL branches, ALL tags)
+      # =======================================================================
+      # This job runs automatically on every push
+      # Tests MUST pass before ANY deployment approval gates appear
+      # =======================================================================
+      - test
+      - lint-check
+
+      # =======================================================================
+      # DEV DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: ANY branch (no tags)
+      # Tagging: SHA (first 7 chars of commit)
+      # Manual approval required after tests pass
+      # =======================================================================
+      - hold-dev:
+          type: approval
+          requires:
+            - test
+            - lint-check
+          filters:
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-backend-dev
+          service: backend
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-frontend-dev
+          service: frontend
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-db-migration-dev
+          service: db-migration
+          environment: dev
+          tag_strategy: sha
+          requires:
+            - hold-dev
+          filters:
+            tags:
+              ignore: /.*/
+
+      # =======================================================================
+      # STAGING DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: main branch ONLY (no tags)
+      # Tagging: SHA (first 7 chars of commit)
+      # Manual approval required after tests pass
+      # =======================================================================
+      - hold-staging:
+          type: approval
+          requires:
+            - test
+            - lint-check
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-backend-staging
+          service: backend
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-frontend-staging
+          service: frontend
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      - build-and-push:
+          name: build-db-migration-staging
+          service: db-migration
+          environment: staging
+          tag_strategy: sha
+          requires:
+            - hold-staging
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
+
+      # =======================================================================
+      # PRODUCTION DEPLOYMENT PATH
+      # =======================================================================
+      # Trigger: main branch + semantic version tag (v1.0.0 format)
+      # Tagging: TAG (uses semantic version)
+      # Manual approval CRITICAL - only after tests pass
+      # Tag regex: /^v\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+      # =======================================================================
+      - hold-production:
+          type: approval
+          requires:
+            - test
+            - lint-check
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      - build-and-push:
+          name: build-backend-production
+          service: backend
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      - build-and-push:
+          name: build-frontend-production
+          service: frontend
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+
+      - build-and-push:
+          name: build-db-migration-production
+          service: db-migration
+          environment: production
+          tag_strategy: tag
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v\d+\.\d+\.\d+$/

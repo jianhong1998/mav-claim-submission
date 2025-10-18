@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/circleci-pipeline/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-10T01:39:59.459Z",
+      "trigger": "initial",
+      "approvalId": "approval_1760060399456_chfnyewik",
+      "approvalTitle": "CircleCI Pipeline Design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-10T01:42:37.804Z",
+      "trigger": "approved",
+      "approvalId": "approval_1760060399456_chfnyewik",
+      "approvalTitle": "CircleCI Pipeline Design"
+    }
+  ]
+}

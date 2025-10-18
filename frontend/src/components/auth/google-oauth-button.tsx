@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ErrorHandler } from '@/hooks/queries/helper/error-handler';
 import type { VariantProps } from 'class-variance-authority';
+import { getRuntimeConfig } from '@/types/runtime-config';
 
 /**
  * Safe performance.now() wrapper
@@ -168,8 +169,9 @@ const GoogleOAuthButton: React.FC<GoogleOAuthButtonProps> = React.memo(
         announceStatus(A11Y_MESSAGES.STATUS_LOADING);
 
         try {
+          const baseUrl = getRuntimeConfig().BACKEND_BASE_URL;
           // Direct navigation to backend OAuth endpoint - no CORS issues
-          window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/auth/google`;
+          window.location.href = new URL('/auth/google', baseUrl).toString();
         } catch (error) {
           setIsLoading(false);
 

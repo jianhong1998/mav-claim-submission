@@ -30,6 +30,7 @@ import {
   JwtAuthGuard,
 } from '../guards/jwt-auth.guard';
 import { JwtOptionalGuard } from '../guards/jwt-optional.guard';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 @Controller('auth')
 export class AuthController {
@@ -38,6 +39,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly tokenDBUtil: TokenDBUtil,
+    private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {}
 
   /**
@@ -64,12 +66,15 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
   ): Promise<void> {
+    const clientBaseUrl = new URL(
+      this.environmentVariableUtil.getVariables().clientHost,
+    );
+
     try {
       if (!req.user) {
         this.logger.warn('OAuth callback received without user data');
-        return res.redirect(
-          `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`,
-        );
+        const url = new URL('/login?error=auth_failed', clientBaseUrl);
+        return res.redirect(url.toString());
       }
 
       const { user, jwt } = await this.authService.handleOAuthCallback(
@@ -96,13 +101,11 @@ export class AuthController {
       this.logger.log(`OAuth callback successful for user: ${user.id}`);
 
       // Redirect to frontend callback page to refresh auth state
-      return res.redirect(
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/callback`,
-      );
+      return res.redirect(new URL('/callback', clientBaseUrl).toString());
     } catch (error) {
       this.logger.error('OAuth callback error:', error);
       return res.redirect(
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`,
+        new URL(`/login?error=auth_failed`, clientBaseUrl).toString(),
       );
     }
   }

@@ -34,6 +34,8 @@ services:
       postgres:
         condition: service_healthy
         restart: true
+      db-migration-service:
+        condition: service_completed_successfully
     develop:
       watch:
         - path: ./backend/src
@@ -60,7 +62,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/local/Dockerfile.frontend
-    network_mode: host
+    # network_mode: host
     env_file:
       - ./.env
     develop:

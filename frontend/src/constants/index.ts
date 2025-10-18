@@ -1,4 +1,7 @@
 export * from './error-message';
 
-export const BACKEND_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
+import { getRuntimeConfig } from '@/types/runtime-config';
+
+export const getBackendBaseUrl = (): string => {
+  return getRuntimeConfig().BACKEND_BASE_URL;
+};

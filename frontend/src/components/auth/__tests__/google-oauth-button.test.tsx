@@ -376,7 +376,11 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should use custom backend URL from env', async () => {
-      vi.stubEnv('NEXT_PUBLIC_BACKEND_URL', 'https://api.example.com');
+      // Mock window.__RUNTIME_CONFIG__ for client-side config
+      const originalConfig = window.__RUNTIME_CONFIG__;
+      window.__RUNTIME_CONFIG__ = {
+        BACKEND_BASE_URL: 'https://api.example.com',
+      };
 
       const user = userEvent.setup();
       render(<GoogleOAuthButton />, { wrapper });
@@ -388,7 +392,8 @@ describe('GoogleOAuthButton', () => {
         expect(mockLocation.href).toBe('https://api.example.com/auth/google');
       });
 
-      vi.unstubAllEnvs();
+      // Restore original config
+      window.__RUNTIME_CONFIG__ = originalConfig;
     });
   });
 
