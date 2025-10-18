@@ -255,7 +255,7 @@ jobs:
 # Deployment paths:
 # 1. Dev: ANY branch (no tags) → manual approval → dev builds
 # 2. Staging: main branch only (no tags) → manual approval → staging builds
-# 3. Production: semantic version tag ONLY (v1.0.0) → manual approval → prod builds
+# 3. Production: semantic version tag ONLY (1.0.0) → manual approval → prod builds
 #
 # Following Linus's principle: "Eliminate special cases by making them normal cases."
 # =============================================================================
@@ -270,13 +270,13 @@ workflows:
       # Tests MUST pass before ANY deployment approval gates appear
       # =======================================================================
       - test:
-        filters:
-          tags:
-            only: /.*/
+          filters:
+            tags:
+              only: /.*/
       - lint-check:
-        filters:
-          tags:
-            only: /.*/
+          filters:
+            tags:
+              only: /.*/
 
       # =======================================================================
       # DEV DEPLOYMENT PATH
@@ -387,10 +387,10 @@ workflows:
       # =======================================================================
       # PRODUCTION DEPLOYMENT PATH
       # =======================================================================
-      # Trigger: semantic version tag ONLY (v1.0.0 format)
+      # Trigger: semantic version tag ONLY (1.0.0 format, NO 'v' prefix)
       # Tagging: TAG (uses semantic version)
       # Manual approval CRITICAL - only after tests pass
-      # Tag regex: /^\d+\.\d+\.\d+$/ matches v1.0.0, v2.3.4, etc.
+      # Tag regex: /^\d+\.\d+\.\d+$/ matches 1.0.0, 2.3.4, etc.
       # Note: Ignores all branches - only triggered by pushing tags
       # =======================================================================
       - hold-production:
