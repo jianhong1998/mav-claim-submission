@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
   server:
-    image: 'jianhong1998/mav-claim-submission-backend:latest-prod'
+    image: 'jianhong1998/mav-claim-submission-backend:latest-production'
     platform: linux/arm64
     ports:
       - '3011:3011'
@@ -47,7 +47,7 @@ services:
       db-migration-service:
         condition: service_completed_successfully
   db-migration-service:
-    image: 'jianhong1998/mav-claim-submission-db-migration:latest-prod'
+    image: 'jianhong1998/mav-claim-submission-db-migration:latest-production'
     platform: linux/arm64
     environment:
       NODE_ENV: ${NODE_ENV}
@@ -59,7 +59,7 @@ services:
       BACKEND_PORT: ${BACKEND_PORT}
     restart: on-failure:3
   client:
-    image: 'jianhong1998/mav-claim-submission-frontend:latest-prod'
+    image: 'jianhong1998/mav-claim-submission-frontend:latest-production'
     platform: linux/arm64
     ports:
       - '${FRONTEND_PORT}:3000'
