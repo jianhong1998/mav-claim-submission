@@ -45,6 +45,15 @@ const LoginContent: FC = () => {
     }
   }, [error]);
 
+  // Show loading state while checking auth
+  if (!isAuthStatusFetched) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Checking authentication...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 space-y-8">
@@ -85,7 +94,13 @@ const LoginContent: FC = () => {
 
 const LoginPage: NextPage = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );
