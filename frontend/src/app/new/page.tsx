@@ -28,6 +28,9 @@ import {
   Eye,
   AlertCircle,
 } from 'lucide-react';
+import { useAuthStatus } from '@/hooks/auth/useAuthStatus';
+import { useRouter } from 'next/navigation';
+import { SkeletonPage } from '@/components/pages/skeleton-page';
 
 /**
  * Multi-claim submission page - Main entry point for creating multiple expense claims
@@ -45,6 +48,9 @@ const MultiClaimSubmissionPage: NextPage = () => {
     resetToCreationPhase,
     refetchDraftClaims,
   } = useMultiClaim();
+  const { data: authStatusData, isFetched: isAuthStatusFetched } =
+    useAuthStatus();
+  const router = useRouter();
 
   const { currentPhase, draftClaims } = state;
 
@@ -295,6 +301,17 @@ const MultiClaimSubmissionPage: NextPage = () => {
 
     return null;
   };
+
+  // Redirect to login page if not logged in
+  useEffect(() => {
+    if (!isAuthStatusFetched || authStatusData?.isAuthenticated) return;
+
+    router.push('/login');
+  }, [router, isAuthStatusFetched, authStatusData]);
+
+  if (isAuthStatusFetched && !authStatusData?.isAuthenticated) {
+    return <SkeletonPage />;
+  }
 
   // Error handling display
   if (errors.draftClaimsError) {
