@@ -1,10 +1,11 @@
 'use client';
 
 import { GoogleOAuthButton } from '@/components/auth/google-oauth-button';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, Suspense, FC } from 'react';
 import { toast } from 'sonner';
 import type { NextPage } from 'next';
+import { useAuthStatus } from '@/hooks/auth/useAuthStatus';
 
 /**
  * Error message mappings for different error types from URL parameters
@@ -21,9 +22,19 @@ const ERROR_MESSAGES = Object.freeze({
 
 type ErrorType = keyof typeof ERROR_MESSAGES;
 
-const LoginContent = () => {
+const LoginContent: FC = () => {
   const searchParams = useSearchParams();
   const error = searchParams.get('error') as ErrorType | null;
+  const router = useRouter();
+
+  const { data: authStatus, isFetched: isAuthStatusFetched } = useAuthStatus();
+
+  useEffect(() => {
+    if (!isAuthStatusFetched || !authStatus || !authStatus.isAuthenticated)
+      return;
+
+    router.replace('/');
+  }, [authStatus, isAuthStatusFetched, router]);
 
   useEffect(() => {
     if (error && ERROR_MESSAGES[error]) {
@@ -33,6 +44,15 @@ const LoginContent = () => {
       toast.error('An error occurred during authentication. Please try again.');
     }
   }, [error]);
+
+  // Show loading state while checking auth
+  if (!isAuthStatusFetched) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Checking authentication...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -74,7 +94,13 @@ const LoginContent = () => {
 
 const LoginPage: NextPage = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );
