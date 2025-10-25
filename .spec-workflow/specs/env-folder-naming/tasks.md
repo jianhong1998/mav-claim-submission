@@ -2,7 +2,7 @@
 
 ## Backend Implementation
 
-- [ ] 1. Add environment variable field to EnvironmentVariableUtil
+- [x] 1. Add environment variable field to EnvironmentVariableUtil
   - Files: `backend/src/modules/common/utils/environment-variable.util.ts`
   - Add `googleDriveClaimsFolderName: string` to `IEnvironmentVariableList` interface
   - Read from `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME` in `getVariables()` using `configService.getOrThrow()`
@@ -10,7 +10,7 @@
   - _Requirements: 1.1 - Configurable Root Folder Name_
   - _Prompt: Implement the task for spec env-folder-naming, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Add `googleDriveClaimsFolderName` field to EnvironmentVariableUtil following requirement 1.1. Add field to `IEnvironmentVariableList` interface (line 4-31) and read it in `getVariables()` method (lines 80-136) using `this.configService.getOrThrow('BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME')`. Follow existing pattern. | Restrictions: Do not add custom validation (Google Drive API validates names), do not modify existing fields, maintain existing caching behavior | _Leverage: Existing getVariables() method structure, existing field definitions | _Requirements: 1.1 | Success: Field added to interface, read in getVariables() with getOrThrow(), returns string value | Instructions: Mark this task as in-progress [-] in tasks.md before starting. Mark as complete [x] when done._
 
-- [ ] 2. Update GoogleDriveClient to use environment variable
+- [x] 2. Update GoogleDriveClient to use environment variable
   - Files: `backend/src/modules/attachments/services/google-drive-client.service.ts`
   - Change line 60: Replace `'Mavericks Claims'` hardcoded string with `this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName`
   - _Leverage: EnvironmentVariableUtil already injected via AttachmentModule DI_
@@ -19,7 +19,7 @@
 
 ## Frontend Implementation
 
-- [ ] 3. Remove fallback folder creation logic from useAttachmentUpload
+- [x] 3. Remove fallback folder creation logic from useAttachmentUpload
   - Files: `frontend/src/hooks/attachments/useAttachmentUpload.ts`
   - Delete lines 261-283 (entire try-catch fallback block)
   - Replace with simple: call backend, throw error if fails (no fallback)
@@ -29,7 +29,7 @@
 
 ## Configuration & Documentation
 
-- [ ] 4. Add environment variable to .env.example files
+- [x] 4. Add environment variable to .env.example files
   - Files: `.env.example`, `backend/.env.example` (if exists)
   - Add `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="Mavericks Claims"` with comments for each environment
   - Provide examples: `"Mavericks Claims"` (prod), `"[staging] Mavericks Claims"` (staging), `"[local] Mavericks Claims"` (local)
@@ -39,7 +39,7 @@
 
 ## Testing
 
-- [ ] 5. Add unit tests for EnvironmentVariableUtil changes
+- [x] 5. Add unit tests for EnvironmentVariableUtil changes
   - Files: `backend/src/modules/common/utils/__tests__/environment-variable.util.spec.ts` (or equivalent test file)
   - Test: Reading `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME` returns correct value
   - Test: Missing env var throws error from `getOrThrow()`
@@ -47,7 +47,7 @@
   - _Requirements: 1.1, 1.4 - Validation_
   - _Prompt: Implement the task for spec env-folder-naming, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Add unit tests for EnvironmentVariableUtil.googleDriveClaimsFolderName field following requirements 1.1 and 1.4. Test 1: Set `process.env.BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME = '[test] Mavericks Claims'`, call `getVariables()`, verify `googleDriveClaimsFolderName === '[test] Mavericks Claims'`. Test 2: Delete `process.env.BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME`, call `getVariables()`, expect error thrown (ConfigService.getOrThrow behavior). | Restrictions: Follow existing test patterns, use same test setup as other env var tests, do not mock ConfigService | _Leverage: Existing EnvironmentVariableUtil test structure, existing test utilities | _Requirements: 1.1, 1.4 | Success: Tests verify env var is read correctly, tests verify missing env var throws error | Instructions: Mark this task as in-progress [-] in tasks.md before starting. Mark as complete [x] when done._
 
-- [ ] 6. Add unit tests for GoogleDriveClient changes
+- [x] 6. Add unit tests for GoogleDriveClient changes
   - Files: `backend/src/modules/attachments/services/__tests__/google-drive-client.service.spec.ts`
   - Test: Verify `createClaimFolder()` calls `findOrCreateFolder()` with env var value (not hardcoded string)
   - Mock EnvironmentVariableUtil to return test folder name
@@ -55,7 +55,7 @@
   - _Requirements: 1.3 - Folder Creation with Configured Name_
   - _Prompt: Implement the task for spec env-folder-naming, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Add unit test for GoogleDriveClient.createClaimFolder() following requirement 1.3. Mock EnvironmentVariableUtil.getVariables() to return `{ googleDriveClaimsFolderName: '[test] Mavericks Claims' }`. Call `createClaimFolder('user-1', 'claim-1')`. Spy on private `findOrCreateFolder()` method. Verify it was called with arguments `('user-1', '[test] Mavericks Claims')` instead of hardcoded `'Mavericks Claims'`. | Restrictions: Use existing test setup, mock EnvironmentVariableUtil (do not use real env vars in unit tests), follow existing spy patterns | _Leverage: Existing GoogleDriveClient test structure, existing mock patterns | _Requirements: 1.3 | Success: Test verifies env var value is used for folder name, not hardcoded string | Instructions: Mark this task as in-progress [-] in tasks.md before starting. Mark as complete [x] when done._
 
-- [ ] 7. Add unit tests for useAttachmentUpload fallback removal
+- [x] 7. Add unit tests for useAttachmentUpload fallback removal
   - Files: `frontend/src/hooks/attachments/__tests__/useAttachmentUpload.test.ts`
   - Test: Verify backend folder creation failure throws error (NO fallback attempted)
   - Mock `apiClient.post('/attachments/folder/:claimId')` to fail, verify `driveClient.getOrCreateFolder` is NOT called
@@ -63,7 +63,7 @@
   - _Requirements: 3.1 - No Fallback_
   - _Prompt: Implement the task for spec env-folder-naming, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Add unit test verifying fallback removal from useAttachmentUpload following requirement 3.1. Mock `apiClient.post` to reject with error. Attempt file upload. Verify upload fails with error message. Critically: verify `driveClient.getOrCreateFolder` was NEVER called (no fallback). This proves frontend no longer creates folders directly when backend fails. | Restrictions: Use existing test setup, mock apiClient and driveClient, verify NO fallback folder creation occurs | _Leverage: Existing useAttachmentUpload test structure, existing mock patterns | _Requirements: 3.1 | Success: Test verifies backend failure throws error, test verifies NO fallback folder creation attempted | Instructions: Mark this task as in-progress [-] in tasks.md before starting. Mark as complete [x] when done._
 
-- [ ] 8. Add integration test for environment-based folder creation
+- [x] 8. Add integration test for environment-based folder creation
   - Files: `api-test/` (integration test suite)
   - Test end-to-end: Set `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME` env var, create claim folder via API, verify folder created in Google Drive with configured name
   - _Leverage: Existing API integration test patterns, existing Google Drive test utilities_
@@ -72,7 +72,7 @@
 
 ## Documentation
 
-- [ ] 9. Update development documentation
+- [x] 9. Update development documentation
   - Files: `README.md`, `docs/project-info/development-commands.md` (or equivalent)
   - Document new `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME` environment variable requirement
   - Add setup instructions for different environments (local, dev, staging, prod)

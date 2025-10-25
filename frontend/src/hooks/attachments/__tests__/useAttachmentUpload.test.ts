@@ -43,13 +43,23 @@ vi.mock('@/lib/api-client', () => ({
       expires_in: 3600,
       token_type: 'Bearer',
     }),
-    post: vi.fn().mockResolvedValue({
-      success: true,
-      attachmentId: 'attachment-123',
-      fileId: 'drive-file-123',
-      fileName: 'test-file.pdf',
-      webViewLink: 'https://drive.google.com/file/d/drive-file-123/view',
-      status: 'uploaded',
+    post: vi.fn().mockImplementation((url: string) => {
+      // Mock folder creation endpoint
+      if (url.includes('/attachments/folder/')) {
+        return Promise.resolve({
+          success: true,
+          folderId: 'folder-123',
+        });
+      }
+      // Mock metadata endpoint
+      return Promise.resolve({
+        success: true,
+        attachmentId: 'attachment-123',
+        fileId: 'drive-file-123',
+        fileName: 'test-file.pdf',
+        webViewLink: 'https://drive.google.com/file/d/drive-file-123/view',
+        status: 'uploaded',
+      });
     }),
   },
 }));
@@ -473,6 +483,129 @@ describe('useAttachmentUpload Hook', () => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
         queryKey: ['attachments', 'list', { claimId: mockClaimId }],
       });
+    });
+  });
+
+  describe('Fallback Folder Creation Removal (env-folder-naming requirement 3.1)', () => {
+    /**
+     * Test for env-folder-naming requirement 3.1
+     * Verifies that when backend folder creation fails, the frontend does NOT
+     * attempt fallback folder creation directly. This ensures all folder creation
+     * goes through the backend to use environment-specific folder names.
+     */
+    it('should NOT attempt fallback folder creation when backend folder creation fails', async () => {
+      const { apiClient } = await import('@/lib/api-client');
+
+      // Mock backend folder creation endpoint to fail
+      vi.mocked(apiClient.post).mockImplementationOnce(() => {
+        return Promise.reject(new Error('Backend folder creation failed'));
+      });
+
+      const { result } = renderHook(() => useAttachmentUpload(mockClaimId), {
+        wrapper: createWrapper(),
+      });
+
+      const testFile = createTestFile();
+
+      // Attempt to upload file - this should fail because folder creation fails
+      await act(async () => {
+        await expect(result.current.uploadFile(testFile)).rejects.toThrow();
+      });
+
+      // CRITICAL ASSERTION: Verify that getOrCreateFolder was NEVER called
+      // This proves the frontend did NOT attempt fallback folder creation
+      expect(mockDriveInstance.getOrCreateFolder).not.toHaveBeenCalled();
+
+      // Verify the upload failed as expected
+      expect(result.current.uploadHistory).toHaveLength(1);
+      expect(result.current.uploadHistory[0].status).toBe(
+        AttachmentStatus.FAILED,
+      );
+    });
+
+    it('should fail gracefully when backend folder endpoint returns error response', async () => {
+      const { apiClient } = await import('@/lib/api-client');
+
+      // Mock backend to return error response instead of throwing
+      vi.mocked(apiClient.post).mockImplementationOnce(() => {
+        return Promise.resolve({
+          success: false,
+          error: 'Failed to create claim folder. Please try again.',
+          folderId: null,
+        });
+      });
+
+      const { result } = renderHook(() => useAttachmentUpload(mockClaimId), {
+        wrapper: createWrapper(),
+      });
+
+      const testFile = createTestFile();
+
+      // Attempt to upload file - should fail
+      await act(async () => {
+        await expect(result.current.uploadFile(testFile)).rejects.toThrow();
+      });
+
+      // Verify NO fallback folder creation was attempted
+      expect(mockDriveInstance.getOrCreateFolder).not.toHaveBeenCalled();
+
+      // Verify error state
+      expect(result.current.uploadHistory[0].status).toBe(
+        AttachmentStatus.FAILED,
+      );
+    });
+
+    it('should propagate backend folder creation errors without masking them', async () => {
+      const { apiClient } = await import('@/lib/api-client');
+      const { toast } = await import('sonner');
+
+      const backendErrorMessage = 'Insufficient permissions to create folder';
+
+      // Mock backend to fail with specific error
+      vi.mocked(apiClient.post).mockImplementationOnce(() => {
+        return Promise.reject(new Error(backendErrorMessage));
+      });
+
+      const { result } = renderHook(() => useAttachmentUpload(mockClaimId), {
+        wrapper: createWrapper(),
+      });
+
+      const testFile = createTestFile();
+
+      // Attempt upload
+      await act(async () => {
+        await expect(result.current.uploadFile(testFile)).rejects.toThrow();
+      });
+
+      // Verify NO fallback was attempted
+      expect(mockDriveInstance.getOrCreateFolder).not.toHaveBeenCalled();
+
+      // Verify error was shown to user
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle network failures during backend folder creation without fallback', async () => {
+      const { apiClient } = await import('@/lib/api-client');
+
+      // Simulate network error
+      vi.mocked(apiClient.post).mockImplementationOnce(() => {
+        return Promise.reject(new Error('Network request failed'));
+      });
+
+      const { result } = renderHook(() => useAttachmentUpload(mockClaimId), {
+        wrapper: createWrapper(),
+      });
+
+      const testFile = createTestFile();
+
+      await act(async () => {
+        await expect(result.current.uploadFile(testFile)).rejects.toThrow();
+      });
+
+      // Critical: No direct Drive folder creation should occur
+      expect(mockDriveInstance.getOrCreateFolder).not.toHaveBeenCalled();
     });
   });
 });

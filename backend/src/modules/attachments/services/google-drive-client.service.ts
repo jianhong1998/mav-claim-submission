@@ -11,6 +11,7 @@ import {
   FolderNamingUtil,
   ClaimDataForFolderNaming,
 } from 'src/shared/utils/folder-naming.util';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 export interface DriveFileInfo {
   id: string;
@@ -42,6 +43,7 @@ export class GoogleDriveClient {
   constructor(
     private readonly authService: AuthService,
     private readonly tokenDBUtil: TokenDBUtil,
+    private readonly environmentVariableUtil: EnvironmentVariableUtil,
   ) {}
 
   /**
@@ -57,7 +59,7 @@ export class GoogleDriveClient {
       // First, find or create "Mavericks Claims" folder
       const mavericksClaimsFolderId = await this.findOrCreateFolder(
         userId,
-        'Mavericks Claims',
+        this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName,
       );
 
       // Generate descriptive folder name if claim data is provided
@@ -82,7 +84,7 @@ export class GoogleDriveClient {
       );
 
       this.logger.log(
-        `Claim folder structure created: /Mavericks Claims/${folderName}/ (${claimFolderId})`,
+        `Claim folder structure created: /${this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName}/${folderName}/ (${claimFolderId})`,
       );
       return claimFolderId;
     } catch (error) {

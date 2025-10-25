@@ -148,6 +148,97 @@ BACKEND_EMAIL_RECIPIENT=user@mavericks-consulting.com
 BACKEND_EMAIL_RECIPIENT=admin@mavericks-consulting.com,finance@mavericks-consulting.com
 ```
 
+### Google Drive Folder Configuration
+
+The system requires environment-specific folder naming to organize claim files in Google Drive and prevent data mixing across environments.
+
+#### BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME (Required)
+
+This environment variable configures the root folder name in Google Drive where all claim folders are created. Each environment must use a unique folder name.
+
+**Configuration Examples:**
+
+```bash
+# Production environment
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="Mavericks Claims"
+
+# Staging environment (use prefix to separate from production)
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[staging] Mavericks Claims"
+
+# Local development (use developer-specific prefix)
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[local] Mavericks Claims"
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[local-alice] Mavericks Claims"
+
+# Automated testing (use test prefix)
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[test] Mavericks Claims"
+```
+
+**Validation Requirements:**
+- **Required**: System crashes at startup if not configured
+- **Format**: String value (Google Drive API validates folder name rules)
+- **Startup Check**: Validated via `ConfigService.getOrThrow()` during application bootstrap
+- **No Fallback**: No default value - must be explicitly set in `.env`
+
+**Folder Hierarchy Created:**
+```
+Employee's Google Drive
+└── [Configured Root Folder]           ← BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME
+    ├── claim-2024-001/                ← Individual claim folders
+    │   ├── receipt-1.pdf
+    │   └── receipt-2.jpg
+    ├── claim-2024-002/
+    │   └── invoice.pdf
+    └── claim-2024-003/
+        ├── medical-bill.pdf
+        └── supporting-doc.pdf
+```
+
+**Error Scenarios:**
+```bash
+# ❌ Missing variable - causes application crash
+# Error: Configuration validation failed
+# Message: BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME is required
+
+# ❌ Empty string - also causes crash
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME=""
+
+# ✅ Valid configurations
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="Mavericks Claims"
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[staging] Mavericks Claims"
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[dev-bob] Mavericks Claims"
+```
+
+**Environment-Specific Setup:**
+
+| Environment | Recommended Value                      | Purpose                                   |
+| ----------- | -------------------------------------- | ----------------------------------------- |
+| Production  | `"Mavericks Claims"`                   | Clean name for production claims          |
+| Staging     | `"[staging] Mavericks Claims"`         | Separate staging data from production     |
+| Local Dev   | `"[local] Mavericks Claims"`           | Prevent mixing with production data       |
+| Developer   | `"[local-yourname] Mavericks Claims"`  | Individual developer isolation            |
+| Testing     | `"[test] Mavericks Claims"`            | Automated test data (cleaned up after)    |
+
+**Best Practices:**
+- ✅ **DO** use environment prefixes for non-production environments
+- ✅ **DO** include developer name in local development folders
+- ✅ **DO** verify folder name in `.env` before starting application
+- ✅ **DO** document folder naming convention in team onboarding
+- ❌ **DON'T** use production folder name in development/testing
+- ❌ **DON'T** use special characters that Google Drive doesn't support
+- ❌ **DON'T** leave this variable unset - application will crash
+
+**Troubleshooting:**
+
+```bash
+# Application crashes at startup with error about missing variable
+# Solution: Add the variable to your .env file
+echo 'BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[local] Mavericks Claims"' >> .env
+
+# Verify configuration is loaded correctly
+# Check logs for: "Environment Variables Loaded Successfully"
+# Check logs for: "Google Drive folder name: [your-configured-value]"
+```
+
 ## Google Drive Integration Testing
 
 ```bash

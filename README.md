@@ -346,18 +346,76 @@ make db/data/reset
 
 ### Environment Variables
 
-| Variable                    | Description               | Default            |
-| --------------------------- | ------------------------- | ------------------ |
-| `NODE_ENV`                  | Application environment   | `local`            |
-| `DATABASE_HOST`             | PostgreSQL host           | `localhost`        |
-| `DATABASE_PORT`             | PostgreSQL port           | `5433`             |
-| `DATABASE_USER`             | Database username         | `postgres`         |
-| `DATABASE_PASSWORD`         | Database password         | `Password1234`     |
-| `DATABASE_DB`               | Database name             | `project_db`       |
-| `FRONTEND_PORT`             | Frontend application port | `3000`             |
-| `BACKEND_PORT`              | Backend API port          | `3001`             |
-| `BACKEND_COOKIE_SECRET`     | Session cookie secret     | `something_secret` |
-| `FRONTEND_BACKEND_BASE_URL` | Backend URL for frontend  | Auto-configured    |
+| Variable                                  | Description                                | Default              | Required |
+| ----------------------------------------- | ------------------------------------------ | -------------------- | -------- |
+| `NODE_ENV`                                | Application environment                    | `local`              | No       |
+| `DATABASE_HOST`                           | PostgreSQL host                            | `localhost`          | No       |
+| `DATABASE_PORT`                           | PostgreSQL port                            | `5433`               | No       |
+| `DATABASE_USER`                           | Database username                          | `postgres`           | No       |
+| `DATABASE_PASSWORD`                       | Database password                          | `Password1234`       | No       |
+| `DATABASE_DB`                             | Database name                              | `project_db`         | No       |
+| `FRONTEND_PORT`                           | Frontend application port                  | `3000`               | No       |
+| `BACKEND_PORT`                            | Backend API port                           | `3001`               | No       |
+| `BACKEND_COOKIE_SECRET`                   | Session cookie secret                      | `something_secret`   | No       |
+| `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME` | Root folder name for Google Drive claims   | `"Mavericks Claims"` | **Yes**  |
+| `FRONTEND_BACKEND_BASE_URL`               | Backend URL for frontend                   | Auto-configured      | No       |
+
+**Note on Required Variables:**
+- `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME`: Application crashes at startup if missing. See detailed configuration below.
+
+#### BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME (Required)
+
+This environment variable configures the root folder name in Google Drive where all claim folders are organized. Each environment (local, staging, production) should use a distinct folder name to prevent data mixing.
+
+**Configuration Examples:**
+
+```bash
+# Production environment
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="Mavericks Claims"
+
+# Staging environment
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[staging] Mavericks Claims"
+
+# Local development environment
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[local] Mavericks Claims"
+
+# Developer-specific environment
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[dev-john] Mavericks Claims"
+```
+
+**Validation Requirements:**
+- **Required**: System will crash at startup if not configured
+- **Format**: String value representing folder name (Google Drive validates naming rules)
+- **Environment-Specific**: Use prefixes like `[local]`, `[staging]` to separate environments
+- **Startup Validation**: Application validates presence at startup via `ConfigService.getOrThrow()`
+
+**Folder Structure Created:**
+```
+Google Drive Root
+└── [Environment-Specific Folder Name]    ← Configured via this env var
+    ├── claim-001/
+    │   ├── receipt-1.pdf
+    │   └── receipt-2.jpg
+    └── claim-002/
+        └── invoice.pdf
+```
+
+**Error Scenarios:**
+```bash
+# ❌ Missing - causes application crash at startup
+# ConfigurationException: BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME is required
+
+# ✅ Valid configurations
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="Mavericks Claims"
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[staging] Mavericks Claims"
+BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME="[local-dev] Mavericks Claims"
+```
+
+**Best Practices:**
+- **Production**: Use clean name without prefixes (e.g., `"Mavericks Claims"`)
+- **Non-Production**: Always use environment prefix (e.g., `"[staging] Mavericks Claims"`)
+- **Local Development**: Include developer identifier (e.g., `"[local-john] Mavericks Claims"`)
+- **Testing**: Use test-specific prefix (e.g., `"[test] Mavericks Claims"`)
 
 ### Docker Services
 

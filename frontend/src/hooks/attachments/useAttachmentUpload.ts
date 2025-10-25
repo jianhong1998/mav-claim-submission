@@ -240,47 +240,21 @@ export const useAttachmentUpload = (claimId: string) => {
         // Phase 2: Get folder ID for upload
         uploadState.phase = 'drive';
 
-        let parentFolderId: string;
+        // Backend folder creation (no fallback)
+        const folderResponse = await apiClient.post<{
+          success: boolean;
+          folderId?: string;
+          error?: string;
+        }>(`/attachments/folder/${claimId}`);
 
-        try {
-          // Primary: backend descriptive folder creation
-          const folderResponse = await apiClient.post<{
-            success: boolean;
-            folderId?: string;
-            error?: string;
-          }>(`/attachments/folder/${claimId}`);
-
-          if (!folderResponse.success || !folderResponse.folderId) {
-            throw new Error(
-              folderResponse.error || 'Backend folder creation failed',
-            );
-          }
-
-          parentFolderId = folderResponse.folderId;
-        } catch (_error) {
-          // Fallback: direct UUID folder creation (current logic)
-          const claimsFolderResult =
-            await driveClient.getOrCreateFolder('Mavericks Claims');
-          if (!claimsFolderResult.success || !claimsFolderResult.data) {
-            throw new Error(
-              driveClient.getUserFriendlyErrorMessage(
-                claimsFolderResult.error!,
-              ),
-            );
-          }
-
-          const claimFolderResult = await driveClient.getOrCreateFolder(
-            claimId,
-            claimsFolderResult.data.id,
+        if (!folderResponse.success || !folderResponse.folderId) {
+          throw new Error(
+            folderResponse.error ||
+              'Failed to create claim folder. Please try again.',
           );
-          if (!claimFolderResult.success || !claimFolderResult.data) {
-            throw new Error(
-              driveClient.getUserFriendlyErrorMessage(claimFolderResult.error!),
-            );
-          }
-
-          parentFolderId = claimFolderResult.data.id;
         }
+
+        const parentFolderId = folderResponse.folderId;
 
         // Phase 3: Upload to correct folder
         const driveResult = await driveClient.uploadFile(file, {
