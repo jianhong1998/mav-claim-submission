@@ -21,6 +21,7 @@ export class InternalController {
       const user = await this.userDBUtil.create({
         creationData: TEST_USER_DATA,
       });
+
       return new TestDataResponseDTO(user);
     } catch (error) {
       if (this.isDuplicateError(error)) {
@@ -36,6 +37,7 @@ export class InternalController {
           existing.deletedAt = null;
           await this.userDBUtil.updateWithSave({ dataArray: [existing] });
         }
+
         return new TestDataResponseDTO(existing);
       }
       throw error;
