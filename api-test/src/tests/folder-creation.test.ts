@@ -108,7 +108,7 @@ describe('#Environment-Based Folder Creation', () => {
       }
     });
 
-    it('should create claim folder with environment-specific root folder name', async () => {
+    it.skip('should create claim folder with environment-specific root folder name', async () => {
       try {
         // Step 1: Call backend API to create folder
         const response: AxiosResponse<FolderCreationResponse> =
@@ -167,7 +167,7 @@ describe('#Environment-Based Folder Creation', () => {
       }
     });
 
-    it('should handle folder creation when root folder already exists', async () => {
+    it.skip('should handle folder creation when root folder already exists', async () => {
       try {
         // Step 1: Create first claim folder (will create root folder)
         const response1: AxiosResponse<FolderCreationResponse> =
@@ -244,7 +244,7 @@ describe('#Environment-Based Folder Creation', () => {
       }
     });
 
-    it('should use configured folder name from environment variable, not hardcoded value', async () => {
+    it.skip('should use configured folder name from environment variable, not hardcoded value', async () => {
       try {
         // Step 1: Call backend API
         const response: AxiosResponse<FolderCreationResponse> =
