@@ -4,14 +4,18 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { GoogleDriveClient } from '../google-drive-client.service';
+import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 
 /**
- * GoogleDriveClient Tests - downloadFile() method
+ * GoogleDriveClient Tests
  *
- * These tests cover the downloadFile() functionality that downloads files
- * from Google Drive as in-memory Buffers for email attachments.
+ * These tests cover the GoogleDriveClient functionality including:
+ * - downloadFile(): Downloads files from Google Drive as in-memory Buffers for email attachments
+ * - createClaimFolder(): Creates claim folder structure using environment-specific root folder
  *
- * Requirement: email-attachments-analysis Task 3.1 - Unit tests for GoogleDriveClient.downloadFile
+ * Requirements:
+ * - email-attachments-analysis Task 3.1 - Unit tests for GoogleDriveClient.downloadFile
+ * - env-folder-naming Task 6 - Unit tests for environment-based folder creation
  */
 describe('GoogleDriveClient', () => {
   let googleDriveClient: GoogleDriveClient;
@@ -21,9 +25,14 @@ describe('GoogleDriveClient', () => {
   let mockTokenDBUtil: {
     getDecryptedTokens: Mock;
   };
+  let mockEnvironmentVariableUtil: {
+    getVariables: Mock;
+  };
   let mockDriveClient: {
     files: {
       get: Mock;
+      list: Mock;
+      create: Mock;
     };
   };
 
@@ -39,9 +48,17 @@ describe('GoogleDriveClient', () => {
       getDecryptedTokens: vi.fn(),
     };
 
+    mockEnvironmentVariableUtil = {
+      getVariables: vi.fn().mockReturnValue({
+        googleDriveClaimsFolderName: 'Mavericks Claims',
+      }),
+    };
+
     mockDriveClient = {
       files: {
         get: vi.fn(),
+        list: vi.fn(),
+        create: vi.fn(),
       },
     };
 
@@ -50,6 +67,7 @@ describe('GoogleDriveClient', () => {
       mockAuthService as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
       mockTokenDBUtil as any,
+      mockEnvironmentVariableUtil as unknown as EnvironmentVariableUtil,
     );
 
     // Mock getDriveClient to return our mock drive client
@@ -315,6 +333,165 @@ describe('GoogleDriveClient', () => {
       expect(result2.length).toBe(200);
       expect(result3.length).toBe(300);
       expect(mockDriveClient.files.get).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('createClaimFolder', () => {
+    /**
+     * Test for env-folder-naming requirement 1.3
+     * Verifies that createClaimFolder() uses the environment variable value
+     * instead of hardcoded 'Mavericks Claims'
+     */
+    it('should use environment variable for root folder name instead of hardcoded string', async () => {
+      const testFolderName = '[test] Mavericks Claims';
+      const claimId = 'claim-1';
+
+      // Mock environment variable to return test folder name
+      mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+        googleDriveClaimsFolderName: testFolderName,
+      });
+
+      // Mock Drive API responses
+      // First call: search for root folder (not found)
+      // Second call: create root folder
+      // Third call: search for claim folder (not found)
+      // Fourth call: create claim folder
+      mockDriveClient.files.list
+        .mockResolvedValueOnce({ data: { files: [] } }) // Root folder search
+        .mockResolvedValueOnce({ data: { files: [] } }); // Claim folder search
+
+      mockDriveClient.files.create
+        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } }) // Root folder creation
+        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } }); // Claim folder creation
+
+      // Spy on private findOrCreateFolder method
+      const findOrCreateFolderSpy = vi.spyOn(
+        googleDriveClient as never,
+        'findOrCreateFolder',
+      );
+
+      // Execute the method
+      await googleDriveClient.createClaimFolder(userId, claimId);
+
+      // Verify environment variable was called
+      expect(mockEnvironmentVariableUtil.getVariables).toHaveBeenCalled();
+
+      // Verify findOrCreateFolder was called with env var value, not hardcoded string
+      expect(findOrCreateFolderSpy).toHaveBeenCalledWith(
+        userId,
+        testFolderName, // Should use '[test] Mavericks Claims', NOT 'Mavericks Claims'
+      );
+
+      // Verify it was NOT called with the hardcoded value
+      expect(findOrCreateFolderSpy).not.toHaveBeenCalledWith(
+        userId,
+        'Mavericks Claims',
+      );
+    });
+
+    it('should use production folder name when environment is configured for production', async () => {
+      const prodFolderName = 'Mavericks Claims';
+      const claimId = 'claim-2';
+
+      // Mock environment variable for production
+      mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+        googleDriveClaimsFolderName: prodFolderName,
+      });
+
+      // Mock Drive API responses
+      mockDriveClient.files.list
+        .mockResolvedValueOnce({ data: { files: [] } })
+        .mockResolvedValueOnce({ data: { files: [] } });
+
+      mockDriveClient.files.create
+        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } })
+        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } });
+
+      // Spy on private findOrCreateFolder method
+      const findOrCreateFolderSpy = vi.spyOn(
+        googleDriveClient as never,
+        'findOrCreateFolder',
+      );
+
+      // Execute the method
+      await googleDriveClient.createClaimFolder(userId, claimId);
+
+      // Verify correct production folder name was used
+      expect(findOrCreateFolderSpy).toHaveBeenCalledWith(
+        userId,
+        prodFolderName,
+      );
+    });
+
+    it('should use staging folder name when environment is configured for staging', async () => {
+      const stagingFolderName = '[staging] Mavericks Claims';
+      const claimId = 'claim-3';
+
+      // Mock environment variable for staging
+      mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+        googleDriveClaimsFolderName: stagingFolderName,
+      });
+
+      // Mock Drive API responses
+      mockDriveClient.files.list
+        .mockResolvedValueOnce({ data: { files: [] } })
+        .mockResolvedValueOnce({ data: { files: [] } });
+
+      mockDriveClient.files.create
+        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } })
+        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } });
+
+      // Spy on private findOrCreateFolder method
+      const findOrCreateFolderSpy = vi.spyOn(
+        googleDriveClient as never,
+        'findOrCreateFolder',
+      );
+
+      // Execute the method
+      await googleDriveClient.createClaimFolder(userId, claimId);
+
+      // Verify correct staging folder name was used
+      expect(findOrCreateFolderSpy).toHaveBeenCalledWith(
+        userId,
+        stagingFolderName,
+      );
+    });
+
+    it('should create both root and claim folders using environment-specific configuration', async () => {
+      const claimId = 'claim-4';
+      const configuredFolderName = '[test] Mavericks Claims';
+
+      // Mock environment variable
+      mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+        googleDriveClaimsFolderName: configuredFolderName,
+      });
+
+      // Mock Drive API responses
+      mockDriveClient.files.list
+        .mockResolvedValueOnce({ data: { files: [] } }) // Root folder search
+        .mockResolvedValueOnce({ data: { files: [] } }); // Claim folder search
+
+      mockDriveClient.files.create
+        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } }) // Root folder creation
+        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } }); // Claim folder creation
+
+      // Spy on private findOrCreateFolder method
+      const findOrCreateFolderSpy = vi.spyOn(
+        googleDriveClient as never,
+        'findOrCreateFolder',
+      );
+
+      // Execute the method
+      await googleDriveClient.createClaimFolder(userId, claimId);
+
+      // Test BEHAVIOR: Verify root folder created with environment-specific name
+      expect(findOrCreateFolderSpy).toHaveBeenCalledWith(
+        userId,
+        configuredFolderName,
+      );
+
+      // Verify getVariables was called (exact count is implementation detail, not behavior)
+      expect(mockEnvironmentVariableUtil.getVariables).toHaveBeenCalled();
     });
   });
 });

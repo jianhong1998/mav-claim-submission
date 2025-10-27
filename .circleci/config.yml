@@ -190,7 +190,7 @@ jobs:
       # Restore pnpm dependencies cache
       - restore_cache:
           keys:
-            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+            - pnpm-deps-v2-{{ checksum "pnpm-lock.yaml" }}
 
       # Install dependencies
       - run:
@@ -199,7 +199,7 @@ jobs:
 
       # Save pnpm dependencies cache
       - save_cache:
-          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          key: pnpm-deps-v2-{{ checksum "pnpm-lock.yaml" }}
           paths:
             - ~/.local/share/pnpm/store
 
@@ -221,14 +221,14 @@ jobs:
   lint-check:
     docker:
       - image: cimg/node:22.11
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout
 
       # Restore pnpm dependencies cache
       - restore_cache:
           keys:
-            - pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+            - pnpm-deps-v2-{{ checksum "pnpm-lock.yaml" }}
 
       # Install dependencies
       - run:
@@ -237,7 +237,7 @@ jobs:
 
       # Save pnpm dependencies cache
       - save_cache:
-          key: pnpm-deps-v1-{{ checksum "pnpm-lock.yaml" }}
+          key: pnpm-deps-v2-{{ checksum "pnpm-lock.yaml" }}
           paths:
             - ~/.local/share/pnpm/store
 

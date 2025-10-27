@@ -16,6 +16,7 @@ type IEnvironmentVariableList = {
   googleRedirectUri: string;
   googleDriveApiKey: string;
   googleDriveScope: string;
+  googleDriveClaimsFolderName: string;
   tokenEncryptionKey: string;
   jwtSecret: string;
 
@@ -112,6 +113,9 @@ export class EnvironmentVariableUtil {
       googleDriveScope: this.configService.get(
         'BACKEND_GOOGLE_DRIVE_SCOPE',
         'https://www.googleapis.com/auth/drive.file',
+      ),
+      googleDriveClaimsFolderName: this.configService.getOrThrow(
+        'BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME',
       ),
       tokenEncryptionKey: this.configService.getOrThrow(
         'BACKEND_TOKEN_ENCRYPTION_KEY',

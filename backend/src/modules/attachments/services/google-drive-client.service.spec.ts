@@ -30,6 +30,12 @@ const mockTokenDBUtil = {
   getDecryptedTokens: vi.fn(),
 };
 
+const mockEnvironmentVariableUtil = {
+  getVariables: vi.fn().mockReturnValue({
+    googleDriveClaimsFolderName: 'Mavericks Claims',
+  }),
+};
+
 const mockDriveAPI = {
   files: {
     create: vi.fn(),
@@ -61,10 +67,16 @@ describe('GoogleDriveClient', () => {
     vi.mocked(google.drive).mockReturnValue(mockDriveAPI as never);
     vi.mocked(google.auth.OAuth2).mockReturnValue(mockOAuth2Client as never);
 
+    // Reset mock for EnvironmentVariableUtil
+    mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+      googleDriveClaimsFolderName: 'Mavericks Claims',
+    });
+
     // Create service instance with mocked dependencies
     googleDriveClient = new GoogleDriveClient(
       mockAuthService as unknown as AuthService,
       mockTokenDBUtil as unknown as TokenDBUtil,
+      mockEnvironmentVariableUtil as never,
     );
   });
 
