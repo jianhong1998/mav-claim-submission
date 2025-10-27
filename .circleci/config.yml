@@ -221,7 +221,7 @@ jobs:
   lint-check:
     docker:
       - image: cimg/node:22.11
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout
 
