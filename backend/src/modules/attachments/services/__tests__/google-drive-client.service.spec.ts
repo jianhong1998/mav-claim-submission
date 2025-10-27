@@ -457,26 +457,41 @@ describe('GoogleDriveClient', () => {
       );
     });
 
-    it('should call getVariables() each time to support dynamic environment changes', async () => {
+    it('should create both root and claim folders using environment-specific configuration', async () => {
       const claimId = 'claim-4';
+      const configuredFolderName = '[test] Mavericks Claims';
+
+      // Mock environment variable
+      mockEnvironmentVariableUtil.getVariables.mockReturnValue({
+        googleDriveClaimsFolderName: configuredFolderName,
+      });
 
       // Mock Drive API responses
       mockDriveClient.files.list
-        .mockResolvedValueOnce({ data: { files: [] } })
-        .mockResolvedValueOnce({ data: { files: [] } });
+        .mockResolvedValueOnce({ data: { files: [] } }) // Root folder search
+        .mockResolvedValueOnce({ data: { files: [] } }); // Claim folder search
 
       mockDriveClient.files.create
-        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } })
-        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } });
+        .mockResolvedValueOnce({ data: { id: 'root-folder-id' } }) // Root folder creation
+        .mockResolvedValueOnce({ data: { id: 'claim-folder-id' } }); // Claim folder creation
+
+      // Spy on private findOrCreateFolder method
+      const findOrCreateFolderSpy = vi.spyOn(
+        googleDriveClient as never,
+        'findOrCreateFolder',
+      );
 
       // Execute the method
       await googleDriveClient.createClaimFolder(userId, claimId);
 
-      // Verify getVariables was called at least once
-      expect(mockEnvironmentVariableUtil.getVariables).toHaveBeenCalled();
+      // Test BEHAVIOR: Verify root folder created with environment-specific name
+      expect(findOrCreateFolderSpy).toHaveBeenCalledWith(
+        userId,
+        configuredFolderName,
+      );
 
-      // Verify the call count is correct (called twice in createClaimFolder - lines 62 and 87)
-      expect(mockEnvironmentVariableUtil.getVariables).toHaveBeenCalledTimes(2);
+      // Verify getVariables was called (exact count is implementation detail, not behavior)
+      expect(mockEnvironmentVariableUtil.getVariables).toHaveBeenCalled();
     });
   });
 });

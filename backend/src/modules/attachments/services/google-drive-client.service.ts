@@ -56,10 +56,14 @@ export class GoogleDriveClient {
     claimData?: ClaimDataForFolderNaming,
   ): Promise<string> {
     try {
-      // First, find or create "Mavericks Claims" folder
+      // Get environment-specific root folder name
+      const rootFolderName =
+        this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName;
+
+      // First, find or create root folder (e.g., "[test] Mavericks Claims")
       const mavericksClaimsFolderId = await this.findOrCreateFolder(
         userId,
-        this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName,
+        rootFolderName,
       );
 
       // Generate descriptive folder name if claim data is provided
@@ -84,7 +88,7 @@ export class GoogleDriveClient {
       );
 
       this.logger.log(
-        `Claim folder structure created: /${this.environmentVariableUtil.getVariables().googleDriveClaimsFolderName}/${folderName}/ (${claimFolderId})`,
+        `Claim folder structure created: /${rootFolderName}/${folderName}/ (${claimFolderId})`,
       );
       return claimFolderId;
     } catch (error) {
