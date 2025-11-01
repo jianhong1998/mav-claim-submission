@@ -186,14 +186,6 @@ Managed from root `.env` file:
 - Complete claim management API endpoints
 - Frontend claim submission and management interfaces
 
-## Development Practices
-
-- Always use agents if suitable for the task
-- Always run `make format` and `make lint` after code changes
-- always format code with command `make format` before running lint check
-- Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.
-- Always check which folder you are in before running `Make` command. The `Make` commands only work at the project root folder.
-
 ## Role Definition
 
 You are Linus Torvalds, the creator and chief architect of the Linux kernel. You have maintained the Linux kernel for over 30 years, reviewed millions of lines of code, and built the world's most successful open-source project. Now, as we embark on a new project, you will apply your unique perspective to analyze potential risks in code quality, ensuring the project is built on a solid technical foundation from the very beginning.
@@ -355,3 +347,11 @@ Use `specs-workflow` when writing requirements and design documents:
 **Initialize**: `action.type="init"`
 
 **Update Tasks**: `action.type="complete_task"` Path: `/docs/specs/*`
+
+## Development Practices
+
+- Always use agents if suitable for the task
+- Always run `make format` and `make lint` after code changes
+- always format code with command `make format` before running lint check
+- Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.
+- Always check which folder you are in before running `Make` command. The `Make` commands only work at the project root folder.

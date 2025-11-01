@@ -4,7 +4,7 @@
 
 ### Task 1.1: Create claim-utils.ts
 
-- [ ] 1.1. Create claim formatting and validation utilities
+- [x] 1.1. Create claim formatting and validation utilities
   - File: `frontend/src/lib/claim-utils.ts`
   - Create `getCategoryDisplayName()` function to replace 7 duplicate implementations
   - Create `getClaimStatusConfig()` function to replace 3 different status display implementations
@@ -17,7 +17,7 @@
 
 ### Task 1.2: Create file-utils.ts
 
-- [ ] 1.2. Create file operation and validation utilities
+- [x] 1.2. Create file operation and validation utilities
   - File: `frontend/src/lib/file-utils.ts`
   - Create `formatFileSize()` function to replace 3 duplicate implementations
   - Create `getFileTypeInfo()` function for consistent file type icons and colors
@@ -30,7 +30,7 @@
 
 ### Task 1.3: Create format-utils.ts
 
-- [ ] 1.3. Create date and currency formatting utilities
+- [x] 1.3. Create date and currency formatting utilities
   - File: `frontend/src/lib/format-utils.ts`
   - Create `formatAmount()` function to replace 5 duplicate implementations
   - Create `formatMonthYear()` function to replace 4 duplicate implementations
@@ -43,7 +43,7 @@
 
 ### Task 1.4: Add unit tests for utility functions
 
-- [ ] 1.4. Create comprehensive unit tests for shared utilities
+- [x] 1.4. Create comprehensive unit tests for shared utilities
   - Files: `frontend/src/lib/__tests__/claim-utils.test.ts`, `frontend/src/lib/__tests__/file-utils.test.ts`, `frontend/src/lib/__tests__/format-utils.test.ts`
   - Test `claim-utils.ts`: all category names, all status configs, monthly limit validation (within limit, exceeds limit, no limit categories)
   - Test `file-utils.ts`: file size formatting (bytes/KB/MB/GB), file type detection, validation edge cases
