@@ -20,7 +20,6 @@ import {
   DollarSign,
   RefreshCw,
   AlertTriangle,
-  Plus,
 } from 'lucide-react';
 import { ClaimStatusButtons } from './ClaimStatusButtons';
 
@@ -207,9 +206,6 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
       <div className="text-center py-12 max-w-md mx-auto">
         <div className="relative">
           <FileText className="mx-auto h-16 w-16 text-muted-foreground/40" />
-          <div className="absolute -top-1 -right-1 h-6 w-6 bg-primary rounded-full flex items-center justify-center">
-            <Plus className="h-3 w-3 text-primary-foreground" />
-          </div>
         </div>
         <h3 className="text-xl font-semibold text-foreground mt-6">
           Ready to submit your first claim?
@@ -218,21 +214,6 @@ export const ClaimsListComponent: React.FC<ClaimsListComponentProps> = ({
           Start building your expense history by creating your first claim.
           Track telecommunications, fitness, dental, and other eligible expenses
           with ease.
-        </p>
-        <div className="mt-6">
-          <Button
-            asChild
-            className="min-h-[44px] touch-manipulation"
-          >
-            <a href="/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Claim
-            </a>
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground mt-4">
-          Need help getting started? All claims are automatically saved as
-          drafts until you&apos;re ready to submit.
         </p>
       </div>
     );

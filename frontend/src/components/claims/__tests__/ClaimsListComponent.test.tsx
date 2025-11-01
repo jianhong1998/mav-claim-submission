@@ -10,6 +10,9 @@ import {
   ClaimStatus,
   IClaimMetadata,
   IClaimListResponse,
+  AttachmentMimeType,
+  AttachmentStatus,
+  IAttachmentMetadata,
 } from '@project/types';
 
 // Mock dependencies
@@ -26,7 +29,7 @@ vi.mock('@/lib/utils', () => ({
 // Mock Lucide React icons
 interface MockIconProps {
   className?: string;
-  'aria-hidden'?: string;
+  'aria-hidden'?: boolean | 'true' | 'false';
   [key: string]: unknown;
 }
 
@@ -105,11 +108,6 @@ const createTestWrapper = (retryEnabled = false) => {
       },
       mutations: { retry: false, gcTime: 0 },
     },
-    logger: {
-      log: () => {},
-      warn: () => {},
-      error: () => {},
-    },
   });
 
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -143,6 +141,24 @@ const createMockResponse = (
   success: true,
   claims,
   total: claims.length,
+});
+
+const createMockAttachment = (
+  overrides: Partial<IAttachmentMetadata> = {},
+): IAttachmentMetadata => ({
+  id: 'att-1',
+  claimId: 'claim-1',
+  originalFilename: 'receipt.pdf',
+  storedFilename: 'stored-receipt.pdf',
+  fileSize: 12345,
+  mimeType: AttachmentMimeType.PDF,
+  driveFileId: 'drive-file-id-1',
+  driveShareableUrl: 'https://drive.google.com/file/d/drive-file-id-1/view',
+  status: AttachmentStatus.UPLOADED,
+  uploadedAt: '2024-03-15T10:00:00Z',
+  createdAt: '2024-03-15T10:00:00Z',
+  updatedAt: '2024-03-15T10:00:00Z',
+  ...overrides,
 });
 
 describe('ClaimsListComponent', () => {
@@ -193,35 +209,6 @@ describe('ClaimsListComponent', () => {
           screen.getByText(/Start building your expense history/),
         ).toBeInTheDocument();
         expect(screen.getByTestId('FileText')).toBeInTheDocument();
-        expect(screen.getAllByTestId('Plus')).toHaveLength(2); // One in icon, one in button
-      });
-    });
-
-    it('should show CTA button in empty state', async () => {
-      const emptyResponse = createMockResponse([]);
-      mockApiClient.get.mockResolvedValue(emptyResponse);
-
-      render(<ClaimsListComponent />, { wrapper });
-
-      await waitFor(() => {
-        const ctaButton = screen.getByText('Create Your First Claim');
-        expect(ctaButton).toBeInTheDocument();
-        expect(ctaButton.closest('a')).toHaveAttribute('href', '/new');
-      });
-    });
-
-    it('should show helpful text about drafts in empty state', async () => {
-      const emptyResponse = createMockResponse([]);
-      mockApiClient.get.mockResolvedValue(emptyResponse);
-
-      render(<ClaimsListComponent />, { wrapper });
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(
-            /All claims are automatically saved as drafts until you're ready to submit/,
-          ),
-        ).toBeInTheDocument();
       });
     });
   });
@@ -460,15 +447,27 @@ describe('ClaimsListComponent', () => {
         createMockClaim({
           id: 'claim-1',
           attachments: [
-            { id: 'att-1', fileName: 'receipt1.pdf' },
-            { id: 'att-2', fileName: 'receipt2.pdf' },
-          ] as IClaimMetadata['attachments'],
+            createMockAttachment({
+              id: 'att-1',
+              claimId: 'claim-1',
+              originalFilename: 'receipt1.pdf',
+            }),
+            createMockAttachment({
+              id: 'att-2',
+              claimId: 'claim-1',
+              originalFilename: 'receipt2.pdf',
+            }),
+          ],
         }),
         createMockClaim({
           id: 'claim-2',
           attachments: [
-            { id: 'att-3', fileName: 'receipt3.pdf' },
-          ] as IClaimMetadata['attachments'],
+            createMockAttachment({
+              id: 'att-3',
+              claimId: 'claim-2',
+              originalFilename: 'receipt3.pdf',
+            }),
+          ],
         }),
       ];
       const response = createMockResponse(mockClaims);
@@ -534,18 +533,6 @@ describe('ClaimsListComponent', () => {
         .getByText('Telecommunications Claim')
         .closest('[class*="px-4"]');
       expect(cardHeader).toHaveClass('px-4', 'sm:px-6');
-    });
-
-    it('should have proper mobile touch targets', async () => {
-      const emptyResponse = createMockResponse([]);
-      mockApiClient.get.mockResolvedValue(emptyResponse);
-
-      render(<ClaimsListComponent />, { wrapper });
-
-      await waitFor(() => {
-        const ctaButton = screen.getByText('Create Your First Claim');
-        expect(ctaButton).toHaveClass('min-h-[44px]', 'touch-manipulation');
-      });
     });
 
     it('should show proper status badge sizing for mobile', async () => {
@@ -636,7 +623,13 @@ describe('ClaimsListComponent', () => {
         year: 2024,
         category: ClaimCategory.FITNESS,
         status: ClaimStatus.PAID,
-        attachments: [{ id: 'att-1', fileName: 'receipt.pdf' }],
+        attachments: [
+          createMockAttachment({
+            id: 'att-1',
+            claimId: 'claim-1',
+            originalFilename: 'receipt.pdf',
+          }),
+        ],
       });
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
