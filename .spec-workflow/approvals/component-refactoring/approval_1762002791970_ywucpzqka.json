@@ -1,0 +1,27 @@
+{
+  "id": "approval_1762002791970_ywucpzqka",
+  "title": "Design Document - Component Refactoring",
+  "filePath": ".spec-workflow/specs/component-refactoring/design.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-11-01T13:13:11.970Z",
+  "category": "spec",
+  "categoryName": "component-refactoring",
+  "response": "Feedback Summary (1 comments):\n\nSpecific Text Comments:\n1. \"│   ├── ui/              # Reusable UI primitives ...\": `ui/` folder is used for storing the ShardCN components. Please use another folder (eg. `frontend/src/components/common/`) to store the shared components.\n\nAlso, group the components into individual folders by component type. For example, `file-type-icon.tsx` should be placed into a folder `/components/common/icons/`.\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"`ui/` folder is used for storing the ShardCN components. Please use another folder (eg. `frontend/src/components/common/`) to store the shared components.\\n\\nAlso, group the components into individual folders by component type. For example, `file-type-icon.tsx` should be placed into a folder `/components/common/icons/`.\",\n      \"timestamp\": \"2025-11-01T13:19:36.668Z\",\n      \"selectedText\": \"│   ├── ui/              # Reusable UI primitives (NEW: extracted patterns)\\n│   │   ├── claim-status-badge.tsx\\n│   │   ├── file-type-icon.tsx\\n│   │   ├── loading-skeleton.tsx\\n│   │   └── empty-state.tsx\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1762003176668_5zfha5qj6\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nSpecific Text Comments:\\n1. \\\"│   ├── ui/              # Reusable UI primitives ...\\\": `ui/` folder is used for storing the ShardCN components. Please use another folder (eg. `frontend/src/components/common/`) to store the shared components.\\n\\nAlso, group the components into individual folders by component type. For example, `file-type-icon.tsx` should be placed into a folder `/components/common/icons/`.\\n\",\n  \"timestamp\": \"2025-11-01T13:21:21.488Z\"\n}",
+  "respondedAt": "2025-11-01T13:21:21.499Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "`ui/` folder is used for storing the ShardCN components. Please use another folder (eg. `frontend/src/components/common/`) to store the shared components.\n\nAlso, group the components into individual folders by component type. For example, `file-type-icon.tsx` should be placed into a folder `/components/common/icons/`.",
+      "timestamp": "2025-11-01T13:19:36.668Z",
+      "selectedText": "│   ├── ui/              # Reusable UI primitives (NEW: extracted patterns)\n│   │   ├── claim-status-badge.tsx\n│   │   ├── file-type-icon.tsx\n│   │   ├── loading-skeleton.tsx\n│   │   └── empty-state.tsx",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1762003176668_5zfha5qj6"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/component-refactoring/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-11-01T13:29:45.446Z",
+      "trigger": "initial",
+      "approvalId": "approval_1762003785443_cklrtp9zi",
+      "approvalTitle": "Tasks Document - Component Refactoring"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-11-01T13:31:43.687Z",
+      "trigger": "approved",
+      "approvalId": "approval_1762003785443_cklrtp9zi",
+      "approvalTitle": "Tasks Document - Component Refactoring"
+    }
+  ]
+}
