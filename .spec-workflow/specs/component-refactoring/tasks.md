@@ -59,7 +59,7 @@
 
 ### Task 2.1: Create ClaimStatusBadge component
 
-- [ ] 2.1. Create reusable status badge component
+- [x] 2.1. Create reusable status badge component
   - File: `frontend/src/components/common/badges/claim-status-badge.tsx`
   - Create ClaimStatusBadge component using getClaimStatusConfig() from claim-utils
   - Support size variants ('sm', 'md', 'lg') and optional icon display
@@ -71,7 +71,7 @@
 
 ### Task 2.2: Create FileTypeIcon component
 
-- [ ] 2.2. Create reusable file type icon component
+- [x] 2.2. Create reusable file type icon component
   - File: `frontend/src/components/common/icons/file-type-icon.tsx`
   - Create FileTypeIcon component using getFileTypeInfo() from file-utils
   - Support size customization and optional colored background
@@ -83,7 +83,7 @@
 
 ### Task 2.3: Create LoadingSkeleton component
 
-- [ ] 2.3. Create reusable loading skeleton component
+- [x] 2.3. Create reusable loading skeleton component
   - File: `frontend/src/components/common/skeletons/loading-skeleton.tsx`
   - Create LoadingSkeleton component with variant support for different layouts
   - Support variants: 'claim-card', 'claim-list', 'attachment-list', 'form'
@@ -95,7 +95,7 @@
 
 ### Task 2.4: Create EmptyState component
 
-- [ ] 2.4. Create reusable empty state component
+- [x] 2.4. Create reusable empty state component
   - File: `frontend/src/components/common/empty-states/empty-state.tsx`
   - Create EmptyState component for consistent "no data" displays
   - Support icon, title, description, and optional action button
@@ -107,7 +107,7 @@
 
 ### Task 2.5: Create ErrorDisplay component
 
-- [ ] 2.5. Create reusable error display component
+- [x] 2.5. Create reusable error display component
   - File: `frontend/src/components/common/errors/error-display.tsx`
   - Create ErrorDisplay component for consistent error messaging
   - Support inline, toast, and alert display variants
@@ -119,7 +119,7 @@
 
 ### Task 2.6: Add unit tests for common components
 
-- [ ] 2.6. Create unit tests for all common components
+- [x] 2.6. Create unit tests for all common components
   - Files: `frontend/src/components/common/__tests__/claim-status-badge.test.tsx`, `file-type-icon.test.tsx`, `loading-skeleton.test.tsx`, `empty-state.test.tsx`, `error-display.test.tsx`
   - Test ClaimStatusBadge: renders all status types correctly, applies size variants, shows/hides icons
   - Test FileTypeIcon: renders correct icons for different MIME types, applies size customization

@@ -171,6 +171,7 @@ export const createFilePreview = async (
     const previewUrl = URL.createObjectURL(file);
     return previewUrl;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to create file preview:', error);
     return undefined;
   }
