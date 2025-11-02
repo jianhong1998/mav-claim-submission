@@ -32,7 +32,7 @@ export const MonthYearPicker = React.memo<MonthYearPickerProps>(
     return (
       <div className={cn('grid gap-4 md:grid-cols-2', className)}>
         {/* Month Select */}
-        <div>
+        <div className="grid gap-2">
           <FormLabel className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             Month
@@ -64,7 +64,7 @@ export const MonthYearPicker = React.memo<MonthYearPickerProps>(
         </div>
 
         {/* Year Input */}
-        <div>
+        <div className="grid gap-2">
           <FormLabel>Year</FormLabel>
           <FormControl>
             <Input

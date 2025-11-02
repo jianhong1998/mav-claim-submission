@@ -21,7 +21,7 @@ export interface CategorySelectProps {
 export const CategorySelect = React.memo<CategorySelectProps>(
   ({ value, onChange, disabled = false, className }) => {
     return (
-      <div className={className}>
+      <div className={cn('grid gap-2', className)}>
         <FormLabel>Category</FormLabel>
         <FormControl>
           <select
