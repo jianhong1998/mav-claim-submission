@@ -76,6 +76,12 @@ vi.mock('lucide-react', () => ({
       {...props}
     />
   ),
+  XCircle: (props: MockIconProps) => (
+    <span
+      data-testid="XCircle"
+      {...props}
+    />
+  ),
   Mail: (props: MockIconProps) => (
     <span
       data-testid="Mail"
@@ -326,8 +332,8 @@ describe('ClaimsListComponent', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('March 2024')).toBeInTheDocument();
         expect(screen.getByText('February 2024')).toBeInTheDocument();
-        expect(screen.getByText(/\$100\.50/)).toBeInTheDocument();
-        expect(screen.getByText(/\$75\.00/)).toBeInTheDocument();
+        expect(screen.getByText(/SGD 100\.50/)).toBeInTheDocument();
+        expect(screen.getByText(/SGD 75\.00/)).toBeInTheDocument();
       });
     });
 
@@ -388,21 +394,37 @@ describe('ClaimsListComponent', () => {
       render(<ClaimsListComponent />, { wrapper });
 
       await waitFor(() => {
-        const draftBadge = screen.getByLabelText('Claim status: Draft');
-        const sentBadge = screen.getByLabelText('Claim status: Sent');
-        const paidBadge = screen.getByLabelText('Claim status: Paid');
-        const failedBadge = screen.getByLabelText('Claim status: Failed');
+        const draftBadge = screen.getByLabelText('Status: Draft');
+        const sentBadge = screen.getByLabelText('Status: Submitted');
+        const paidBadge = screen.getByLabelText('Status: Paid');
+        const failedBadge = screen.getByLabelText('Status: Failed');
 
         expect(draftBadge).toBeInTheDocument();
         expect(sentBadge).toBeInTheDocument();
         expect(paidBadge).toBeInTheDocument();
         expect(failedBadge).toBeInTheDocument();
 
-        // Check for dark mode styling classes
-        expect(draftBadge).toHaveClass('dark:bg-gray-400/10');
-        expect(sentBadge).toHaveClass('dark:bg-blue-400/10');
-        expect(paidBadge).toHaveClass('dark:bg-green-400/10');
-        expect(failedBadge).toHaveClass('dark:bg-red-400/10');
+        // Check for status-specific styling classes from ClaimStatusBadge
+        expect(draftBadge).toHaveClass(
+          'bg-gray-500/10',
+          'text-gray-500',
+          'border-gray-500',
+        );
+        expect(sentBadge).toHaveClass(
+          'bg-blue-500/10',
+          'text-blue-500',
+          'border-blue-500',
+        );
+        expect(paidBadge).toHaveClass(
+          'bg-green-500/10',
+          'text-green-500',
+          'border-green-500',
+        );
+        expect(failedBadge).toHaveClass(
+          'bg-red-500/10',
+          'text-red-500',
+          'border-red-500',
+        );
       });
     });
 
@@ -543,7 +565,7 @@ describe('ClaimsListComponent', () => {
       render(<ClaimsListComponent />, { wrapper });
 
       await waitFor(() => {
-        const statusBadge = screen.getByLabelText('Claim status: Sent');
+        const statusBadge = screen.getByLabelText('Status: Submitted');
         expect(statusBadge).toHaveClass(
           'min-h-[32px]',
           'sm:min-h-[24px]',
@@ -638,7 +660,7 @@ describe('ClaimsListComponent', () => {
 
       await waitFor(() => {
         // Status badge should have descriptive label
-        const statusBadge = screen.getByLabelText('Claim status: Paid');
+        const statusBadge = screen.getByLabelText('Status: Paid');
         expect(statusBadge).toBeInTheDocument();
 
         // Claim period should have descriptive label
@@ -646,7 +668,7 @@ describe('ClaimsListComponent', () => {
         expect(claimPeriod).toBeInTheDocument();
 
         // Amount should have descriptive label
-        const amount = screen.getByLabelText('Amount: $150.75');
+        const amount = screen.getByLabelText('Amount: SGD 150.75');
         expect(amount).toBeInTheDocument();
 
         // Attachments should have descriptive label

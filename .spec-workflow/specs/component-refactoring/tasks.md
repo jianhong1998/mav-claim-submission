@@ -137,7 +137,7 @@
 
 ### Task 3.1: Extract FileUploadComponent sub-components
 
-- [ ] 3.1. Extract UploadZone, FilePreviewList, UploadProgressTracker, UploadedFilesList sub-components from FileUploadComponent
+- [x] 3.1. Extract UploadZone, FilePreviewList, UploadProgressTracker, UploadedFilesList sub-components from FileUploadComponent
   - Files: `frontend/src/components/attachments/upload-zone.tsx`, `file-preview-list.tsx`, `upload-progress-tracker.tsx`, `uploaded-files-list.tsx`
   - Extract UploadZone (~80 lines): handles drag-drop events only
   - Extract FilePreviewList (~70 lines): renders pending uploads with FileTypeIcon
@@ -150,7 +150,7 @@
 
 ### Task 3.2: Refactor FileUploadComponent to use sub-components
 
-- [ ] 3.2. Refactor FileUploadComponent to compose extracted sub-components
+- [x] 3.2. Refactor FileUploadComponent to compose extracted sub-components
   - File: `frontend/src/components/attachments/FileUploadComponent.tsx` (modify existing)
   - Replace inline markup with UploadZone, FilePreviewList, UploadProgressTracker, UploadedFilesList
   - Maintain exact same props interface (BACKWARD COMPATIBILITY)
@@ -162,7 +162,7 @@
 
 ### Task 3.3: Extract ClaimReviewComponent sub-components
 
-- [ ] 3.3. Extract ReviewSummaryStats, ClaimReviewItem, ReviewActions sub-components from ClaimReviewComponent
+- [x] 3.3. Extract ReviewSummaryStats, ClaimReviewItem, ReviewActions sub-components from ClaimReviewComponent
   - Files: `frontend/src/components/claims/review-summary-stats.tsx`, `claim-review-item.tsx`, `review-actions.tsx`
   - Extract ReviewSummaryStats (~60 lines): displays summary statistics card
   - Extract ClaimReviewItem (~120 lines): individual claim in review list
@@ -186,7 +186,7 @@
 
 ### Task 3.5: Extract ClaimCard from ClaimsListComponent
 
-- [ ] 3.5. Extract ClaimCard sub-component from ClaimsListComponent
+- [x] 3.5. Extract ClaimCard sub-component from ClaimsListComponent
   - File: `frontend/src/components/claims/claim-card.tsx`
   - Extract ClaimCard (~100 lines): individual claim display card
   - Use ClaimStatusBadge, getCategoryDisplayName, formatAmount, formatMonthYear from shared utilities
@@ -198,7 +198,7 @@
 
 ### Task 3.6: Refactor ClaimsListComponent to use ClaimCard
 
-- [ ] 3.6. Refactor ClaimsListComponent to compose ClaimCard sub-component
+- [x] 3.6. Refactor ClaimsListComponent to compose ClaimCard sub-component
   - File: `frontend/src/components/claims/ClaimsListComponent.tsx` (modify existing)
   - Replace inline claim card markup (lines 241-366) with ClaimCard component
   - Maintain exact same props interface (BACKWARD COMPATIBILITY)

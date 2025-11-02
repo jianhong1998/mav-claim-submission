@@ -67,6 +67,8 @@ vi.mock('@/components/attachments/AttachmentList', () => ({
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({
   CheckCircle2: () => <span data-testid="CheckCircle2" />,
+  CheckCircle: () => <span data-testid="CheckCircle" />,
+  XCircle: () => <span data-testid="XCircle" />,
   Calendar: () => <span data-testid="Calendar" />,
   DollarSign: () => <span data-testid="DollarSign" />,
   FileText: () => <span data-testid="FileText" />,
@@ -75,6 +77,7 @@ vi.mock('lucide-react', () => ({
   Edit: () => <span data-testid="Edit" />,
   ArrowLeft: () => <span data-testid="ArrowLeft" />,
   Mail: () => <span data-testid="Mail" />,
+  Send: () => <span data-testid="Send" />,
 }));
 
 const mockApiClient = {
@@ -284,7 +287,7 @@ describe('ClaimReviewComponent', () => {
       await waitFor(() => {
         const threeElements = screen.getAllByText('3');
         expect(threeElements).toHaveLength(2); // Draft Claims count and Total Files count
-        expect(screen.getByText('$175.00')).toBeInTheDocument(); // Total Amount (100+50+25)
+        expect(screen.getByText('SGD 175.00')).toBeInTheDocument(); // Total Amount (100+50+25)
 
         // Check for "Without Files" count specifically
         expect(screen.getByText('Without Files')).toBeInTheDocument();
@@ -328,8 +331,8 @@ describe('ClaimReviewComponent', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('March 2024')).toBeInTheDocument();
         expect(screen.getByText('February 2024')).toBeInTheDocument();
-        expect(screen.getByText('$100.50')).toBeInTheDocument();
-        expect(screen.getByText('$75.00')).toBeInTheDocument();
+        expect(screen.getByText('SGD 100.50')).toBeInTheDocument();
+        expect(screen.getByText('SGD 75.00')).toBeInTheDocument();
         expect(screen.getByText('2 files')).toBeInTheDocument();
         expect(screen.getByText('0 files')).toBeInTheDocument();
       });

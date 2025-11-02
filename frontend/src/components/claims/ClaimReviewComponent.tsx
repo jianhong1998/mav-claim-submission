@@ -4,189 +4,21 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { AttachmentList } from '@/components/attachments/AttachmentList';
-import {
-  IClaimMetadata,
-  IClaimListResponse,
-  ClaimCategory,
-} from '@project/types';
+import { IClaimMetadata, IClaimListResponse } from '@project/types';
 import { apiClient } from '@/lib/api-client';
 import { useEmailSending } from '@/hooks/email/useEmailSending';
 import { toast } from 'sonner';
-import {
-  Calendar,
-  DollarSign,
-  FileText,
-  AlertCircle,
-  RefreshCw,
-  Edit,
-  ArrowLeft,
-  Mail,
-} from 'lucide-react';
+import { AlertCircle, RefreshCw, ArrowLeft, FileText } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ReviewSummaryStats } from './review-summary-stats';
+import { ClaimReviewItem } from './claim-review-item';
+import { ReviewActions } from './review-actions';
 
 interface ClaimReviewComponentProps {
   onBack?: () => void;
   onEditClaim?: (claim: IClaimMetadata) => void;
   className?: string;
 }
-
-/**
- * Gets category display name for UI
- */
-const getCategoryDisplayName = (category: ClaimCategory): string => {
-  const categoryNames = {
-    [ClaimCategory.TELCO]: 'Telecommunications',
-    [ClaimCategory.FITNESS]: 'Fitness & Wellness',
-    [ClaimCategory.DENTAL]: 'Dental Care',
-    [ClaimCategory.SKILL_ENHANCEMENT]: 'Skill Enhancement',
-    [ClaimCategory.COMPANY_EVENT]: 'Company Event',
-    [ClaimCategory.COMPANY_LUNCH]: 'Company Lunch',
-    [ClaimCategory.COMPANY_DINNER]: 'Company Dinner',
-    [ClaimCategory.OTHERS]: 'Others',
-  };
-  return categoryNames[category] || category;
-};
-
-/**
- * Formats amount in SGD currency
- */
-const formatAmount = (amount: number): string => {
-  return new Intl.NumberFormat('en-SG', {
-    style: 'currency',
-    currency: 'SGD',
-  }).format(amount);
-};
-
-/**
- * Formats month/year display
- */
-const formatMonthYear = (month: number, year: number): string => {
-  const date = new Date(year, month - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
-
-/**
- * Individual claim review item component
- */
-interface ClaimReviewItemProps {
-  claim: IClaimMetadata;
-  onEdit: (claim: IClaimMetadata) => void;
-  isUpdating: boolean;
-}
-
-const ClaimReviewItem: React.FC<ClaimReviewItemProps> = ({
-  claim,
-  onEdit,
-  isUpdating,
-}) => {
-  const [showAttachments, setShowAttachments] = useState(false);
-  const attachmentCount = claim.attachments?.length || 0;
-
-  const handleEditClick = useCallback(() => {
-    onEdit(claim);
-  }, [claim, onEdit]);
-
-  return (
-    <Card className={cn('relative transition-all', isUpdating && 'opacity-50')}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">
-              {claim.claimName ||
-                `${getCategoryDisplayName(claim.category)} Claim`}
-            </CardTitle>
-            <CardDescription className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {formatMonthYear(claim.month, claim.year)}
-              </span>
-              <span className="flex items-center gap-1">
-                <DollarSign className="h-3 w-3" />
-                {formatAmount(claim.totalAmount)}
-              </span>
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {attachmentCount} file{attachmentCount !== 1 ? 's' : ''}
-              </span>
-            </CardDescription>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleEditClick}
-              disabled={isUpdating}
-              className="h-8 w-8 p-0"
-              title="Edit claim"
-            >
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Edit claim</span>
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div>Category: {getCategoryDisplayName(claim.category)}</div>
-          <div>Status: {claim.status}</div>
-        </div>
-
-        {attachmentCount > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Attachments</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAttachments(!showAttachments)}
-                className="h-auto p-1 text-xs"
-              >
-                {showAttachments ? 'Hide' : 'Show'} Details
-              </Button>
-            </div>
-
-            {showAttachments && (
-              <div className="ml-2">
-                <AttachmentList
-                  claimId={claim.id}
-                  showActions={false}
-                  className="space-y-2"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {attachmentCount === 0 && (
-          <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <span className="text-sm text-yellow-700 dark:text-yellow-300">
-              No attachments uploaded for this claim
-            </span>
-          </div>
-        )}
-      </CardContent>
-
-      {isUpdating && (
-        <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            Updating...
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-};
 
 /**
  * ClaimReviewComponent provides comprehensive review interface for draft claims
@@ -450,43 +282,12 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
       </div>
 
       {/* Summary Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Summary</CardTitle>
-          <CardDescription>
-            Review your draft claims before emailing and submitting them for
-            processing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {summaryStats.totalClaims}
-              </div>
-              <div className="text-sm text-muted-foreground">Draft Claims</div>
-            </div>
-            <div className="text-center p-3 bg-green-500/10 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {formatAmount(summaryStats.totalAmount)}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Amount</div>
-            </div>
-            <div className="text-center p-3 bg-purple-500/10 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {summaryStats.totalAttachments}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Files</div>
-            </div>
-            <div className="text-center p-3 bg-yellow-500/10 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
-                {summaryStats.claimsWithoutAttachments}
-              </div>
-              <div className="text-sm text-muted-foreground">Without Files</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ReviewSummaryStats
+        totalClaims={summaryStats.totalClaims}
+        totalAmount={summaryStats.totalAmount}
+        totalAttachments={summaryStats.totalAttachments}
+        claimsWithoutAttachments={summaryStats.claimsWithoutAttachments}
+      />
 
       {/* Warning for claims without attachments */}
       {summaryStats.claimsWithoutAttachments > 0 && (
@@ -514,28 +315,12 @@ export const ClaimReviewComponent: React.FC<ClaimReviewComponentProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-4 pt-6 border-t">
-        <Button
-          variant="default"
-          size="lg"
-          onClick={handleMarkAllReady}
-          disabled={isAnyClaimUpdating || draftClaims.length === 0}
-          className="min-w-48"
-        >
-          {isAnyClaimUpdating ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              Sending Emails & Submitting...
-            </>
-          ) : (
-            <>
-              <Mail className="w-4 h-4 mr-2" />
-              Email & Submit All {draftClaims.length} Claim
-              {draftClaims.length !== 1 ? 's' : ''}
-            </>
-          )}
-        </Button>
-      </div>
+      <ReviewActions
+        claimCount={draftClaims.length}
+        onSendEmail={handleMarkAllReady}
+        isLoading={isAnyClaimUpdating}
+        disabled={isAnyClaimUpdating}
+      />
     </div>
   );
 };
