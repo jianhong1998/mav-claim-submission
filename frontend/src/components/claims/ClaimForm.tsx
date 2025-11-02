@@ -15,6 +15,10 @@ import {
   IClaimMetadata,
 } from '@project/types';
 import { toast } from 'sonner';
+import {
+  getCategoryDisplayName,
+  getClaimStatusConfig,
+} from '@/lib/claim-utils';
 
 interface ClaimFormProps {
   claim?: IClaimMetadata;
@@ -23,61 +27,6 @@ interface ClaimFormProps {
   className?: string;
   disabled?: boolean;
 }
-
-/**
- * Gets category display name for UI
- */
-const getCategoryDisplayName = (category: ClaimCategory): string => {
-  const categoryNames = {
-    [ClaimCategory.TELCO]: 'Telecommunications',
-    [ClaimCategory.FITNESS]: 'Fitness & Wellness',
-    [ClaimCategory.DENTAL]: 'Dental Care',
-    [ClaimCategory.SKILL_ENHANCEMENT]: 'Skill Enhancement',
-    [ClaimCategory.COMPANY_EVENT]: 'Company Event',
-    [ClaimCategory.COMPANY_LUNCH]: 'Company Lunch',
-    [ClaimCategory.COMPANY_DINNER]: 'Company Dinner',
-    [ClaimCategory.OTHERS]: 'Others',
-  };
-  return categoryNames[category] || category;
-};
-
-/**
- * Gets status display info for UI
- */
-const getStatusInfo = (status: ClaimStatus) => {
-  switch (status) {
-    case ClaimStatus.DRAFT:
-      return {
-        label: 'Draft',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-500/10',
-      };
-    case ClaimStatus.SENT:
-      return {
-        label: 'Submitted',
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-500/10',
-      };
-    case ClaimStatus.PAID:
-      return {
-        label: 'Paid',
-        color: 'text-green-500',
-        bgColor: 'bg-green-500/10',
-      };
-    case ClaimStatus.FAILED:
-      return {
-        label: 'Failed',
-        color: 'text-red-500',
-        bgColor: 'bg-red-500/10',
-      };
-    default:
-      return {
-        label: 'Unknown',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-500/10',
-      };
-  }
-};
 
 /**
  * Enhanced claim form with integrated attachment upload and management
@@ -209,11 +158,11 @@ export const ClaimForm: React.FC<ClaimFormProps> = ({
               <div
                 className={cn(
                   'flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
-                  getStatusInfo(claim.status).bgColor,
-                  getStatusInfo(claim.status).color,
+                  getClaimStatusConfig(claim.status).bgColor,
+                  getClaimStatusConfig(claim.status).color,
                 )}
               >
-                {getStatusInfo(claim.status).label}
+                {getClaimStatusConfig(claim.status).label}
               </div>
               <span className="text-xs text-muted-foreground">
                 Created{' '}

@@ -285,7 +285,7 @@
 
 ### Task 4.1: Update all components to use shared utilities
 
-- [ ] 4.1. Update remaining components to import from shared utility modules
+- [x] 4.1. Update remaining components to import from shared utility modules
   - Files: All components that still have local utility functions
   - Replace local `getCategoryDisplayName()` with import from `@/lib/claim-utils`
   - Replace local `formatAmount()`, `formatMonthYear()` with imports from `@/lib/format-utils`
@@ -297,7 +297,7 @@
 
 ### Task 4.2: Remove duplicate utility functions from components
 
-- [ ] 4.2. Delete local utility function implementations now replaced by shared utilities
+- [x] 4.2. Delete local utility function implementations now replaced by shared utilities
   - Files: All components with now-unused local utility functions
   - Remove local `getCategoryDisplayName()` functions (after verifying import from claim-utils works)
   - Remove local `formatAmount()`, `formatMonthYear()` functions (after verifying import from format-utils works)
@@ -309,7 +309,7 @@
 
 ### Task 4.3: Run final verification and testing
 
-- [ ] 4.3. Execute comprehensive verification and final testing
+- [x] 4.3. Execute comprehensive verification and final testing
   - Run full test suite: `pnpm test`
   - Run TypeScript compilation: `pnpm run build`
   - Run linter: `make lint`

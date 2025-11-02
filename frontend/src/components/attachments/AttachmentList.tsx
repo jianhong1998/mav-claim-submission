@@ -7,7 +7,6 @@ import { useAttachmentList } from '@/hooks/attachments/useAttachmentList';
 import { IAttachmentMetadata, AttachmentStatus } from '@project/types';
 import {
   FileText,
-  Image,
   ExternalLink,
   Trash2,
   RefreshCw,
@@ -18,6 +17,8 @@ import {
   Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatFileSize, getFileTypeInfo } from '@/lib/file-utils';
+import { formatDate } from '@/lib/format-utils';
 
 interface AttachmentListProps {
   claimId: string;
@@ -26,48 +27,6 @@ interface AttachmentListProps {
   onAttachmentDeleted?: (attachmentId: string) => void;
   onAttachmentViewed?: (attachment: IAttachmentMetadata) => void;
 }
-
-/**
- * Gets appropriate icon and color for file type
- */
-const getFileTypeInfo = (mimeType: string) => {
-  if (mimeType.startsWith('image/')) {
-    return {
-      icon: (
-        <Image
-          className="w-5 h-5"
-          aria-label="Image file"
-        />
-      ),
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    };
-  }
-
-  if (mimeType === 'application/pdf') {
-    return {
-      icon: (
-        <FileText
-          className="w-5 h-5"
-          aria-label="Document file"
-        />
-      ),
-      color: 'text-red-500',
-      bgColor: 'bg-red-500/10',
-    };
-  }
-
-  return {
-    icon: (
-      <FileText
-        className="w-5 h-5"
-        aria-label="Document file"
-      />
-    ),
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-500/10',
-  };
-};
 
 /**
  * Gets status indicator for attachment
@@ -106,33 +65,6 @@ const getStatusInfo = (status: AttachmentStatus) => {
 };
 
 /**
- * Formats file size for display
- */
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-/**
- * Formats date for display
- */
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-/**
  * Individual attachment item component
  */
 interface AttachmentItemProps {
@@ -152,6 +84,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const fileTypeInfo = getFileTypeInfo(attachment.mimeType);
+  const FileIcon = fileTypeInfo.icon; // Extract icon component
   const statusInfo = getStatusInfo(attachment.status);
 
   const handleDelete = useCallback(async () => {
@@ -200,7 +133,12 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
           fileTypeInfo.bgColor,
         )}
       >
-        <div className={fileTypeInfo.color}>{fileTypeInfo.icon}</div>
+        <div className={fileTypeInfo.color}>
+          <FileIcon
+            className="w-5 h-5"
+            aria-label={`${fileTypeInfo.category.charAt(0).toUpperCase() + fileTypeInfo.category.slice(1)} file`}
+          />
+        </div>
       </div>
 
       {/* File Info */}
@@ -222,7 +160,16 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
 
         <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
           <span>{formatFileSize(attachment.fileSize)}</span>
-          <span>Uploaded {formatDate(attachment.uploadedAt)}</span>
+          <span>
+            Uploaded{' '}
+            {formatDate(attachment.uploadedAt, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
           {attachment.storedFilename !== attachment.originalFilename && (
             <span title={`Stored as: ${attachment.storedFilename}`}>
               Renamed
