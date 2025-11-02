@@ -192,8 +192,8 @@ describe('DraftClaimsList', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('March 2024')).toBeInTheDocument();
         expect(screen.getByText('February 2024')).toBeInTheDocument();
-        expect(screen.getByText(/\$100\.50/)).toBeInTheDocument();
-        expect(screen.getByText(/\$75\.00/)).toBeInTheDocument();
+        expect(screen.getByText(/SGD 100\.50/)).toBeInTheDocument();
+        expect(screen.getByText(/SGD 75\.00/)).toBeInTheDocument();
       });
     });
 

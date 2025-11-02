@@ -200,10 +200,10 @@ describe('BulkFileUploadComponent', () => {
 
       expect(screen.getByText('Mobile Phone Bill')).toBeInTheDocument();
       expect(screen.getByText('Fitness & Wellness Claim')).toBeInTheDocument();
-      expect(screen.getByText('Mar 2024')).toBeInTheDocument();
-      expect(screen.getByText('Feb 2024')).toBeInTheDocument();
-      expect(screen.getByText(/\$100\.50/)).toBeInTheDocument();
-      expect(screen.getByText(/\$75\.00/)).toBeInTheDocument();
+      expect(screen.getByText('March 2024')).toBeInTheDocument();
+      expect(screen.getByText('February 2024')).toBeInTheDocument();
+      expect(screen.getByText(/SGD 100\.50/)).toBeInTheDocument();
+      expect(screen.getByText(/SGD 75\.00/)).toBeInTheDocument();
     });
 
     it('should show file count badge for claims with attachments', () => {

@@ -720,16 +720,14 @@ describe('useMultiClaim', () => {
       });
 
       try {
-        await act(async () => {
-          await result.current.createClaim({
-            category: ClaimCategory.TELCO,
-            month: 3,
-            year: 2024,
-            totalAmount: 100,
-          });
+        await result.current.createClaim({
+          category: ClaimCategory.TELCO,
+          month: 3,
+          year: 2024,
+          totalAmount: 100,
         });
       } catch (_error) {
-        // Expected to throw
+        // Expected to throw - mutations handle their own state updates
       }
 
       await waitFor(() => {
