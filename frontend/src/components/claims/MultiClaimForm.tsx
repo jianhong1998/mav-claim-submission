@@ -4,7 +4,6 @@ import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Card,
@@ -29,7 +28,11 @@ import {
 } from '@project/types';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { Plus, Calendar, DollarSign } from 'lucide-react';
+import { Plus, DollarSign } from 'lucide-react';
+import { CategorySelect } from './category-select';
+import { MonthYearPicker } from './month-year-picker';
+import { FormActions } from './form-actions';
+import { MONTHLY_LIMITS } from '@/lib/claim-utils';
 
 interface MultiClaimFormProps {
   onClaimCreated?: (claim: IClaimMetadata) => void;
@@ -44,31 +47,6 @@ interface FormData {
   year: number;
   totalAmount: number;
 }
-
-/**
- * Business rules for monthly limits (as per design document)
- */
-const MONTHLY_LIMITS = {
-  [ClaimCategory.TELCO]: 150, // SGD 150 monthly limit for telco
-  [ClaimCategory.FITNESS]: 50, // SGD 50 monthly limit for fitness
-} as const;
-
-/**
- * Gets category display name for UI
- */
-const getCategoryDisplayName = (category: ClaimCategory): string => {
-  const categoryNames = {
-    [ClaimCategory.TELCO]: 'Telecommunications',
-    [ClaimCategory.FITNESS]: 'Fitness & Wellness',
-    [ClaimCategory.DENTAL]: 'Dental Care',
-    [ClaimCategory.SKILL_ENHANCEMENT]: 'Skill Enhancement',
-    [ClaimCategory.COMPANY_EVENT]: 'Company Event',
-    [ClaimCategory.COMPANY_LUNCH]: 'Company Lunch',
-    [ClaimCategory.COMPANY_DINNER]: 'Company Dinner',
-    [ClaimCategory.OTHERS]: 'Others',
-  };
-  return categoryNames[category] || category;
-};
 
 /**
  * Validates monthly limits across existing and new claims
@@ -94,12 +72,11 @@ const validateMonthlyLimits = (
   const totalAmount = existingAmount + newClaim.totalAmount;
 
   if (totalAmount > categoryLimit) {
-    const categoryName = getCategoryDisplayName(newClaim.category);
     const monthYear = new Date(
       newClaim.year,
       newClaim.month - 1,
     ).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    return `Total ${categoryName.toLowerCase()} claims for ${monthYear} (SGD ${totalAmount.toFixed(2)}) exceed monthly limit (SGD ${categoryLimit}). Please adjust amounts.`;
+    return `Total claims for ${monthYear} (SGD ${totalAmount.toFixed(2)}) exceed monthly limit (SGD ${categoryLimit}). Please adjust amounts.`;
   }
 
   return null;
@@ -222,32 +199,11 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
               rules={{ required: 'Please select a category' }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      disabled={isCreating}
-                      className={cn(
-                        'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors',
-                        'file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground',
-                        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-                      )}
-                    >
-                      {Object.values(ClaimCategory).map((category) => (
-                        <option
-                          key={category}
-                          value={category}
-                        >
-                          {getCategoryDisplayName(category)}
-                          {MONTHLY_LIMITS[
-                            category as keyof typeof MONTHLY_LIMITS
-                          ] &&
-                            ` (SGD ${MONTHLY_LIMITS[category as keyof typeof MONTHLY_LIMITS]} limit)`}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
+                  <CategorySelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isCreating}
+                  />
                 </FormItem>
               )}
             />
@@ -286,86 +242,14 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Month */}
-              <FormField
-                control={form.control}
-                name="month"
-                rules={{
-                  required: 'Please select a month',
-                  min: { value: 1, message: 'Invalid month' },
-                  max: { value: 12, message: 'Invalid month' },
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Month
-                    </FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        disabled={isCreating}
-                        className={cn(
-                          'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors',
-                          'file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground',
-                          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-                        )}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      >
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                          (month) => (
-                            <option
-                              key={month}
-                              value={month}
-                            >
-                              {new Date(0, month - 1).toLocaleString('en-US', {
-                                month: 'long',
-                              })}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Year */}
-              <FormField
-                control={form.control}
-                name="year"
-                rules={{
-                  required: 'Please enter a year',
-                  min: { value: 2020, message: 'Year must be 2020 or later' },
-                  max: { value: 2100, message: 'Year must be before 2100' },
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        min="2020"
-                        max="2100"
-                        disabled={isCreating}
-                        onChange={(e) =>
-                          field.onChange(
-                            parseInt(e.target.value) ||
-                              new Date().getFullYear(),
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Month and Year */}
+            <MonthYearPicker
+              month={form.watch('month')}
+              year={form.watch('year')}
+              onMonthChange={(month) => form.setValue('month', month)}
+              onYearChange={(year) => form.setValue('year', year)}
+              disabled={isCreating}
+            />
 
             {/* Total Amount */}
             <FormField
@@ -402,25 +286,7 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
             />
 
             {/* Submit Button */}
-            <div className="flex justify-end pt-4">
-              <Button
-                type="submit"
-                disabled={isCreating}
-                className="min-w-32"
-              >
-                {isCreating ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Draft List
-                  </>
-                )}
-              </Button>
-            </div>
+            <FormActions isSubmitting={isCreating} />
           </form>
         </Form>
       </CardContent>

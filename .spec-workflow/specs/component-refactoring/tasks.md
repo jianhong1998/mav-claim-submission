@@ -210,7 +210,7 @@
 
 ### Task 3.7: Extract MultiClaimForm sub-components
 
-- [ ] 3.7. Extract CategorySelect, MonthYearPicker, FormActions sub-components from MultiClaimForm
+- [x] 3.7. Extract CategorySelect, MonthYearPicker, FormActions sub-components from MultiClaimForm
   - Files: `frontend/src/components/claims/category-select.tsx`, `month-year-picker.tsx`, `form-actions.tsx`
   - Extract CategorySelect (~60 lines): category dropdown with monthly limits display
   - Extract MonthYearPicker (~70 lines): month and year selection inputs
@@ -222,7 +222,7 @@
 
 ### Task 3.8: Refactor MultiClaimForm to use sub-components
 
-- [ ] 3.8. Refactor MultiClaimForm to compose extracted sub-components
+- [x] 3.8. Refactor MultiClaimForm to compose extracted sub-components
   - File: `frontend/src/components/claims/MultiClaimForm.tsx` (modify existing)
   - Replace inline form fields with CategorySelect, MonthYearPicker, FormActions
   - Maintain exact same props interface (BACKWARD COMPATIBILITY)
@@ -234,7 +234,7 @@
 
 ### Task 3.9: Extract BulkFileUploadComponent sub-components
 
-- [ ] 3.9. Extract BulkUploadStatsCard and BulkUploadClaimCard sub-components from BulkFileUploadComponent
+- [x] 3.9. Extract BulkUploadStatsCard and BulkUploadClaimCard sub-components from BulkFileUploadComponent
   - Files: `frontend/src/components/attachments/bulk-upload-stats-card.tsx`, `bulk-upload-claim-card.tsx`
   - Extract BulkUploadStatsCard (~80 lines): upload statistics dashboard
   - Extract BulkUploadClaimCard (~120 lines): individual claim card with upload section
@@ -245,7 +245,7 @@
 
 ### Task 3.10: Refactor BulkFileUploadComponent to use sub-components
 
-- [ ] 3.10. Refactor BulkFileUploadComponent to compose extracted sub-components
+- [x] 3.10. Refactor BulkFileUploadComponent to compose extracted sub-components
   - File: `frontend/src/components/attachments/BulkFileUploadComponent.tsx` (modify existing)
   - Replace inline markup with BulkUploadStatsCard and BulkUploadClaimCard
   - Maintain exact same props interface (BACKWARD COMPATIBILITY)
@@ -257,7 +257,7 @@
 
 ### Task 3.11: Extract DraftClaimCard from DraftClaimsList
 
-- [ ] 3.11. Extract DraftClaimCard sub-component from DraftClaimsList
+- [x] 3.11. Extract DraftClaimCard sub-component from DraftClaimsList
   - File: `frontend/src/components/claims/draft-claim-card.tsx`
   - Extract DraftClaimCard (~90 lines): individual draft claim card with edit/delete
   - Use getCategoryDisplayName, formatAmount, formatMonthYear from shared utilities
@@ -269,7 +269,7 @@
 
 ### Task 3.12: Refactor DraftClaimsList to use DraftClaimCard
 
-- [ ] 3.12. Refactor DraftClaimsList to compose DraftClaimCard sub-component
+- [x] 3.12. Refactor DraftClaimsList to compose DraftClaimCard sub-component
   - File: `frontend/src/components/claims/DraftClaimsList.tsx` (modify existing)
   - Replace inline claim card markup (lines 189-273) with DraftClaimCard component
   - Maintain exact same props interface (BACKWARD COMPATIBILITY)
