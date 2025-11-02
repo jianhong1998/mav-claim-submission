@@ -94,19 +94,17 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
+                    {form.watch('category') !== ClaimCategory.OTHERS &&
+                      '(Optional) '}
                     Claim Name
                     {form.watch('category') === ClaimCategory.OTHERS && (
-                      <span className="text-destructive ml-1">*</span>
+                      <span className="text-destructive">*</span>
                     )}
                   </FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder={
-                        form.watch('category') === ClaimCategory.OTHERS
-                          ? 'Enter a descriptive name (required)'
-                          : 'Optional descriptive name'
-                      }
+                      placeholder={'Descriptive name'}
                       disabled={isCreating}
                     />
                   </FormControl>
@@ -138,6 +136,7 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
                   <FormLabel className="flex items-center gap-1">
                     <DollarSign className="h-3 w-3" />
                     Total Amount (SGD)
+                    <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input

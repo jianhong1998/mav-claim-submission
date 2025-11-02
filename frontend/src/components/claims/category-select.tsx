@@ -22,7 +22,10 @@ export const CategorySelect = React.memo<CategorySelectProps>(
   ({ value, onChange, disabled = false, className }) => {
     return (
       <div className={cn('grid gap-2', className)}>
-        <FormLabel>Category</FormLabel>
+        <FormLabel>
+          Category
+          <span className="text-destructive">*</span>
+        </FormLabel>
         <FormControl>
           <select
             value={value}

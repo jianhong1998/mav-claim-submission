@@ -71,13 +71,13 @@ describe('MultiClaimForm - Simple Tests', () => {
     render(<MultiClaimForm />, { wrapper });
 
     expect(screen.getByText('Add New Claim')).toBeInTheDocument();
-    expect(screen.getByLabelText('Category')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Category/i)).toBeInTheDocument();
   });
 
   it('should handle category selection without hanging', () => {
     render(<MultiClaimForm />, { wrapper });
 
-    const categorySelect = screen.getByLabelText('Category');
+    const categorySelect = screen.getByLabelText(/Category/i);
     fireEvent.change(categorySelect, { target: { value: 'others' } });
 
     expect(categorySelect).toBeInTheDocument();
