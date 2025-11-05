@@ -1,0 +1,27 @@
+{
+  "id": "approval_1759565199400_h4x98c8j1",
+  "title": "Tasks: Test Data Endpoint Implementation Plan",
+  "filePath": ".spec-workflow/specs/test-data-endpoint/tasks.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-10-04T08:06:39.400Z",
+  "category": "spec",
+  "categoryName": "test-data-endpoint",
+  "response": "Feedback Summary (1 comments):\n\nSpecific Text Comments:\n1. \"- [ ] 2.5 Add environment variable to .env\n  - Fil...\": There is no `.env.example`, use `.env.template` instead.\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"There is no `.env.example`, use `.env.template` instead.\",\n      \"timestamp\": \"2025-10-04T08:13:13.047Z\",\n      \"selectedText\": \"- [ ] 2.5 Add environment variable to .env\\n  - Files:\\n    - `.env` (modify - add ENABLE_API_TEST_MODE)\\n    - `.env.example` (modify if exists - add comment)\\n  - Add ENABLE_API_TEST_MODE=true for test environment\\n  - Add comment explaining feature flag purpose\\n  - Purpose: Enable test endpoints in development/test environments\\n  - _Leverage: None (environment configuration)_\\n  - _Requirements: Requirement 1 (Feature Flag Control)_\\n  - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: DevOps Engineer | Task: Add ENABLE_API_TEST_MODE=true to root .env file with comment explaining it enables internal test endpoints, update .env.example if it exists with ENABLE_API_TEST_MODE=false and security warning | Restrictions: Set to 'true' in .env (for development), set to 'false' in .env.example (safe default for production), include clear comment about purpose and security implications | Success: Environment variable is added to both files with appropriate values and comments, developers understand when to enable/disable flag | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1759565593047_bssmit6u6\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nSpecific Text Comments:\\n1. \\\"- [ ] 2.5 Add environment variable to .env\\n  - Fil...\\\": There is no `.env.example`, use `.env.template` instead.\\n\",\n  \"timestamp\": \"2025-10-04T08:13:18.422Z\"\n}",
+  "respondedAt": "2025-10-04T08:13:18.430Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "There is no `.env.example`, use `.env.template` instead.",
+      "timestamp": "2025-10-04T08:13:13.047Z",
+      "selectedText": "- [ ] 2.5 Add environment variable to .env\n  - Files:\n    - `.env` (modify - add ENABLE_API_TEST_MODE)\n    - `.env.example` (modify if exists - add comment)\n  - Add ENABLE_API_TEST_MODE=true for test environment\n  - Add comment explaining feature flag purpose\n  - Purpose: Enable test endpoints in development/test environments\n  - _Leverage: None (environment configuration)_\n  - _Requirements: Requirement 1 (Feature Flag Control)_\n  - _Prompt: Implement the task for spec test-data-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: Role: DevOps Engineer | Task: Add ENABLE_API_TEST_MODE=true to root .env file with comment explaining it enables internal test endpoints, update .env.example if it exists with ENABLE_API_TEST_MODE=false and security warning | Restrictions: Set to 'true' in .env (for development), set to 'false' in .env.example (safe default for production), include clear comment about purpose and security implications | Success: Environment variable is added to both files with appropriate values and comments, developers understand when to enable/disable flag | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1759565593047_bssmit6u6"
+    }
+  ]
+}

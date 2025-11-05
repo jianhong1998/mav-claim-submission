@@ -1,0 +1,21 @@
+{
+  "id": "approval_1758018507370_pq4y7vtq9",
+  "title": "Email Sending for Claims - Requirements Document",
+  "filePath": ".spec-workflow/specs/email-sending-for-claims/requirements.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-16T10:28:27.370Z",
+  "category": "spec",
+  "categoryName": "email-sending-for-claims",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Note that the system should not hardcoded the recipient. The recipient should be taken from the environment variable \"BACKEND_EMAIL_RECIPIENT\".\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Note that the system should not hardcoded the recipient. The recipient should be taken from the environment variable \\\"BACKEND_EMAIL_RECIPIENT\\\".\",\n      \"timestamp\": \"2025-09-16T23:31:14.633Z\",\n      \"id\": \"comment_1758065474633_m3rsp0u8p\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Note that the system should not hardcoded the recipient. The recipient should be taken from the environment variable \\\"BACKEND_EMAIL_RECIPIENT\\\".\\n\\n\",\n  \"timestamp\": \"2025-09-16T23:31:18.520Z\"\n}",
+  "respondedAt": "2025-09-16T23:31:18.525Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Note that the system should not hardcoded the recipient. The recipient should be taken from the environment variable \"BACKEND_EMAIL_RECIPIENT\".",
+      "timestamp": "2025-09-16T23:31:14.633Z",
+      "id": "comment_1758065474633_m3rsp0u8p"
+    }
+  ]
+}

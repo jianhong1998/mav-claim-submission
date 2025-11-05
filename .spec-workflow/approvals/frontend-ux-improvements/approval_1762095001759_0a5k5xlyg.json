@@ -1,0 +1,12 @@
+{
+  "id": "approval_1762095001759_0a5k5xlyg",
+  "title": "Design: Frontend UX Improvements (REVISED with Linus Review)",
+  "filePath": ".spec-workflow/specs/frontend-ux-improvements/design.md",
+  "type": "document",
+  "status": "rejected",
+  "createdAt": "2025-11-02T14:50:01.759Z",
+  "category": "spec",
+  "categoryName": "frontend-ux-improvements",
+  "response": "Keep PhaseIndicator inline (don’t extract)\nMerge create/edit into ONE form component\nSplit MergedClaimCard (too many responsibilities)\nCut verbose sections by 80%\nThink about data flow, not component structure",
+  "respondedAt": "2025-11-03T23:52:02.919Z"
+}

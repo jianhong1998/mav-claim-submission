@@ -1,0 +1,21 @@
+{
+  "id": "approval_1757149160951_2etfdl8i8",
+  "title": "Google Drive API Client Setup - Design Specification",
+  "filePath": ".spec-workflow/specs/google-drive-api-client-setup/design.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-06T08:59:20.951Z",
+  "category": "spec",
+  "categoryName": "google-drive-api-client-setup",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. Backend should use class-based DTO (implement DTO types in share package) for request and response bodies.\nRefer to https://docs.nestjs.com/techniques/validation#mapped-types .\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Backend should use class-based DTO (implement DTO types in share package) for request and response bodies.\\nRefer to https://docs.nestjs.com/techniques/validation#mapped-types .\",\n      \"timestamp\": \"2025-09-06T09:11:03.352Z\",\n      \"id\": \"comment_1757149863352_adhpjtmkb\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. Backend should use class-based DTO (implement DTO types in share package) for request and response bodies.\\nRefer to https://docs.nestjs.com/techniques/validation#mapped-types .\\n\\n\",\n  \"timestamp\": \"2025-09-06T09:11:07.266Z\"\n}",
+  "respondedAt": "2025-09-06T09:11:07.271Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Backend should use class-based DTO (implement DTO types in share package) for request and response bodies.\nRefer to https://docs.nestjs.com/techniques/validation#mapped-types .",
+      "timestamp": "2025-09-06T09:11:03.352Z",
+      "id": "comment_1757149863352_adhpjtmkb"
+    }
+  ]
+}
