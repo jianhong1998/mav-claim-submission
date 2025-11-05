@@ -60,10 +60,14 @@ lint/fix:
 	@pnpm run lint:fix
 
 install:
-# 	@pnpm install
 	@chmod +x ./scripts/reinstall.sh && \
 		./scripts/reinstall.sh
 
+install/resolve:
+	@$(MAKE) clean/pnpm-store clean/turbo clean/dist && \
+		echo "Removing all node_modules" && \
+		rm -rf node_modules **/node_modules **/**/node_modules && \
+		pnpm install
 
 test/unit:
 	@cd backend && \
