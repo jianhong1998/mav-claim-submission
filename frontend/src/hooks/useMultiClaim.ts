@@ -13,7 +13,6 @@ import {
 // Multi-claim workflow phases
 export const MultiClaimPhase = Object.freeze({
   CREATION: 'creation',
-  UPLOAD: 'upload',
   REVIEW: 'review',
 } as const);
 export type MultiClaimPhase =
@@ -44,7 +43,7 @@ export type MultiClaimState = {
 
 /**
  * Multi-claim submission hook for managing workflow state and API interactions
- * Coordinates state across creation, upload, and review phases
+ * Coordinates state across creation and review phases
  */
 export const useMultiClaim = () => {
   const queryClient = useQueryClient();
@@ -181,12 +180,6 @@ export const useMultiClaim = () => {
   }, [markClaimsReadyMutation, draftClaims]);
 
   // Phase transition functions
-  const moveToUploadPhase = useCallback(() => {
-    if (draftClaims.length > 0) {
-      setCurrentPhase(MultiClaimPhase.UPLOAD);
-    }
-  }, [draftClaims.length]);
-
   const moveToReviewPhase = useCallback(() => {
     setCurrentPhase(MultiClaimPhase.REVIEW);
   }, []);
@@ -308,7 +301,6 @@ export const useMultiClaim = () => {
     markAllClaimsReady,
 
     // Phase management
-    moveToUploadPhase,
     moveToReviewPhase,
     resetToCreationPhase,
 

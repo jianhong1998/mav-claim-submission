@@ -4,7 +4,7 @@
 
 ### Phase 1: Core Hook and Enum Updates
 
-- [ ] 1. Update useMultiClaim hook to 2-phase workflow
+- [x] 1. Update useMultiClaim hook to 2-phase workflow
   - File: `frontend/src/hooks/useMultiClaim.ts`
   - Remove `UPLOAD: 'upload'` from `MultiClaimPhase` enum (line 14-18)
   - Delete `moveToUploadPhase()` function (lines 184-188)
@@ -16,7 +16,7 @@
 
 ### Phase 2: Form Component Unification
 
-- [ ] 2. Convert MultiClaimForm to ClaimFormModal with create/edit support
+- [x] 2. Convert MultiClaimForm to ClaimFormModal with create/edit support
   - Files:
     - `frontend/src/components/claims/MultiClaimForm.tsx` (rename to `ClaimFormModal.tsx`)
     - `frontend/src/components/claims/ClaimFormModal.tsx` (new/modified)
@@ -32,7 +32,7 @@
   - _Requirements: REQ-004 (Draft Claim Edit Functionality)_
   - _Prompt: Implement the task for spec frontend-ux-improvements, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer specializing in forms and modal dialogs | Task: Convert MultiClaimForm to ClaimFormModal supporting both create and edit modes following REQ-004. Wrap in Dialog component and add initialValues prop for edit mode pre-filling. Rename file and update all imports. | Restrictions: Do not modify CategorySelect, MonthYearPicker, or FormActions components; Reuse 100% of existing validation logic from useMultiClaimForm; Do not create separate edit modal component; Maintain existing form field structure and validation rules; Do not change form submission behavior beyond create/edit distinction | _Leverage: Existing form components at lines 23-24 (CategorySelect, MonthYearPicker); Existing validation hook useMultiClaimForm; Shadcn/ui Dialog from @/components/ui/dialog; react-hook-form at line 26 | _Requirements: REQ-004 | Success: MultiClaimForm.tsx renamed to ClaimFormModal.tsx; Component wrapped in Dialog with isOpen/onClose props; initialValues prop pre-fills form fields for edit mode; Dialog title shows "Add New Claim" or "Edit Claim" contextually; All imports updated; Form validation unchanged; Tests pass | Instructions: 1. Mark task as in-progress [-] in tasks.md. 2. Rename file and wrap in Dialog. 3. Add initialValues logic. 4. Update imports. 5. Test create and edit modes. 6. Mark complete [x] in tasks.md._
 
-- [ ] 3. Update form references in page component
+- [x] 3. Update form references in page component
   - File: `frontend/src/app/new/page.tsx`
   - Change all `MultiClaimForm` imports to `ClaimFormModal`
   - Update component usage to include modal props (isOpen, onClose)
@@ -46,7 +46,7 @@
 
 ### Phase 3: Card Component Enhancement
 
-- [ ] 4. Enhance DraftClaimCard with collapsible file upload
+- [x] 4. Enhance DraftClaimCard with collapsible file upload
   - File: `frontend/src/components/claims/draft-claim-card.tsx`
   - Add expansion state: `const [isExpanded, setIsExpanded] = useState(defaultExpanded || false)`
   - Add `defaultExpanded?: boolean` prop to interface
@@ -60,7 +60,7 @@
   - _Requirements: REQ-004 (Draft Claim Edit), REQ-005 (Merged Card Component)_
   - _Prompt: Implement the task for spec frontend-ux-improvements, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer specializing in UI components and interactive elements | Task: Enhance DraftClaimCard by adding collapsible file upload section and making Edit button functional, following REQ-004 and REQ-005. Add expansion state and conditional FileUploadComponent rendering. | Restrictions: Do not merge display and upload into single monolithic component; Keep FileUploadComponent as separate conditionally-rendered child; Maintain existing claim info display structure; Do not modify Delete button logic; Keep existing mobile-responsive layout classes; Replace RotateCcw with ChevronUp/ChevronDown icons | _Leverage: Existing CardHeader/CardContent structure at lines 32-101; Existing FileUploadComponent from attachments module; Existing Button component styling; Lucide-react icons | _Requirements: REQ-004, REQ-005 | Success: Expansion state added with defaultExpanded prop; Edit button calls onEdit(claim) instead of showing toast; ChevronUp/ChevronDown icons toggle based on isExpanded; FileUploadComponent renders when expanded; Border-top separates upload section; Existing layout preserved; Mobile touch targets maintained (44px); Tests pass | Instructions: 1. Mark in-progress [-]. 2. Add expansion state and props. 3. Update Edit handler. 4. Add conditional FileUploadComponent. 5. Test expansion and file upload. 6. Mark complete [x]._
 
-- [ ] 5. Update DraftClaimsList to pass edit handler
+- [x] 5. Update DraftClaimsList to pass edit handler
   - File: `frontend/src/components/claims/DraftClaimsList.tsx`
   - Modify `handleEditClaim` function to call `onEditClaim(claim)` instead of showing toast (lines 65-72)
   - Remove toast.info call from handleEditClaim
@@ -73,7 +73,7 @@
 
 ### Phase 4: Page Component Updates
 
-- [ ] 6. Add clickable phase navigation to inline PhaseIndicator
+- [x] 6. Add clickable phase navigation to inline PhaseIndicator
   - File: `frontend/src/app/new/page.tsx`
   - Add `handlePhaseClick` function before PhaseIndicator component (around line 121)
   - Add onClick handlers to desktop phase divs (lines ~126-163)
@@ -86,7 +86,7 @@
   - _Requirements: REQ-002 (Clickable Phase Navigation)_
   - _Prompt: Implement the task for spec frontend-ux-improvements, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Developer specializing in user interaction and navigation | Task: Add onClick handlers to inline PhaseIndicator component enabling clickable phase navigation, following REQ-002. Add validation to prevent invalid transitions and provide user feedback. | Restrictions: Do not extract PhaseIndicator to separate component; Keep inline implementation; Maintain existing desktop and mobile responsive layouts; Do not modify PhaseIndicator visual styling; Use existing phase transition functions only; Add hover states with CSS classes | _Leverage: Existing moveToReviewPhase at line 190; Existing resetToCreationPhase at line 194; Existing summary.claimsCount at line 241; Existing toast from sonner at line 21; Existing cn utility for className merging | _Requirements: REQ-002 | Success: handlePhaseClick function added with phase validation; Desktop phase divs have onClick handlers; Mobile phase indicators clickable; cursor-pointer class added; Toast shown when clicking Review with no claims; No-op when clicking current phase; Existing layout preserved; Tests pass | Instructions: 1. Mark in-progress [-]. 2. Add handlePhaseClick function. 3. Add onClick to desktop/mobile phases. 4. Test phase navigation. 5. Mark complete [x]._
 
-- [ ] 7. Update Phase 1 rendering to show DraftClaimsList
+- [x] 7. Update Phase 1 rendering to show DraftClaimsList
   - File: `frontend/src/app/new/page.tsx`
   - Remove Phase 2 (UPLOAD) conditional rendering block entirely
   - Move DraftClaimsList from Phase 2 to Phase 1 (CREATION phase)
@@ -101,7 +101,7 @@
 
 ### Phase 5: Route Restructuring
 
-- [ ] 8. Move route files and update navigation
+- [x] 8. Move route files and update navigation
   - Files:
     - `frontend/src/app/new/page.tsx` → `frontend/src/app/page.tsx`
     - `frontend/src/app/page.tsx` → `frontend/src/app/claims/page.tsx`
@@ -118,7 +118,7 @@
 
 ### Phase 6: Cleanup and Testing
 
-- [ ] 9. Delete BulkUploadClaimCard component
+- [x] 9. Delete BulkUploadClaimCard component
   - Files:
     - `frontend/src/components/attachments/BulkUploadClaimCard.tsx` (DELETE)
     - `frontend/src/components/attachments/__tests__/BulkUploadClaimCard.test.tsx` (DELETE if exists)
@@ -132,7 +132,7 @@
   - _Requirements: REQ-005 (Merged Card Component with File Upload)_
   - _Prompt: Implement the task for spec frontend-ux-improvements, first run spec-workflow-guide to get the workflow guide then implement the task: Role: DevOps Engineer specializing in code cleanup and dependency management | Task: Delete BulkUploadClaimCard component and all references since functionality moved to enhanced DraftClaimCard, following REQ-005. Ensure no broken imports remain. | Restrictions: Do not delete BulkFileUploadComponent (still used); Do not delete FileUploadComponent (still used); Only remove BulkUploadClaimCard and its imports; Verify no unused exports remain; Check for barrel exports that need updating | _Leverage: Enhanced DraftClaimCard with collapsible FileUploadComponent; Existing file upload functionality | _Requirements: REQ-005 | Success: BulkUploadClaimCard.tsx deleted; Associated test file deleted; All imports removed; No broken references; BulkFileUploadComponent still functional; Tests pass; No unused code warnings | Instructions: 1. Mark in-progress [-]. 2. Search for all BulkUploadClaimCard imports. 3. Delete component file and tests. 4. Remove import statements. 5. Run build to verify. 6. Mark complete [x]._
 
-- [ ] 10. Update component tests for changes
+- [x] 10. Update component tests for changes
   - Files:
     - `frontend/src/hooks/__tests__/useMultiClaim.test.ts`
     - `frontend/src/components/claims/__tests__/DraftClaimCard.test.tsx`
@@ -147,7 +147,7 @@
   - _Requirements: All requirements (testing coverage)_
   - _Prompt: Implement the task for spec frontend-ux-improvements, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer specializing in React component testing and Vitest | Task: Update all component and hook tests to cover new functionality including 2-phase workflow, unified form, enhanced card, and clickable navigation, following all requirements. Ensure 80%+ test coverage. | Restrictions: Do not reduce existing test coverage; Maintain existing test structure and patterns; Use React Testing Library best practices; Do not test implementation details; Focus on user-facing behavior; Mock external dependencies properly | _Leverage: Existing Vitest setup; Existing React Testing Library utilities; Existing test patterns in __tests__ directories; Existing mock patterns | _Requirements: All (REQ-001 through REQ-005) | Success: useMultiClaim tests updated (no UPLOAD phase tests); DraftClaimCard tests include expansion and edit; ClaimFormModal tests cover create and edit modes; Phase navigation tests added; All tests pass; Coverage >= 80%; No flaky tests | Instructions: 1. Mark in-progress [-]. 2. Update useMultiClaim tests. 3. Update DraftClaimCard tests. 4. Rename and update form tests. 5. Run all tests. 6. Mark complete [x]._
 
-- [ ] 11. Run integration tests and fix issues
+- [x] 11. Run integration tests and fix issues
   - Files: Run entire test suite across frontend
   - Execute `make test/unit` for backend (verify no breakage)
   - Execute frontend test suite with `pnpm test`

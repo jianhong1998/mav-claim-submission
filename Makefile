@@ -116,3 +116,6 @@ check-implementation:
 
 check-implementation/backend/with-api-test:
 	@$(MAKE) format lint build/backend test/unit test/api
+
+up/spec-workflow-dashboard:
+	@pnpx @pimzino/spec-workflow-mcp@latest --dashboard --port 9000

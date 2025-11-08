@@ -516,46 +516,6 @@ describe('useMultiClaim', () => {
   });
 
   describe('Phase Management', () => {
-    it('should transition to upload phase when claims exist', async () => {
-      const mockClaim = createMockClaim();
-      const mockResponse = createMockListResponse([mockClaim]);
-      mockApiClient.get.mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(() => useMultiClaim(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.state.draftClaims).toHaveLength(1);
-      });
-
-      expect(result.current.state.currentPhase).toBe(MultiClaimPhase.CREATION);
-
-      act(() => {
-        result.current.moveToUploadPhase();
-      });
-
-      expect(result.current.state.currentPhase).toBe(MultiClaimPhase.UPLOAD);
-    });
-
-    it('should not transition to upload phase when no claims exist', async () => {
-      const mockResponse = createMockListResponse([]);
-      mockApiClient.get.mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(() => useMultiClaim(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.state.draftClaims).toHaveLength(0);
-      });
-
-      expect(result.current.state.currentPhase).toBe(MultiClaimPhase.CREATION);
-
-      act(() => {
-        result.current.moveToUploadPhase();
-      });
-
-      // Should remain in creation phase
-      expect(result.current.state.currentPhase).toBe(MultiClaimPhase.CREATION);
-    });
-
     it('should transition to review phase', async () => {
       const mockResponse = createMockListResponse([]);
       mockApiClient.get.mockResolvedValue(mockResponse);
@@ -862,10 +822,10 @@ describe('useMultiClaim', () => {
   });
 
   describe('MultiClaimPhase Enum', () => {
-    it('should export correct phase values', () => {
+    it('should export correct phase values for 2-phase workflow', () => {
       expect(MultiClaimPhase.CREATION).toBe('creation');
-      expect(MultiClaimPhase.UPLOAD).toBe('upload');
       expect(MultiClaimPhase.REVIEW).toBe('review');
+      // UPLOAD phase removed as part of REQ-003 (2-phase workflow)
     });
   });
 });

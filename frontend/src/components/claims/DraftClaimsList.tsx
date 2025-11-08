@@ -136,6 +136,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
             onDelete={handleDeleteClaim}
             isDeleting={deletingClaim === claim.id}
             className="relative"
+            defaultExpanded={(claim.attachments?.length ?? 0) === 0}
           />
         ))}
       </div>

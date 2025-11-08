@@ -1,15 +1,14 @@
 'use client';
 
-import React from 'react';
-import { cn } from '@/lib/utils';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -19,47 +18,83 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { ClaimCategory, IClaimMetadata } from '@project/types';
-import { Plus, DollarSign } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { CategorySelect } from './category-select';
 import { MonthYearPicker } from './month-year-picker';
 import { FormActions } from './form-actions';
 import { useMultiClaimForm } from '@/hooks/claims/useMultiClaimForm';
 
-interface MultiClaimFormProps {
+interface ClaimFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   onClaimCreated?: (claim: IClaimMetadata) => void;
   existingDraftClaims?: IClaimMetadata[];
-  className?: string;
+  initialValues?: Partial<IClaimMetadata>;
 }
 
 /**
- * MultiClaimForm component for creating individual claims in a multi-claim workflow
- * Following requirements 1.1 and 2.1 for draft claim creation with validation
+ * ClaimFormModal component for creating and editing claims in a modal dialog
+ * Supports both create mode (no initialValues) and edit mode (with initialValues)
+ * Following REQ-004 for unified form with create/edit functionality
  */
-export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
+export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
+  isOpen,
+  onClose,
   onClaimCreated,
   existingDraftClaims = [],
-  className,
+  initialValues,
 }) => {
   const { form, isCreating, handleSubmit } = useMultiClaimForm({
-    onClaimCreated,
+    onClaimCreated: (claim) => {
+      onClaimCreated?.(claim);
+      onClose();
+    },
     existingDraftClaims,
+    claimId: initialValues?.id,
   });
 
-  return (
-    <Card className={cn('', className)}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Add New Claim
-        </CardTitle>
-        <CardDescription>
-          Create draft claims that will be submitted together. Claims with
-          monthly limits (telco, fitness) are validated across your existing
-          drafts.
-        </CardDescription>
-      </CardHeader>
+  // Determine if we're in edit mode
+  const isEditMode = !!initialValues?.id;
 
-      <CardContent>
+  // Pre-fill form when initialValues are provided (edit mode)
+  useEffect(() => {
+    if (initialValues && isOpen) {
+      form.reset({
+        category: initialValues.category || ClaimCategory.TELCO,
+        claimName: initialValues.claimName || '',
+        month: initialValues.month || new Date().getMonth() + 1,
+        year: initialValues.year || new Date().getFullYear(),
+        totalAmount: initialValues.totalAmount || 0,
+      });
+    } else if (isOpen && !isEditMode) {
+      // Reset to default values for create mode
+      form.reset({
+        category: ClaimCategory.TELCO,
+        claimName: '',
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        totalAmount: 0,
+      });
+    }
+  }, [initialValues, isOpen, form, isEditMode]);
+
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+    >
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditMode ? 'Edit Claim' : 'Add New Claim'}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditMode
+              ? 'Update the claim details below.'
+              : 'Create draft claims that will be submitted together. Claims with monthly limits (telco, fitness) are validated across your existing drafts.'}
+          </DialogDescription>
+        </DialogHeader>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -158,10 +193,15 @@ export const MultiClaimForm: React.FC<MultiClaimFormProps> = ({
             />
 
             {/* Submit Button */}
-            <FormActions isSubmitting={isCreating} />
+            <FormActions
+              isSubmitting={isCreating}
+              submitLabel={isEditMode ? 'Update Draft' : 'Add to Draft List'}
+              submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+              showIcon={!isEditMode}
+            />
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
