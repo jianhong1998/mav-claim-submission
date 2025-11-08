@@ -1,14 +1,14 @@
 # Users feedbacks
 
-## [ ] 001 - The home page should be `create claim page` instead
+## [x] 001 - The home page should be `create claim page` instead
 
 Users feedback about the home page at `/` should be `create claim page` instead of the `list claim page`.
 
-## [ ] 002 - PhaseIndicator in `frontend/src/app/new/page.tsx` should be clickable
+## [x] 002 - PhaseIndicator in `frontend/src/app/new/page.tsx` should be clickable
 
 Users feedback that the design of `PhaseIndicator` in @frontend/src/app/new/page.tsx looks like a clickable button. Should make it clickable to redirect in between all phases.
 
-## [ ] 003 - Not obvious about what to do
+## [x] 003 - Not obvious about what to do
 
 Users feedback that they don't know what to do after create the draft submission at `/new` page (in phase 1 - create claims).
 Hard to see the button to phase 2 (upload files) because it is at the bottom of the page that require user to scroll.
@@ -19,7 +19,7 @@ Hard to see the button to phase 2 (upload files) because it is at the bottom of 
 - Replace the `DraftClaimCard` in phase 1 with the `BulkUploadClaimCard` in phase 2, and combine the functionality of the both claim card component.
 - The `BulkUploadClaimCard` should default to `expanded` instead of `collapsed`.
 
-## [ ] 004 - Edit button in the `DraftClaimCard` (or new `BulkUploadClaimCard` mentioned in 003) should work
+## [x] 004 - Edit button in the `DraftClaimCard` (or new `BulkUploadClaimCard` mentioned in 003) should work
 
 Users feedback that the edit button should work in case they key in a wrong info or typo in the input.
 
