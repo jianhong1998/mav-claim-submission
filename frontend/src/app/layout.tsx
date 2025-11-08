@@ -34,7 +34,10 @@ const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
               <header className="border-b border-border bg-card">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                   <AppTitle />
-                  <AuthHeader />
+                  <div className="flex flex-row gap-3">
+                    {/* TODO: Add nav bar */}
+                    <AuthHeader />
+                  </div>
                 </div>
               </header>
               <main>{children}</main>
