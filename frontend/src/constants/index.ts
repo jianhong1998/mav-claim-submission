@@ -1,4 +1,5 @@
 export * from './error-message';
+export * from './nav-item';
 
 import { getRuntimeConfig } from '@/types/runtime-config';
 
