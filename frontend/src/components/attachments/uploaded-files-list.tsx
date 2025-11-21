@@ -50,7 +50,7 @@ const UploadedFilesList = React.memo<UploadedFilesListProps>(
           {files.map((file) => (
             <div
               key={file.id}
-              className="flex items-center gap-3 p-3 rounded-md border border-green-500/50 bg-green-500/5"
+              className="flex items-center gap-3 p-3 rounded-md border border-green-500/70 bg-green-900"
             >
               {/* File Icon */}
               <div className="flex-shrink-0">
@@ -74,7 +74,7 @@ const UploadedFilesList = React.memo<UploadedFilesListProps>(
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  <span className="text-xs text-green-600 dark:text-green-400">
+                  <span className="text-xs text-green-600 dark:text-green-300">
                     Uploaded to Drive
                   </span>
                 </div>

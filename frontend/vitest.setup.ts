@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import * as React from 'react';
+
+// Make React globally available for JSX transform
+(global as any).React = React;
 
 // Mock global fetch to prevent network requests in tests
 global.fetch = vi.fn(() =>

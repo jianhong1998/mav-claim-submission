@@ -3,8 +3,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ClaimStatus } from '@project/types';
+import type { ClaimStatus as ClaimStatusType } from '@project/types';
 import { apiClient } from '@/lib/api-client';
-import { CheckCircle, Mail, Send } from 'lucide-react';
+import { CheckCircle, Edit2Icon, Mail, Send } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface ClaimStatusButtonsProps {
   claimId: string;
@@ -16,13 +18,21 @@ type ButtonConfig = {
   label: string;
   icon: React.ReactNode;
   variant: 'default' | 'outline' | 'secondary';
-  action: 'mark-paid' | 'resend-email' | 'mark-sent';
+  action: 'mark-paid' | 'resend-email' | 'mark-sent' | 'continue-edit';
   visible: boolean;
 };
 
 const getButtonsForStatus = (status: ClaimStatus): ButtonConfig[] => {
-  const buttonConfigs = {
-    [ClaimStatus.DRAFT]: [],
+  const buttonConfigs: Record<ClaimStatusType, ButtonConfig[]> = {
+    [ClaimStatus.DRAFT]: [
+      {
+        label: 'Continue Edit',
+        icon: <Edit2Icon className="h-4 w-4" />,
+        variant: 'default' as const,
+        action: 'continue-edit' as const,
+        visible: true,
+      },
+    ],
     [ClaimStatus.SENT]: [
       {
         label: 'Mark as Paid',
@@ -50,7 +60,7 @@ const getButtonsForStatus = (status: ClaimStatus): ButtonConfig[] => {
     ],
     [ClaimStatus.PAID]: [
       {
-        label: 'Mark as Sent',
+        label: 'Revert to Sent',
         icon: <Send className="h-4 w-4" />,
         variant: 'secondary' as const,
         action: 'mark-sent' as const,
@@ -71,6 +81,8 @@ export const ClaimStatusButtons: React.FC<ClaimStatusButtonsProps> = ({
 
   const availableButtons = getButtonsForStatus(currentStatus);
 
+  const router = useRouter();
+
   if (availableButtons.length === 0) {
     return null;
   }
@@ -87,6 +99,9 @@ export const ClaimStatusButtons: React.FC<ClaimStatusButtonsProps> = ({
           break;
         case 'resend-email':
           await apiClient.resendClaimEmail(claimId);
+          break;
+        case 'continue-edit':
+          router.push('/');
           break;
         default:
           throw new Error(`Unknown action: ${action}`);

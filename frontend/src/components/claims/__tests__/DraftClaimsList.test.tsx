@@ -39,6 +39,9 @@ vi.mock('lucide-react', () => ({
   FileText: () => <span data-testid="FileText" />,
   Calendar: () => <span data-testid="Calendar" />,
   DollarSign: () => <span data-testid="DollarSign" />,
+  ChevronDown: () => <span data-testid="ChevronDown" />,
+  ChevronUp: () => <span data-testid="ChevronUp" />,
+  Upload: () => <span data-testid="Upload" />,
 }));
 
 const mockApiClient = {
@@ -187,9 +190,7 @@ describe('DraftClaimsList', () => {
       await waitFor(() => {
         expect(screen.getByText('Draft Claims (2)')).toBeInTheDocument();
         expect(screen.getByText('Mobile Phone Bill')).toBeInTheDocument();
-        expect(
-          screen.getByText('Fitness & Wellness Claim'),
-        ).toBeInTheDocument();
+        expect(screen.getByText('Fitness & Wellness')).toBeInTheDocument();
         expect(screen.getByText('March 2024')).toBeInTheDocument();
         expect(screen.getByText('February 2024')).toBeInTheDocument();
         expect(screen.getByText(/SGD 100\.50/)).toBeInTheDocument();
@@ -468,7 +469,7 @@ describe('DraftClaimsList', () => {
 
       // Check for responsive flex classes
       const cardContent = screen
-        .getByText('Telecommunications Claim')
+        .getByText('Telecommunications')
         .closest('[class*="flex-col"]');
       expect(cardContent).toHaveClass('flex-col', 'sm:flex-row');
 

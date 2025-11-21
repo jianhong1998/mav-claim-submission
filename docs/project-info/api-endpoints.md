@@ -435,6 +435,114 @@ Claims API endpoints return the following status codes:
 - File name validation for special characters
 - MIME type verification
 
+## User Management Endpoints
+
+### `PATCH /users/:userId`
+- **Purpose**: Update user profile (name and email preferences for claim submissions)
+- **Authentication**: Required (JWT)
+- **Authorization**: Users can only update their own profile (userId must match authenticated user)
+- **URL Parameters**:
+  - `userId`: User UUID
+- **Request Body** (all fields optional):
+```json
+{
+  "name": "Updated Name",
+  "emailPreferences": [
+    {
+      "type": "cc",
+      "emailAddress": "cc1@example.com"
+    },
+    {
+      "type": "bcc",
+      "emailAddress": "bcc1@example.com"
+    }
+  ]
+}
+```
+- **Success Response** (200):
+```json
+{
+  "id": "user-uuid",
+  "email": "user@mavericks-consulting.com",
+  "name": "Updated Name",
+  "googleId": "google-id",
+  "picture": "url",
+  "emailPreferences": [
+    {
+      "id": "preference-uuid",
+      "userId": "user-uuid",
+      "type": "cc",
+      "emailAddress": "cc1@example.com"
+    },
+    {
+      "id": "preference-uuid-2",
+      "userId": "user-uuid",
+      "type": "bcc",
+      "emailAddress": "bcc1@example.com"
+    }
+  ],
+  "createdAt": "2025-01-01T00:00:00Z",
+  "updatedAt": "2025-01-01T00:00:30Z"
+}
+```
+- **Validation Error** (400):
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "name must be at least 1 character",
+    "emailAddress must be a valid email"
+  ],
+  "error": "Bad Request"
+}
+```
+- **Business Rule Error** (400):
+```json
+{
+  "statusCode": 400,
+  "message": "Cannot add your own email to CC/BCC preferences",
+  "error": "Bad Request"
+}
+```
+- **Authorization Error** (403):
+```json
+{
+  "statusCode": 403,
+  "message": "Cannot update other users",
+  "error": "Forbidden"
+}
+```
+- **Not Found Error** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "User not found",
+  "error": "Not Found"
+}
+```
+- **Internal Server Error** (500):
+```json
+{
+  "statusCode": 500,
+  "message": "Internal server error",
+  "error": "Internal Server Error"
+}
+```
+
+### Email Preference Validation Rules
+- Email preferences are applied to claim submission emails
+- **Type**: Must be either `cc` or `bcc`
+- **Email Format**: Must be valid email address
+- **Own Email**: Cannot add authenticated user's own email
+- **Duplicates**: Cannot add duplicate email addresses
+- **Update Strategy**: Replace all existing preferences (delete + insert)
+
+### Email Preference Integration
+When a claim is submitted, the user's email preferences are automatically applied:
+- CC emails receive a copy of the claim submission email
+- BCC emails receive a blind copy (hidden from other recipients)
+- Preferences are stored in `user_email_preferences` table with unique constraint on (userId, emailAddress)
+
 ## Rate Limiting
 
 ### OAuth Endpoints

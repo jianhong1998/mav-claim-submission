@@ -250,8 +250,15 @@ describe('file-utils', () => {
 
   describe('validateFileSize', () => {
     const createMockFileWithSize = (sizeInBytes: number): File => {
-      const blob = new Blob(['x'.repeat(sizeInBytes)]);
-      return new File([blob], 'test.file', { type: 'text/plain' });
+      // Mock only the size property - validateFileSize only reads file.size
+      // No need to allocate actual MB of data in memory
+      const file = new File([''], 'test.file', { type: 'text/plain' });
+      Object.defineProperty(file, 'size', {
+        value: sizeInBytes,
+        writable: false,
+        configurable: true,
+      });
+      return file;
     };
 
     describe('Default max size (10MB)', () => {

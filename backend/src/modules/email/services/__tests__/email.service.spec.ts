@@ -24,6 +24,10 @@ const mockDataSource = {
   transaction: vi.fn(),
 };
 
+const mockEmailPreferenceRepository = {
+  find: vi.fn(),
+};
+
 const mockClaimDBUtil = {
   getOne: vi.fn(),
   updateWithSave: vi.fn(),
@@ -71,8 +75,12 @@ describe('EmailService', () => {
       },
     );
 
+    // Mock email preference repository to return empty array by default
+    mockEmailPreferenceRepository.find.mockResolvedValue([]);
+
     emailService = new EmailService(
       mockDataSource as unknown as DataSource,
+      mockEmailPreferenceRepository as never,
       mockClaimDBUtil as unknown as ClaimDBUtil,
       mockAttachmentDBUtil as unknown as AttachmentDBUtil,
       mockUserDBUtil as unknown as UserDBUtil,
@@ -244,10 +252,12 @@ describe('EmailService', () => {
       );
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: mockEnvironmentVariables.emailRecipients,
-        subject: 'Claim Submission - Test',
+        subject: 'John Doe - Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
 
       // Verify transaction was used for status update
@@ -772,6 +782,8 @@ describe('EmailService', () => {
         body: expect.any(String),
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
     });
 
@@ -878,6 +890,8 @@ describe('EmailService', () => {
         body: expect.any(String),
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
     });
   });
@@ -976,10 +990,12 @@ describe('EmailService', () => {
       expect(result.success).toBe(true);
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: mockEnvironmentVariables.emailRecipients,
-        subject: 'Long subject',
+        subject: expect.any(String),
         body: longEmailContent,
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
     });
 

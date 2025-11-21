@@ -204,7 +204,7 @@ export class GmailClient {
     emailRequest: IEmailSendRequest,
     recipients: string[],
   ): string {
-    const { subject, body, isHtml = false } = emailRequest;
+    const { subject, body, isHtml = false, cc = [], bcc = [] } = emailRequest;
 
     // Build email headers
     const headers = [
@@ -212,6 +212,16 @@ export class GmailClient {
       `Subject: ${subject}`,
       'MIME-Version: 1.0',
     ];
+
+    // Add CC header if provided
+    if (cc.length > 0) {
+      headers.push(`Cc: ${cc.join(', ')}`);
+    }
+
+    // Add BCC header if provided
+    if (bcc.length > 0) {
+      headers.push(`Bcc: ${bcc.join(', ')}`);
+    }
 
     if (isHtml) {
       headers.push('Content-Type: text/html; charset=utf-8');
@@ -238,17 +248,37 @@ export class GmailClient {
     emailRequest: IEmailSendRequest,
     recipients: string[],
   ): string {
-    const { subject, body, isHtml = false, attachments = [] } = emailRequest;
+    const {
+      subject,
+      body,
+      isHtml = false,
+      attachments = [],
+      cc = [],
+      bcc = [],
+    } = emailRequest;
 
     // Generate unique boundary for MIME parts
     const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
 
+    // Build headers array
+    const headers = [`To: ${recipients.join(', ')}`, `Subject: ${subject}`];
+
+    // Add CC header if provided
+    if (cc.length > 0) {
+      headers.push(`Cc: ${cc.join(', ')}`);
+    }
+
+    // Add BCC header if provided
+    if (bcc.length > 0) {
+      headers.push(`Bcc: ${bcc.join(', ')}`);
+    }
+
+    headers.push('MIME-Version: 1.0');
+    headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+
     // Build multipart message with headers
     let message = [
-      `To: ${recipients.join(', ')}`,
-      `Subject: ${subject}`,
-      'MIME-Version: 1.0',
-      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      ...headers,
       '',
       `--${boundary}`,
       isHtml

@@ -94,6 +94,12 @@ vi.mock('lucide-react', () => ({
       {...props}
     />
   ),
+  Edit2Icon: (props: MockIconProps) => (
+    <span
+      data-testid="Edit2Icon"
+      {...props}
+    />
+  ),
 }));
 
 const mockApiClient = {
@@ -598,16 +604,16 @@ describe('ClaimsListComponent', () => {
         return Promise.resolve(createMockResponse([]));
       });
 
-      render(<ClaimsListComponent retryConfig={{ retry: 3 }} />, { wrapper });
-
-      // Wait for retries to complete
-      await waitFor(
-        () => {
-          expect(mockApiClient.get).toHaveBeenCalledTimes(4); // Initial + 3 retries
-        },
-        { timeout: 15000 },
+      render(
+        <ClaimsListComponent retryConfig={{ retry: 3, retryDelay: () => 0 }} />,
+        { wrapper },
       );
-    }, 20000);
+
+      // Wait for retries to complete (instant with retryDelay: 0)
+      await waitFor(() => {
+        expect(mockApiClient.get).toHaveBeenCalledTimes(4); // Initial + 3 retries
+      });
+    });
   });
 
   describe('Accessibility', () => {

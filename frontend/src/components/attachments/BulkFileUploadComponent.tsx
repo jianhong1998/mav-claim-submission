@@ -12,7 +12,6 @@ import {
 import { IClaimMetadata } from '@project/types';
 import { Upload, CheckCircle2 } from 'lucide-react';
 import { BulkUploadStatsCard } from './bulk-upload-stats-card';
-import { BulkUploadClaimCard } from './bulk-upload-claim-card';
 
 interface BulkFileUploadComponentProps {
   draftClaims: IClaimMetadata[];
@@ -32,10 +31,15 @@ interface ClaimUploadState {
 /**
  * BulkFileUploadComponent coordinates file uploads across multiple claims
  * Following requirements 3.1 and 3.2 for bulk file attachment workflow
+ *
+ * @deprecated This component is no longer used. File upload functionality
+ * has been moved to DraftClaimCard with collapsible FileUploadComponent.
+ * Kept for reference only.
  */
 export const BulkFileUploadComponent: React.FC<
   BulkFileUploadComponentProps
 > = ({ draftClaims, onUploadComplete, onAllUploadsComplete, className }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [claimStates, setClaimStates] = useState<Map<string, ClaimUploadState>>(
     () => {
       const initialStates = new Map<string, ClaimUploadState>();
@@ -76,7 +80,7 @@ export const BulkFileUploadComponent: React.FC<
     };
   }, [draftClaims]);
 
-  const toggleClaimExpansion = useCallback((claimId: string) => {
+  const _toggleClaimExpansion = useCallback((claimId: string) => {
     setClaimStates((prev) => {
       const newStates = new Map(prev);
       const currentState = newStates.get(claimId);
@@ -90,7 +94,7 @@ export const BulkFileUploadComponent: React.FC<
     });
   }, []);
 
-  const handleUploadSuccess = useCallback(
+  const _handleUploadSuccess = useCallback(
     (claimId: string) => (_fileName: string) => {
       setClaimStates((prev) => {
         const newStates = new Map(prev);
@@ -122,7 +126,7 @@ export const BulkFileUploadComponent: React.FC<
     [draftClaims.length, onUploadComplete, onAllUploadsComplete],
   );
 
-  const handleUploadError = useCallback(
+  const _handleUploadError = useCallback(
     (claimId: string) => (_fileName: string, error: string) => {
       setClaimStates((prev) => {
         const newStates = new Map(prev);
@@ -193,19 +197,18 @@ export const BulkFileUploadComponent: React.FC<
       />
 
       {/* Individual Claim Upload Sections */}
+      {/* Note: BulkUploadClaimCard has been deleted. Functionality moved to DraftClaimCard. */}
       <div className="space-y-4">
         {draftClaims.map((claim) => {
-          const state = claimStates.get(claim.id);
-
           return (
-            <BulkUploadClaimCard
+            <Card
               key={claim.id}
-              claim={claim}
-              isExpanded={state?.isExpanded || false}
-              onToggleExpansion={() => toggleClaimExpansion(claim.id)}
-              onUploadSuccess={handleUploadSuccess(claim.id)}
-              onUploadError={handleUploadError(claim.id)}
-            />
+              className="p-4"
+            >
+              <p className="text-sm text-muted-foreground">
+                Component deprecated - use DraftClaimCard instead
+              </p>
+            </Card>
           );
         })}
       </div>

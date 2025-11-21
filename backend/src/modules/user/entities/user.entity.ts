@@ -10,6 +10,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { OAuthTokenEntity } from '../../auth/entities/oauth-token.entity';
+import { UserEmailPreferenceEntity } from './user-email-preference.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true })
@@ -34,6 +35,11 @@ export class UserEntity {
     cascade: true,
   })
   oauthTokens?: Relation<OAuthTokenEntity>[];
+
+  @OneToMany(() => UserEmailPreferenceEntity, (preference) => preference.user, {
+    cascade: true,
+  })
+  emailPreferences?: Relation<UserEmailPreferenceEntity>[];
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;

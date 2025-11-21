@@ -3,13 +3,7 @@
     "spec-workflow": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "@pimzino/spec-workflow-mcp@latest",
-        "./",
-        "--AutoStartDashboard",
-        "--port",
-        "9000"
-      ],
+      "args": ["@pimzino/spec-workflow-mcp@latest", "./"],
       "env": {}
     },
     "playwright": {

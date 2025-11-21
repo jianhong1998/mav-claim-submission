@@ -69,8 +69,11 @@ export const useAttachmentList = (claimId: string) => {
       await apiClient.delete(`/attachments/${attachmentId}`);
     },
     onSuccess: (_, attachmentId) => {
-      // Invalidate and refetch the list
+      // Invalidate and refetch the attachment list
       void queryClient.invalidateQueries({ queryKey });
+
+      // Invalidate claims queries to update attachment counts in claim cards
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
 
       // Optimistically update the cache
       queryClient.setQueryData<IAttachmentListResponse>(queryKey, (old) => {

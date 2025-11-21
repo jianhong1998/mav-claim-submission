@@ -11,6 +11,7 @@ export interface FormActionsProps {
   submitLabel?: string;
   submittingLabel?: string;
   className?: string;
+  showIcon?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export const FormActions = React.memo<FormActionsProps>(
     submitLabel = 'Add to Draft List',
     submittingLabel = 'Creating...',
     className,
+    showIcon = true,
   }) => {
     return (
       <div className={cn('flex justify-end pt-4', className)}>
@@ -40,7 +42,7 @@ export const FormActions = React.memo<FormActionsProps>(
             </>
           ) : (
             <>
-              <Plus className="h-4 w-4 mr-2" />
+              {showIcon && <Plus className="h-4 w-4 mr-2" />}
               {submitLabel}
             </>
           )}

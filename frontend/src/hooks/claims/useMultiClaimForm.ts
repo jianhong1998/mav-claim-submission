@@ -22,6 +22,7 @@ interface FormData {
 interface UseMultiClaimFormOptions {
   onClaimCreated?: (claim: IClaimMetadata) => void;
   existingDraftClaims?: IClaimMetadata[];
+  claimId?: string;
 }
 
 /**
@@ -30,15 +31,18 @@ interface UseMultiClaimFormOptions {
 const validateMonthlyLimits = (
   newClaim: FormData,
   existingClaims: IClaimMetadata[] = [],
+  excludeClaimId?: string,
 ): string | null => {
   const categoryLimit =
     MONTHLY_LIMITS[newClaim.category as keyof typeof MONTHLY_LIMITS];
   if (!categoryLimit) return null; // No limit for this category
 
   // Calculate existing amount for this category/month/year
+  // Exclude the claim being edited to avoid counting it twice
   const existingAmount = existingClaims
     .filter(
       (claim) =>
+        claim.id !== excludeClaimId &&
         claim.category === newClaim.category &&
         claim.month === newClaim.month &&
         claim.year === newClaim.year,
@@ -61,6 +65,7 @@ const validateMonthlyLimits = (
 export const useMultiClaimForm = ({
   onClaimCreated,
   existingDraftClaims = [],
+  claimId,
 }: UseMultiClaimFormOptions) => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -104,12 +109,38 @@ export const useMultiClaimForm = ({
     },
   });
 
+  // Mutation for updating draft claims
+  const updateClaimMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: IClaimCreateRequest }) =>
+      apiClient.put<IClaimResponse>(`/claims/${id}`, data),
+    onSuccess: (response) => {
+      if (response.success && response.claim) {
+        void queryClient.invalidateQueries({ queryKey: ['claims', 'draft'] });
+        onClaimCreated?.(response.claim);
+        toast.success('Claim updated successfully');
+      } else {
+        toast.error(response.error || 'Failed to update claim');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update claim. Please try again.');
+    },
+    onSettled: () => {
+      setIsCreating(false);
+    },
+  });
+
   const handleSubmit = useCallback(
     async (data: FormData) => {
       setIsCreating(true);
 
       // Client-side validation for business rules
-      const limitError = validateMonthlyLimits(data, existingDraftClaims);
+      // When editing, exclude the current claim from limit validation
+      const limitError = validateMonthlyLimits(
+        data,
+        existingDraftClaims,
+        claimId,
+      );
       if (limitError) {
         toast.error(limitError);
         setIsCreating(false);
@@ -129,7 +160,7 @@ export const useMultiClaimForm = ({
         return;
       }
 
-      // Create the draft claim via API
+      // Create or update the draft claim via API
       const claimRequest: IClaimCreateRequest = {
         category: data.category,
         claimName: data.claimName.trim() || undefined,
@@ -138,9 +169,13 @@ export const useMultiClaimForm = ({
         totalAmount: data.totalAmount,
       };
 
-      createClaimMutation.mutate(claimRequest);
+      if (claimId) {
+        updateClaimMutation.mutate({ id: claimId, data: claimRequest });
+      } else {
+        createClaimMutation.mutate(claimRequest);
+      }
     },
-    [createClaimMutation, existingDraftClaims],
+    [createClaimMutation, updateClaimMutation, existingDraftClaims, claimId],
   );
 
   return {

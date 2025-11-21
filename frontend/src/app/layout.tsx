@@ -7,6 +7,8 @@ import React from 'react';
 import './globals.css';
 import { AppTitle } from '@/components/headers/app-title';
 import { RuntimeConfigScript } from '@/components/runtime-config-script';
+import { Navbar } from '@/components/navigation';
+import { NAV_ITEMS } from '@/constants';
 
 export const metadata: Metadata = {
   title: 'Mavericks Claim Submission',
@@ -34,7 +36,10 @@ const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
               <header className="border-b border-border bg-card">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                   <AppTitle />
-                  <AuthHeader />
+                  <div className="flex flex-row gap-3">
+                    <Navbar navItems={NAV_ITEMS} />
+                    <AuthHeader />
+                  </div>
                 </div>
               </header>
               <main>{children}</main>
