@@ -229,7 +229,7 @@
 
 ## Phase 8: Integration Testing
 
-- [ ] 8.1 Create API integration tests for profile update endpoint
+- [x] 8.1 Create API integration tests for profile update endpoint
   - Files:
     - `api-test/src/tests/user-profile.test.ts` (create)
   - Test PATCH /api/users/:userId: update name, update email preferences, validation errors, authorization
@@ -238,7 +238,7 @@
   - _Requirements: All profile update requirements_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Integration Engineer | Task: Create integration tests in api-test/src/tests/user-profile.test.ts covering: (1) PATCH /users/:userId with name updates user name, (2) PATCH with emailPreferences stores preferences correctly, (3) PATCH with own email returns 400, (4) PATCH with duplicate emails returns 400, (5) PATCH with different userId returns 403, (6) PATCH with empty name returns 400, (7) response includes updated user with emailPreferences array | Restrictions: Use existing axios instance with auth headers, use test user from setup, verify response status codes and data structure, test actual HTTP calls (not mocked), ensure test cleanup (delete preferences after tests if needed) | Success: 7+ integration tests pass, profile update flow verified end-to-end, validation works, authorization enforced, response format correct | Instructions: After completing tests and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 8.2 Verify email preferences applied to claim submissions
+- [x] 8.2 Verify email preferences applied to claim submissions
   - Files:
     - `api-test/src/tests/claim-submission-with-preferences.test.ts` (create or add to existing claim tests)
   - Test claim submission with CC/BCC preferences applies them to email
@@ -247,7 +247,7 @@
   - _Requirements: Requirement 6 (Apply Email Preferences to Claim Submissions)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Integration Engineer | Task: Create or update claim submission integration test that: (1) sets up test user with email preferences via PATCH /users/:userId, (2) creates and submits claim via existing claim endpoints, (3) verifies email was sent (check logs or mock email service if possible), (4) verifies CC/BCC were applied (may require email service spy or log inspection) | Restrictions: Use existing claim submission flow, add email preference setup before claim submission, verification method depends on email service implementation (may need to check logs or use test email service), focus on integration not unit testing | Success: Test verifies email preferences are applied when claim is submitted, CC/BCC emails passed to email service, integration between profile and email service works | Instructions: After completing test and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 8.3 Run API integration tests
+- [x] 8.3 Run API integration tests
   - Command: `make test/api` (from project root)
   - Verify all API tests pass including new profile tests
   - Purpose: Ensure API layer works correctly end-to-end
