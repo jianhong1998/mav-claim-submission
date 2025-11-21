@@ -25,4 +25,4 @@ postgres-data
 # Spec Workflow
 .spec-workflow/session.json
 .spec-workflow/approvals/**/.snapshots
-.spec-workflow/specs/**/Implementation Logs
+.spec-workflow/**/specs/**/Implementation Logs
