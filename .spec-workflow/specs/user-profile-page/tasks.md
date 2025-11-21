@@ -2,7 +2,7 @@
 
 ## Phase 1: Database Schema
 
-- [ ] 1.1 Create UserEmailPreferenceEntity
+- [x] 1.1 Create UserEmailPreferenceEntity
   - Files:
     - `backend/src/modules/user/entities/user-email-preference.entity.ts` (create)
   - Create entity with fields: id (uuid), userId (uuid), type (varchar(3)), emailAddress (varchar(255))
@@ -13,7 +13,7 @@
   - _Requirements: Requirement 7 (Database Schema Changes)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Create UserEmailPreferenceEntity in backend/src/modules/user/entities/user-email-preference.entity.ts with columns (id: uuid primary key, userId: uuid, type: varchar(3) for 'cc'|'bcc', emailAddress: varchar(255)), add unique composite index on (userId, emailAddress), add ManyToOne relation to UserEntity with onDelete CASCADE | Restrictions: Use TypeORM decorators, follow existing entity patterns from user.entity.ts, type field must use literal union 'cc' | 'bcc' (not enum), ensure cascade delete is configured, use @Index decorator for unique constraint | Success: Entity compiles without errors, has proper relationships, unique constraint prevents duplicate (userId, emailAddress), CASCADE delete configured | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 1.2 Update UserEntity with emailPreferences relationship
+- [x] 1.2 Update UserEntity with emailPreferences relationship
   - Files:
     - `backend/src/modules/user/entities/user.entity.ts` (modify)
   - Add OneToMany relationship to UserEmailPreferenceEntity with cascade: true
@@ -23,7 +23,7 @@
   - _Requirements: Requirement 7 (Database Schema Changes)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Update UserEntity in backend/src/modules/user/entities/user.entity.ts by adding OneToMany relationship to UserEmailPreferenceEntity with cascade: true, verify name field exists as varchar(255), import UserEmailPreferenceEntity and use Relation<UserEmailPreferenceEntity[]> type | Restrictions: Follow existing OneToMany patterns in user.entity.ts (check oauthTokens or claims relationships), use optional chaining for emailPreferences field (emailPreferences?: Relation<...>), do not modify existing fields except name type verification | Success: Relationship is properly configured, cascade enabled, entity compiles without errors, can query user with emailPreferences relations | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 1.3 Generate and run database migration
+- [x] 1.3 Generate and run database migration
   - Files:
     - `backend/src/migrations/TIMESTAMP-AddUserEmailPreferences.ts` (generate)
   - Command: `make db/migration/generate path="AddUserEmailPreferences"`
@@ -35,7 +35,7 @@
 
 ## Phase 2: Backend DTOs
 
-- [ ] 2.1 Create EmailPreferenceDto
+- [x] 2.1 Create EmailPreferenceDto
   - Files:
     - `backend/src/modules/user/dtos/email-preference.dto.ts` (create)
   - Create DTO with fields: type ('cc' | 'bcc'), emailAddress (string)
@@ -45,7 +45,7 @@
   - _Requirements: Requirement 4 (Email Preference Validation)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Create EmailPreferenceDto in backend/src/modules/user/dtos/email-preference.dto.ts with fields (type: 'cc' | 'bcc', emailAddress: string), add @IsIn(['cc', 'bcc']) decorator to type field with custom message, add @IsEmail() decorator to emailAddress field with custom message | Restrictions: Use class-validator decorators only, do not use TypeScript enum (use literal union type), follow existing DTO patterns from user module, include descriptive error messages | Success: DTO compiles without errors, validation decorators work correctly, proper type safety for 'cc' | 'bcc' union | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 2.2 Create UpdateUserDto
+- [x] 2.2 Create UpdateUserDto
   - Files:
     - `backend/src/modules/user/dtos/update-user.dto.ts` (create)
   - Create DTO with optional fields: name (string, min 1 char), emailPreferences (EmailPreferenceDto[])
@@ -55,7 +55,7 @@
   - _Requirements: Requirement 1 (User Profile Update Endpoint), Requirement 2 (Username Customization)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Create UpdateUserDto in backend/src/modules/user/dtos/update-user.dto.ts with optional fields (name: string with @IsString @MinLength(1) @IsOptional, emailPreferences: EmailPreferenceDto[] with @IsArray @ValidateNested @IsOptional), import EmailPreferenceDto and use @Type(() => EmailPreferenceDto) decorator for array transformation | Restrictions: Both fields must be optional (partial update support), use @Type decorator from class-transformer for nested validation, follow existing DTO patterns, include descriptive error messages for MinLength | Success: DTO compiles without errors, both fields optional, nested validation works for emailPreferences array, name validation enforces minimum 1 character | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 2.3 Update DTO barrel export
+- [x] 2.3 Update DTO barrel export
   - Files:
     - `backend/src/modules/user/dtos/index.ts` (modify)
   - Add exports for EmailPreferenceDto and UpdateUserDto
@@ -66,7 +66,7 @@
 
 ## Phase 3: Backend Services
 
-- [ ] 3.1 Create UserEmailPreferenceService
+- [x] 3.1 Create UserEmailPreferenceService
   - Files:
     - `backend/src/modules/user/services/user-email-preference.service.ts` (create)
   - Implement validateEmailPreferences(userEmail, preferences) - check own email and duplicates
@@ -76,7 +76,7 @@
   - _Requirements: Requirement 4 (Email Preference Validation), Requirement 5 (Email Preference Update Strategy)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Create UserEmailPreferenceService in backend/src/modules/user/services/user-email-preference.service.ts with two methods: (1) validateEmailPreferences(userEmail: string, preferences: EmailPreferenceDto[]) that throws BadRequestException if preferences contain userEmail or has duplicates, (2) updatePreferences(userId: string, preferences: EmailPreferenceDto[]) that deletes all existing preferences with DELETE WHERE userId = ? then batch inserts new preferences | Restrictions: Use simple replace strategy (delete all + insert all), no smart diff logic, inject UserEmailPreferenceEntity repository, follow service patterns from existing services, validation method must check: preferences.some(p => p.emailAddress === userEmail) and duplicate check using Set | Success: Service compiles without errors, validateEmailPreferences throws correct errors, updatePreferences deletes all then inserts (verified via tests), simple and maintainable code | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 3.2 Update UserService with updateUser method
+- [x] 3.2 Update UserService with updateUser method
   - Files:
     - `backend/src/modules/user/services/user.service.ts` (modify)
   - Add updateUser(userId, updateDto) method
@@ -86,7 +86,7 @@
   - _Requirements: Requirement 1 (User Profile Update Endpoint), Requirement 2 (Username Customization), Requirement 3 (Email Preferences Management)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Update UserService in backend/src/modules/user/services/user.service.ts by adding updateUser(userId: string, updateDto: UpdateUserDto) method that: (1) queries user with emailPreferences relations, throws NotFoundException if not found, (2) if updateDto.name provided, validates length >= 1 and updates user.name, (3) if updateDto.emailPreferences provided, calls userEmailPrefService.validateEmailPreferences then updatePreferences, (4) saves user entity, (5) returns fresh user with relations | Restrictions: Inject UserEmailPreferenceService in constructor, use existing userRepo, follow existing service method patterns, throw NotFoundException for user not found, throw BadRequestException for validation failures, ensure final return includes emailPreferences relation | Success: Method compiles without errors, orchestrates name update and email preferences update correctly, proper error handling, returns complete user with relations | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 3.3 Register UserEmailPreferenceService in UserModule
+- [x] 3.3 Register UserEmailPreferenceService in UserModule
   - Files:
     - `backend/src/modules/user/user.module.ts` (modify)
   - Add UserEmailPreferenceEntity to TypeOrmModule.forFeature imports
@@ -98,7 +98,7 @@
 
 ## Phase 4: Backend Controller
 
-- [ ] 4.1 Add PATCH /:userId endpoint to UserController
+- [x] 4.1 Add PATCH /:userId endpoint to UserController
   - Files:
     - `backend/src/modules/user/controllers/user.controller.ts` (modify)
   - Implement PATCH /:userId endpoint with JwtAuthGuard
@@ -111,7 +111,7 @@
 
 ## Phase 5: Email Integration
 
-- [ ] 5.1 Update EmailService to apply CC/BCC preferences
+- [x] 5.1 Update EmailService to apply CC/BCC preferences
   - Files:
     - `backend/src/modules/email/services/email.service.ts` (modify)
   - Inject UserEmailPreferenceEntity repository
@@ -123,7 +123,7 @@
   - _Requirements: Requirement 6 (Apply Email Preferences to Claim Submissions)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Backend Developer | Task: Update EmailService in backend/src/modules/email/services/email.service.ts by: (1) injecting UserEmailPreferenceEntity repository in constructor, (2) modifying sendClaimSubmission method to query preferences with find({ where: { userId: user.id }}), (3) separating preferences into ccEmails and bccEmails arrays by filtering on type, (4) passing cc and bcc arrays to gmailClient.sendEmail(), (5) updating email subject to use user.name instead of hardcoded name, (6) updating email template footer to use user.name | Restrictions: Add email preference query before sending email, filter preferences by type ('cc' vs 'bcc'), ensure empty arrays are passed if no preferences exist, wrap send in try-catch and throw InternalServerErrorException on failure, do not add retry logic | Success: Email preferences are queried correctly, CC/BCC emails applied to outgoing claim emails, user.name appears in subject and template, email sends successfully with preferences, error handling works | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 5.2 Register UserEmailPreferenceEntity in EmailModule
+- [x] 5.2 Register UserEmailPreferenceEntity in EmailModule
   - Files:
     - `backend/src/modules/email/email.module.ts` (modify)
   - Add UserEmailPreferenceEntity to TypeOrmModule.forFeature imports
@@ -134,7 +134,7 @@
 
 ## Phase 6: Frontend Profile Page
 
-- [ ] 6.1 Create profile schema (zod validation)
+- [x] 6.1 Create profile schema (zod validation)
   - Files:
     - `frontend/src/schemas/profile-schema.ts` (create)
   - Create zod schema with name (min 1 char), emailPreferences array (type + emailAddress)

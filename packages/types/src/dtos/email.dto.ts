@@ -12,6 +12,8 @@ export type IEmailSendRequest = {
   body: string;
   isHtml?: boolean;
   attachments?: IEmailAttachment[];
+  cc?: string[];
+  bcc?: string[];
 };
 
 export type IEmailSendResponse = {

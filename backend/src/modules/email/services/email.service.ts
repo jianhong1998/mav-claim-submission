@@ -4,14 +4,15 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ClaimDBUtil } from 'src/modules/claims/utils/claim-db.util';
 import { AttachmentDBUtil } from 'src/modules/claims/utils/attachment-db.util';
 import { UserDBUtil } from 'src/modules/user/utils/user-db.util';
 import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { UserEmailPreferenceEntity } from 'src/modules/user/entities/user-email-preference.entity';
 import { GmailClient } from './gmail-client.service';
 import { EmailTemplateService } from './email-template.service';
 import { AttachmentProcessorService } from './attachment-processor.service';
@@ -41,6 +42,8 @@ export class EmailService {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    @InjectRepository(UserEmailPreferenceEntity)
+    private readonly emailPreferenceRepository: Repository<UserEmailPreferenceEntity>,
     private readonly claimDBUtil: ClaimDBUtil,
     private readonly attachmentDBUtil: AttachmentDBUtil,
     private readonly userDBUtil: UserDBUtil,
@@ -84,40 +87,55 @@ export class EmailService {
         throw new InternalServerErrorException('Invalid validation result');
       }
 
-      // Step 2: Process attachments (hybrid strategy: download small files, link large files)
+      // Step 2: Query user email preferences
+      const emailPreferences = await this.emailPreferenceRepository.find({
+        where: { userId: user.id },
+      });
+
+      // Separate preferences by type
+      const ccEmails = emailPreferences
+        .filter((pref) => pref.type === 'cc')
+        .map((pref) => pref.emailAddress);
+      const bccEmails = emailPreferences
+        .filter((pref) => pref.type === 'bcc')
+        .map((pref) => pref.emailAddress);
+
+      // Step 3: Process attachments (hybrid strategy: download small files, link large files)
       const processedAttachments =
         await this.attachmentProcessorService.processAttachments(
           userId,
           attachments,
         );
 
-      // Step 3: Generate email content with processed attachments
+      // Step 4: Generate email content with processed attachments
       const emailContent = this.emailTemplateService.generateClaimEmail(
         claim,
         user,
         attachments,
         processedAttachments,
       );
-      const emailSubject = this.emailTemplateService.generateSubject(claim);
+      const emailSubject = `${user.name} - ${this.emailTemplateService.generateSubject(claim)}`;
 
-      // Step 4: Get email recipients from environment
+      // Step 5: Get email recipients from environment
       const emailRecipients =
         this.environmentUtil.getVariables().emailRecipients;
 
-      // Step 5: Map processed attachments to Gmail API format
+      // Step 6: Map processed attachments to Gmail API format
       const gmailAttachments = processedAttachments.attachments.map((att) => ({
         filename: att.filename,
         content: att.buffer,
         mimeType: att.mimeType,
       }));
 
-      // Step 6: Send email first (outside transaction to avoid holding locks during external API call)
+      // Step 7: Send email first (outside transaction to avoid holding locks during external API call)
       const emailResult = await this.gmailClient.sendEmail(userId, {
         to: emailRecipients,
         subject: emailSubject,
         body: emailContent,
         isHtml: true,
         attachments: gmailAttachments,
+        cc: ccEmails,
+        bcc: bccEmails,
       });
 
       if (!emailResult.success) {
@@ -138,7 +156,7 @@ export class EmailService {
         };
       }
 
-      // Step 7: Email succeeded - update claim status to sent with transaction
+      // Step 8: Email succeeded - update claim status to sent with transaction
       const updatedClaim = await this.updateClaimStatusWithTransaction(
         claimId,
         ClaimStatus.SENT,
