@@ -87,11 +87,13 @@ export class UserEmailPreferenceService {
 
     // Step 2: Insert new preferences (if any)
     if (preferences.length > 0) {
-      const entities = preferences.map((pref) => ({
-        userId,
-        type: pref.type,
-        emailAddress: pref.emailAddress,
-      }));
+      const entities = preferences.map((pref) =>
+        this.emailPreferenceRepo.create({
+          userId,
+          type: pref.type,
+          emailAddress: pref.emailAddress,
+        }),
+      );
 
       await this.emailPreferenceRepo.insert(entities);
 

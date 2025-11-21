@@ -52,12 +52,11 @@ export class UserService {
   ): Promise<UserEntity> {
     this.logger.log(`Updating user profile for userId: ${userId}`);
 
-    // Step 1: Query user with emailPreferences relation
+    // Step 1: Query user (no relations needed for validation/name update)
     const user = await this.userDBUtil.getOne({
       criteria: { id: userId } as Parameters<
         UserDBUtil['getOne']
       >[0]['criteria'],
-      relation: { emailPreferences: true },
     });
 
     if (!user) {

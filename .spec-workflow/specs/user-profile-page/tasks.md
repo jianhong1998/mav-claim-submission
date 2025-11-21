@@ -257,7 +257,7 @@
 
 ## Phase 9: Frontend Testing
 
-- [ ] 9.1 Create ProfileForm component tests
+- [x] 9.1 Create ProfileForm component tests
   - Files:
     - `frontend/src/app/components/profile/profile-form.test.tsx` (create)
   - Test form renders, validation works, dynamic fields add/remove, submission calls API
@@ -275,7 +275,7 @@
   - _Requirements: All frontend requirements end-to-end_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA E2E Engineer | Task: Create E2E test for profile page in appropriate E2E test directory (e.g., frontend/e2e/profile.spec.ts) covering: (1) user logs in and navigates to /profile, (2) updates display name and submits, (3) adds CC email address and submits, (4) sees success toast notification, (5) refreshes page and sees updated values persisted | Restrictions: Use existing E2E framework (Playwright/Cypress), use test user credentials, ensure test cleanup (reset preferences after test), follow existing E2E patterns, handle async operations with proper waits | Success: E2E test passes, complete user flow verified including persistence, test is stable and doesn't flake | Instructions: After completing test and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 9.3 Run frontend tests
+- [x] 9.3 Run frontend tests
   - Command: `pnpm test` (from frontend directory) or appropriate test command
   - Verify all frontend tests pass including new profile tests
   - Purpose: Ensure frontend components work correctly
@@ -285,7 +285,7 @@
 
 ## Phase 10: Documentation & Cleanup
 
-- [ ] 10.1 Update API documentation
+- [x] 10.1 Update API documentation
   - Files:
     - `docs/project-info/api-endpoints.md` (modify, if exists)
   - Document PATCH /api/users/:userId endpoint with request/response examples
@@ -294,7 +294,7 @@
   - _Requirements: Documentation requirements_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Technical Writer | Task: Update docs/project-info/api-endpoints.md (if exists) by adding documentation for PATCH /api/users/:userId endpoint including: authentication requirement (JWT), authorization rule (own profile only), request body schema (UpdateUserDto), response format, status codes (200/400/403/404/500), example request/response | Restrictions: Follow existing documentation format and style, include clear examples, document all status codes, note authorization requirement, keep concise | Success: Endpoint is properly documented, examples are accurate, format matches existing docs | Instructions: After completing documentation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 10.2 Update project status in CLAUDE.md
+- [x] 10.2 Update project status in CLAUDE.md
   - Files:
     - `CLAUDE.md` (modify)
   - Mark user profile page feature as implemented in status section
@@ -303,7 +303,7 @@
   - _Requirements: Documentation requirements_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Technical Writer | Task: Update CLAUDE.md status section to mark user profile page feature as implemented, add bullet point under "Implemented" section describing: user profile page with username customization and CC/BCC email preferences for claim submissions, note database schema changes (user_email_preferences table), mention email integration | Restrictions: Follow existing status format in CLAUDE.md, keep description concise (2-3 lines), place in appropriate section (likely under Frontend or User Features), maintain markdown formatting | Success: Status section updated correctly, feature marked as implemented, description is clear and accurate | Instructions: After updating documentation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 10.3 Run code quality checks
+- [x] 10.3 Run code quality checks
   - Commands: `make format` and `make lint` (from project root)
   - Fix any linting or formatting issues
   - Purpose: Ensure code meets project quality standards

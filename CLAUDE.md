@@ -165,6 +165,12 @@ Managed from root `.env` file:
   - Removed pg dependency from api-test workspace
   - Comprehensive unit and integration test coverage
   - **Security Note**: Feature flag must be disabled in production (returns 404 when disabled)
+- **User Profile Management**: Complete user profile customization and email preferences
+  - Profile page (/profile) with username editing and CC/BCC email preferences for claim submissions
+  - Database schema: user_email_preferences table with unique composite index on (userId, emailAddress)
+  - Email integration: CC/BCC preferences automatically applied to claim submission emails
+  - Validation: prevents own email, duplicate emails, and enforces authorization (users can only edit their own profile)
+  - PATCH /api/users/:userId endpoint with JWT authentication and authorization checks
 
 🚧 **In Development**:
 
