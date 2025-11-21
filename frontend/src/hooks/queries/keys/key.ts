@@ -10,6 +10,7 @@ export const QueryGroup = Object.freeze({
   EMAIL: 'email',
   DRIVE: 'drive',
   ATTACHMENTS: 'attachments',
+  USER: 'user',
 } as const);
 export type QueryGroup = (typeof QueryGroup)[keyof typeof QueryGroup];
 

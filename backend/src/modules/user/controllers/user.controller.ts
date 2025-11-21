@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Patch,
   Param,
   Body,
@@ -60,6 +61,98 @@ export class UserController {
   private readonly logger = new Logger(UserController.name);
 
   constructor(private readonly userService: UserService) {}
+
+  /**
+   * Get user profile endpoint
+   * Requirements: 1 - Retrieve User Profile Data, 3 - Authorization and Security,
+   *               4 - API Response Format
+   */
+  @Get(':userId')
+  @ApiOperation({
+    summary: 'Get user profile',
+    description:
+      'Retrieve user profile including display name and email preferences for claim submissions. Users can only access their own profile.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID to retrieve (must match authenticated user)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        email: { type: 'string', example: 'user@mavericks-consulting.com' },
+        name: { type: 'string', example: 'John Doe' },
+        picture: { type: 'string', nullable: true },
+        googleId: { type: 'string', example: '1234567890' },
+        emailPreferences: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              type: { type: 'string', enum: ['cc', 'bcc'] },
+              emailAddress: { type: 'string' },
+            },
+          },
+        },
+        createdAt: { type: 'string' },
+        updatedAt: { type: 'string' },
+      },
+    },
+  })
+  @ApiForbiddenResponse({
+    description: 'Authorization error - cannot access other users',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 403 },
+        message: { type: 'string', example: 'Cannot access other users' },
+        error: { type: 'string', example: 'Forbidden' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'User with ID ... not found' },
+        error: { type: 'string', example: 'Not Found' },
+      },
+    },
+  })
+  async getUser(
+    @Param('userId') userId: string,
+    @User() currentUser: UserEntity,
+  ): Promise<UserEntity> {
+    this.logger.log(
+      `Profile retrieval request for userId: ${userId} by user: ${currentUser.id}`,
+    );
+
+    // Authorization check: users can only access their own profile
+    if (currentUser.id !== userId) {
+      this.logger.warn(
+        `Authorization failed: User ${currentUser.id} attempted to access user ${userId}`,
+      );
+      throw new ForbiddenException('Cannot access other users');
+    }
+
+    // Delegate to service layer
+    const user = await this.userService.getUserProfile(userId);
+
+    this.logger.log(`Profile retrieved successfully for userId: ${userId}`);
+
+    return user;
+  }
 
   /**
    * Update user profile endpoint

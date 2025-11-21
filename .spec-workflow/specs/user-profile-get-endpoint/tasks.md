@@ -2,7 +2,7 @@
 
 ## Backend Implementation
 
-- [ ] 1. Add getUserProfile() method to UserService
+- [x] 1. Add getUserProfile() method to UserService
   - File: backend/src/modules/user/services/user.service.ts
   - Add getUserProfile(userId: string) method that queries user with emailPreferences relation
   - Throws NotFoundException if user not found
@@ -12,7 +12,7 @@
   - _Requirements: Requirement 1 (Retrieve User Profile Data), Requirement 2 (Email Preferences Data Structure)_
   - _Prompt: Implement the task for spec user-profile-get-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Backend Developer specializing in NestJS service layer and TypeORM | Task: Add getUserProfile(userId: string) method to UserService (backend/src/modules/user/services/user.service.ts) following Requirements 1 and 2. Method should query user with emailPreferences relation using UserDBUtil.getOne(), throw NotFoundException if user not found, and return UserEntity. Leverage existing pattern from updateUser method (lines 56-64) for error handling and database query structure. | Restrictions: Do not modify UserDBUtil, do not add new dependencies, do not change UserEntity structure, follow existing logging pattern (use this.logger), follow existing error handling pattern (throw NotFoundException with descriptive message) | _Leverage: UserDBUtil.getOne() with relation parameter from user-db.util.ts, error handling pattern from updateUser() method in same file | _Requirements: Requirements 1, 2 from requirements.md | Success: Method compiles without errors, correctly queries user with emailPreferences relation in single query, throws NotFoundException when user not found, returns UserEntity with loaded emailPreferences array, follows existing service patterns and logging conventions | Instructions: After implementation, mark this task as in-progress in tasks.md by changing [ ] to [-]. After completion and testing, use log-implementation tool to record implementation details with artifacts (functions, integrations), then mark as complete [x]._
 
-- [ ] 2. Add GET endpoint to UserController
+- [x] 2. Add GET endpoint to UserController
   - File: backend/src/modules/user/controllers/user.controller.ts
   - Add @Get(':userId') endpoint with getUser() method
   - Apply authorization check (currentUser.id !== userId → 403)
@@ -25,7 +25,7 @@
 
 ## Backend Unit Tests
 
-- [ ] 3. Write unit tests for UserService.getUserProfile()
+- [x] 3. Write unit tests for UserService.getUserProfile()
   - File: backend/src/modules/user/services/user.service.test.ts (modify existing or create new)
   - Test getUserProfile() returns user with emailPreferences when user exists
   - Test getUserProfile() throws NotFoundException when user not found
@@ -35,7 +35,7 @@
   - _Requirements: Requirement 1 (Retrieve User Profile Data), Requirement 2 (Email Preferences Data Structure)_
   - _Prompt: Implement the task for spec user-profile-get-endpoint, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: QA Engineer with expertise in NestJS testing and Vitest | Task: Write comprehensive unit tests for UserService.getUserProfile() method in backend/src/modules/user/services/user.service.test.ts covering Requirements 1 and 2. Test success case (returns user with emailPreferences) and error case (throws NotFoundException when user not found). Mock UserDBUtil.getOne() to control test scenarios. Follow existing test patterns in backend test files. | Restrictions: Must mock all dependencies (UserDBUtil, Logger), do not call real database, test business logic in isolation, follow existing test file structure and naming conventions, use Vitest mocking utilities | _Leverage: Existing test patterns from backend test files, Vitest mocking for UserDBUtil and Logger | _Requirements: Requirements 1, 2 from requirements.md | Success: All test cases pass, success scenario returns user with emailPreferences, error scenario throws NotFoundException with correct message, mocks are properly configured, tests run independently and consistently | Instructions: After implementation, mark this task as in-progress in tasks.md by changing [ ] to [-]. After completion, use log-implementation tool to record implementation details with artifacts, then mark as complete [x]._
 
-- [ ] 4. Write unit tests for UserController.getUser()
+- [x] 4. Write unit tests for UserController.getUser()
   - File: backend/src/modules/user/controllers/user.controller.test.ts (modify existing or create new)
   - Test getUser() returns 200 when user requests own profile
   - Test getUser() throws 403 when user requests other user's profile
@@ -48,7 +48,7 @@
 
 ## API Integration Tests
 
-- [ ] 5. Write API integration tests for GET /api/users/:userId
+- [x] 5. Write API integration tests for GET /api/users/:userId
   - File: api-test/src/tests/user.test.ts (create new file)
   - Test GET request with valid JWT returns 200 with user profile
   - Test GET request for other user returns 403 Forbidden
@@ -62,7 +62,7 @@
 
 ## Frontend Integration
 
-- [ ] 6. Update profile page to fetch and display user data
+- [x] 6. Update profile page to fetch and display user data
   - File: frontend/src/app/profile/page.tsx
   - Add API call to GET /api/users/:userId on page load
   - Display username in form (pre-populate input field)

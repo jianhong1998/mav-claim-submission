@@ -10,6 +10,7 @@ describe('UserEmailPreferenceService', () => {
   let mockRepository: {
     delete: ReturnType<typeof vi.fn>;
     insert: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -17,6 +18,17 @@ describe('UserEmailPreferenceService', () => {
     mockRepository = {
       delete: vi.fn(),
       insert: vi.fn(),
+      create: vi
+        .fn()
+        .mockImplementation((data: Partial<UserEmailPreferenceEntity>) => {
+          const userEmailPreference = new UserEmailPreferenceEntity();
+
+          Object.entries(data).forEach(([key, value]) => {
+            userEmailPreference[key] = value;
+          });
+
+          return userEmailPreference;
+        }),
     };
 
     // Create service instance with mocked repository

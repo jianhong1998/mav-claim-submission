@@ -94,6 +94,12 @@ vi.mock('lucide-react', () => ({
       {...props}
     />
   ),
+  Edit2Icon: (props: MockIconProps) => (
+    <span
+      data-testid="Edit2Icon"
+      {...props}
+    />
+  ),
 }));
 
 const mockApiClient = {

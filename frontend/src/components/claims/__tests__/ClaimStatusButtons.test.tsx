@@ -26,6 +26,20 @@ vi.mock('lucide-react', () => ({
       {...props}
     />
   ),
+  Edit2Icon: (props: React.ComponentProps<'span'>) => (
+    <span
+      data-testid="Edit2Icon"
+      {...props}
+    />
+  ),
+}));
+
+// Mock next/navigation
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
 }));
 
 // Mock API client
@@ -77,7 +91,7 @@ describe('ClaimStatusButtons', () => {
   });
 
   describe('Button Visibility Logic', () => {
-    it('renders no buttons for DRAFT status', () => {
+    it('renders Continue Edit button for DRAFT status', () => {
       render(
         <ClaimStatusButtons
           {...defaultProps}
@@ -85,7 +99,10 @@ describe('ClaimStatusButtons', () => {
         />,
       );
 
-      expect(screen.queryByTestId('status-button')).not.toBeInTheDocument();
+      const buttons = screen.getAllByTestId('status-button');
+      expect(buttons).toHaveLength(1);
+      expect(screen.getByText('Continue Edit')).toBeInTheDocument();
+      expect(screen.getByTestId('Edit2Icon')).toBeInTheDocument();
     });
 
     it('renders only Mark as Paid button for SENT status', () => {
@@ -122,7 +139,7 @@ describe('ClaimStatusButtons', () => {
       expect(screen.getByTestId('Mail')).toBeInTheDocument();
     });
 
-    it('renders only Mark as Sent button for PAID status', () => {
+    it('renders only Revert to Sent button for PAID status', () => {
       render(
         <ClaimStatusButtons
           {...defaultProps}
@@ -133,7 +150,7 @@ describe('ClaimStatusButtons', () => {
       const buttons = screen.getAllByTestId('status-button');
       expect(buttons).toHaveLength(1);
 
-      expect(screen.getByText('Mark as Sent')).toBeInTheDocument();
+      expect(screen.getByText('Revert to Sent')).toBeInTheDocument();
       expect(screen.getByTestId('Send')).toBeInTheDocument();
     });
   });
@@ -167,7 +184,7 @@ describe('ClaimStatusButtons', () => {
       );
 
       const markAsSentButton = screen
-        .getByText('Mark as Sent')
+        .getByText('Revert to Sent')
         .closest('button');
       expect(markAsSentButton).toHaveAttribute('data-variant', 'secondary');
       expect(markAsSentButton).toHaveAttribute('data-size', 'sm');
@@ -220,7 +237,7 @@ describe('ClaimStatusButtons', () => {
       expect(apiClient.resendClaimEmail).toHaveBeenCalledWith('test-claim-123');
     });
 
-    it('calls onStatusChange when Mark as Sent button is clicked', async () => {
+    it('calls onStatusChange when Revert to Sent button is clicked', async () => {
       const user = userEvent.setup();
 
       render(
@@ -230,7 +247,7 @@ describe('ClaimStatusButtons', () => {
         />,
       );
 
-      const markAsSentButton = screen.getByText('Mark as Sent');
+      const markAsSentButton = screen.getByText('Revert to Sent');
 
       await user.click(markAsSentButton);
 
@@ -242,6 +259,27 @@ describe('ClaimStatusButtons', () => {
         'test-claim-123',
         ClaimStatus.SENT,
       );
+    });
+
+    it('calls router.push when Continue Edit button is clicked', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <ClaimStatusButtons
+          {...defaultProps}
+          currentStatus={ClaimStatus.DRAFT}
+        />,
+      );
+
+      const continueEditButton = screen.getByText('Continue Edit');
+
+      await user.click(continueEditButton);
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/');
+      });
+
+      expect(mockOnStatusChange).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -292,7 +330,7 @@ describe('ClaimStatusButtons', () => {
 
       expect(screen.queryByText('Mark as Paid')).not.toBeInTheDocument();
       expect(screen.queryByText('Resend Email')).not.toBeInTheDocument();
-      expect(screen.getByText('Mark as Sent')).toBeInTheDocument();
+      expect(screen.getByText('Revert to Sent')).toBeInTheDocument();
     });
   });
 });

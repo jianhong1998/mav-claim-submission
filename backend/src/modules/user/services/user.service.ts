@@ -36,6 +36,35 @@ export class UserService {
   ) {}
 
   /**
+   * Get user profile with email preferences
+   * Requirements: 1 - Retrieve User Profile Data, 2 - Email Preferences Data Structure
+   *
+   * @param userId - User ID to retrieve
+   * @returns User entity with emailPreferences relation loaded
+   * @throws NotFoundException if user not found
+   */
+  async getUserProfile(userId: string): Promise<UserEntity> {
+    this.logger.log(`Retrieving user profile for userId: ${userId}`);
+
+    const user = await this.userDBUtil.getOne({
+      criteria: { id: userId } as Parameters<
+        UserDBUtil['getOne']
+      >[0]['criteria'],
+      relation: { emailPreferences: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    this.logger.log(
+      `Successfully retrieved user profile for userId: ${userId}`,
+    );
+
+    return user;
+  }
+
+  /**
    * Update user profile (name and/or email preferences)
    * Requirements: 1 - User Profile Update, 2 - Username Customization,
    *               3 - Email Preferences Management

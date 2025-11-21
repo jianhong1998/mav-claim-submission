@@ -76,7 +76,6 @@ describe('UserService', () => {
       expect(mockUserDBUtil.getOne).toHaveBeenCalledTimes(2);
       expect(mockUserDBUtil.getOne).toHaveBeenNthCalledWith(1, {
         criteria: { id: userId },
-        relation: { emailPreferences: true },
       });
       expect(mockUserRepo.save).toHaveBeenCalledTimes(1);
       expect(mockUserRepo.save).toHaveBeenCalledWith(
@@ -296,6 +295,93 @@ describe('UserService', () => {
       expect(mockUserEmailPrefService.updatePreferences).toHaveBeenCalledTimes(
         1,
       );
+    });
+  });
+
+  describe('getUserProfile', () => {
+    it('should return user with emailPreferences when user exists', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const emailPreferencesData = [
+        {
+          id: 'pref-1',
+          userId: 'user-123',
+          type: 'cc' as const,
+          emailAddress: 'colleague@example.com',
+        },
+        {
+          id: 'pref-2',
+          userId: 'user-123',
+          type: 'bcc' as const,
+          emailAddress: 'manager@example.com',
+        },
+      ];
+
+      const userWithPreferences = {
+        ...mockUser,
+        emailPreferences: emailPreferencesData,
+      };
+
+      mockUserDBUtil.getOne.mockResolvedValue(userWithPreferences);
+
+      // Act
+      const result = await service.getUserProfile(userId);
+
+      // Assert - verify query was called with correct parameters
+      expect(mockUserDBUtil.getOne).toHaveBeenCalledTimes(1);
+      expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
+        criteria: { id: userId },
+        relation: { emailPreferences: true },
+      });
+
+      // Assert - verify returned user has emailPreferences loaded
+      expect(result).toBeDefined();
+      expect(result.id).toBe(userId);
+      expect(result.emailPreferences).toBeDefined();
+      expect(result.emailPreferences).toHaveLength(2);
+      expect(result.emailPreferences).toEqual(emailPreferencesData);
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      // Arrange
+      const userId = 'non-existent-user';
+
+      mockUserDBUtil.getOne.mockResolvedValue(null); // User not found
+
+      // Act & Assert
+      await expect(service.getUserProfile(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getUserProfile(userId)).rejects.toThrow(
+        `User with ID ${userId} not found`,
+      );
+
+      // Verify query was called with correct parameters
+      expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
+        criteria: { id: userId },
+        relation: { emailPreferences: true },
+      });
+    });
+
+    it('should return user with empty emailPreferences array when user has no preferences', async () => {
+      // Arrange
+      const userId = 'user-456';
+      const userWithoutPreferences = {
+        ...mockUser,
+        id: userId,
+        emailPreferences: [],
+      };
+
+      mockUserDBUtil.getOne.mockResolvedValue(userWithoutPreferences);
+
+      // Act
+      const result = await service.getUserProfile(userId);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.id).toBe(userId);
+      expect(result.emailPreferences).toBeDefined();
+      expect(result.emailPreferences).toHaveLength(0);
     });
   });
 });
