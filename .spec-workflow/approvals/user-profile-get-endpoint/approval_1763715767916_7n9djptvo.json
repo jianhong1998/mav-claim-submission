@@ -1,0 +1,21 @@
+{
+  "id": "approval_1763715767916_7n9djptvo",
+  "title": "Design: User Profile GET Endpoint",
+  "filePath": ".spec-workflow/specs/user-profile-get-endpoint/design.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-11-21T09:02:47.916Z",
+  "category": "spec",
+  "categoryName": "user-profile-get-endpoint",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. I remember the JWT Authguard is configured globally across the entire application. Please help to verify this and evaluate if needed to apply `@UseGuards`.\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"I remember the JWT Authguard is configured globally across the entire application. Please help to verify this and evaluate if needed to apply `@UseGuards`.\",\n      \"timestamp\": \"2025-11-21T09:11:52.800Z\",\n      \"id\": \"comment_1763716312800_tgz1hd5wd\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. I remember the JWT Authguard is configured globally across the entire application. Please help to verify this and evaluate if needed to apply `@UseGuards`.\\n\\n\",\n  \"timestamp\": \"2025-11-21T09:11:54.285Z\"\n}",
+  "respondedAt": "2025-11-21T09:11:54.294Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "I remember the JWT Authguard is configured globally across the entire application. Please help to verify this and evaluate if needed to apply `@UseGuards`.",
+      "timestamp": "2025-11-21T09:11:52.800Z",
+      "id": "comment_1763716312800_tgz1hd5wd"
+    }
+  ]
+}
