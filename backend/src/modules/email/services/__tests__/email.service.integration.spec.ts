@@ -17,6 +17,7 @@ import { IEmailSendResponse } from '@project/types';
 describe('EmailService Integration Tests', () => {
   let emailService: EmailService;
   let mockDataSource: { transaction: Mock };
+  let mockEmailPreferenceRepository: { find: Mock };
   let mockClaimDBUtil: {
     getOne: Mock;
     updateWithSave: Mock;
@@ -83,6 +84,10 @@ describe('EmailService Integration Tests', () => {
       transaction: vi.fn(),
     };
 
+    mockEmailPreferenceRepository = {
+      find: vi.fn(),
+    };
+
     mockClaimDBUtil = {
       getOne: vi.fn(),
       updateWithSave: vi.fn(),
@@ -118,6 +123,8 @@ describe('EmailService Integration Tests', () => {
       emailRecipients: 'admin@mavericks-consulting.com',
     });
 
+    mockEmailPreferenceRepository.find.mockResolvedValue([]);
+
     mockEmailTemplateService.generateClaimEmail.mockReturnValue(
       '<html>Email content</html>',
     );
@@ -141,6 +148,7 @@ describe('EmailService Integration Tests', () => {
     // Create service instance
     emailService = new EmailService(
       mockDataSource as unknown as DataSource,
+      mockEmailPreferenceRepository as never,
       mockClaimDBUtil as unknown as ClaimDBUtil,
       mockAttachmentDBUtil as unknown as AttachmentDBUtil,
       mockUserDBUtil as unknown as UserDBUtil,
@@ -209,10 +217,12 @@ describe('EmailService Integration Tests', () => {
       );
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: 'admin@mavericks-consulting.com',
-        subject: 'Claim Submission - Test',
+        subject: 'John Doe - Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
       expect(mockDataSource.transaction).toHaveBeenCalled();
     });
@@ -505,10 +515,12 @@ describe('EmailService Integration Tests', () => {
 
       expect(mockGmailClient.sendEmail).toHaveBeenCalledWith('user-123', {
         to: customRecipients,
-        subject: 'Claim Submission - Test',
+        subject: 'John Doe - Claim Submission - Test',
         body: '<html>Email content</html>',
         isHtml: true,
         attachments: [],
+        cc: [],
+        bcc: [],
       });
     });
   });

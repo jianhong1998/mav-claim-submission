@@ -145,7 +145,7 @@
   - _Requirements: Requirement 9 (Frontend Form Validation)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer | Task: Create profile schema in frontend/src/schemas/profile-schema.ts using zod with fields (name: string min 1 char, emailPreferences: array of objects with type enum ['cc', 'bcc'] and emailAddress email format), add refine for duplicate email check (emails.length === new Set(emails).size), export ProfileFormData type using z.infer | Restrictions: Use zod schema syntax, validation must match backend DTOs (name min 1, email format, no duplicates), own email check can be skipped in schema (backend will validate), follow existing schema patterns if any exist in frontend | Success: Schema compiles without errors, validates name length, validates email format, catches duplicate emails, type inference works correctly | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.2 Create API client for profile update
+- [x] 6.2 Create API client for profile update
   - Files:
     - `frontend/src/api/users/update-profile.ts` (create)
   - Implement updateUserProfile(userId, data) function using axios
@@ -155,7 +155,7 @@
   - _Requirements: Requirement 1 (User Profile Update Endpoint)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer | Task: Create API client in frontend/src/api/users/update-profile.ts with updateUserProfile(userId: string, data: UpdateUserRequest) function that calls axios.patch(\`/users/\${userId}\`, data), define UpdateUserRequest interface (name?: string, emailPreferences?: array), define UpdateUserResponse interface matching backend response (id, email, name, emailPreferences array with id/type/emailAddress), return typed response | Restrictions: Use existing axios instance, follow existing API client patterns from frontend, ensure proper TypeScript typing, handle errors via axios interceptors (don't catch in client) | Success: API client compiles without errors, properly typed interfaces, axios call configured correctly, returns expected response type | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.3 Create ProfileForm component
+- [x] 6.3 Create ProfileForm component
   - Files:
     - `frontend/src/app/components/profile/profile-form.tsx` (create)
   - Implement form with react-hook-form + zod resolver
@@ -168,7 +168,7 @@
   - _Requirements: Requirement 8 (Frontend Profile Page), Requirement 9 (Frontend Form Validation)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer | Task: Create ProfileForm component in frontend/src/app/components/profile/profile-form.tsx using react-hook-form with zodResolver(profileSchema), implement sections for Display Name (Input), CC Emails (dynamic useFieldArray), BCC Emails (dynamic useFieldArray), each email field has [Remove] button, each section has [+ Add More] button, submit calls updateUserProfile API, show success toast on success and error toast on failure | Restrictions: Use shadcn/ui components (Button, Input, Label), follow dark mode styling, use useToast hook for notifications, disable submit button while submitting, handle API errors gracefully, filter fields by type ('cc' vs 'bcc') for separate sections | Success: Form renders correctly, dynamic fields work (add/remove), validation shows errors in real-time, submit calls API with correct data, toast notifications appear, form is accessible and mobile responsive | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.4 Create profile page route
+- [x] 6.4 Create profile page route
   - Files:
     - `frontend/src/app/profile/page.tsx` (create)
   - Create profile page component that renders ProfileForm
@@ -179,7 +179,7 @@
   - _Requirements: Requirement 8 (Frontend Profile Page)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Developer | Task: Create profile page in frontend/src/app/profile/page.tsx that uses useUser hook to fetch current user, shows loading state while fetching, renders ProfileForm component with user prop when loaded, wraps form in Card component with title "Profile Settings" | Restrictions: Use existing useUser hook, handle loading and unauthenticated states, use shadcn/ui Card component, follow dark mode styling, ensure page is mobile responsive | Success: Page renders correctly, loading state works, ProfileForm receives user data, page follows app styling, accessible and responsive | Instructions: After completing implementation, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 6.5 Add Profile menu item to navbar dropdown
+- [x] 6.5 Add Profile menu item to navbar dropdown
   - Files:
     - `frontend/src/app/components/navbar/user-dropdown.tsx` (modify)
   - Add "Profile" menu item with link to /profile
@@ -191,7 +191,7 @@
 
 ## Phase 7: Backend Testing
 
-- [ ] 7.1 Create unit tests for UserEmailPreferenceService
+- [x] 7.1 Create unit tests for UserEmailPreferenceService
   - Files:
     - `backend/src/modules/user/services/user-email-preference.service.spec.ts` (create)
   - Test validateEmailPreferences: rejects own email, rejects duplicates, accepts valid
@@ -201,7 +201,7 @@
   - _Requirements: All validation and update logic requirements_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Create unit tests for UserEmailPreferenceService in backend/src/modules/user/services/user-email-preference.service.spec.ts covering: (1) validateEmailPreferences throws BadRequestException when preferences contain user's own email, (2) throws when duplicate emails in array, (3) passes for valid preferences, (4) updatePreferences calls repo.delete then repo.insert with correct data, (5) handles empty preferences array (delete only, no insert) | Restrictions: Mock UserEmailPreferenceEntity repository, use Jest framework, follow existing test patterns from user module, verify mock calls with toHaveBeenCalledWith, test error messages match service implementation | Success: All test cases pass, service validation logic verified, update strategy verified (delete + insert), proper mocking and assertions | Instructions: After completing tests and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 7.2 Create unit tests for UserService.updateUser
+- [x] 7.2 Create unit tests for UserService.updateUser
   - Files:
     - `backend/src/modules/user/services/user.service.spec.ts` (modify or create)
   - Test updateUser: updates name, updates email preferences, throws on validation errors, throws 404 for non-existent user
@@ -210,7 +210,7 @@
   - _Requirements: Requirement 1 (User Profile Update Endpoint), Requirement 2 (Username Customization)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Create or update UserService test file backend/src/modules/user/services/user.service.spec.ts with tests for updateUser method covering: (1) updates user name when provided, (2) updates email preferences when provided via userEmailPrefService, (3) throws BadRequestException for empty name, (4) throws NotFoundException when user not found, (5) returns user with emailPreferences relation | Restrictions: Mock userRepo and userEmailPrefService, use Jest, verify service calls both validate and update on email preference service, verify repo.save called, verify final query includes relations | Success: All test cases pass, orchestration logic verified, proper error handling tested, mocks configured correctly | Instructions: After completing tests and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 7.3 Create unit tests for UserController PATCH endpoint
+- [x] 7.3 Create unit tests for UserController PATCH endpoint
   - Files:
     - `backend/src/modules/user/controllers/user.controller.spec.ts` (modify or create)
   - Test PATCH /:userId: authorization check (403 for other users), successful update, proper delegation to service
@@ -219,7 +219,7 @@
   - _Requirements: Requirement 1 (User Profile Update Endpoint)_
   - _Prompt: Implement the task for spec user-profile-page, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Create or update UserController test file backend/src/modules/user/controllers/user.controller.spec.ts with tests for PATCH /:userId endpoint covering: (1) calls userService.updateUser with correct params when userId matches currentUser.id, (2) throws ForbiddenException when userId does not match currentUser.id, (3) returns updated user data from service | Restrictions: Mock UserService, mock JwtAuthGuard to return test user, use Jest, test authorization check happens before service call, follow existing controller test patterns | Success: All test cases pass, authorization logic verified (403 for mismatch), service delegation verified, proper return values | Instructions: After completing tests and verification, mark this task as completed in tasks.md by changing `- [ ]` to `- [x]`_
 
-- [ ] 7.4 Run backend unit tests
+- [x] 7.4 Run backend unit tests
   - Command: `make test/unit` (from project root)
   - Verify all unit tests pass including new profile-related tests
   - Purpose: Ensure no regressions and new tests pass
