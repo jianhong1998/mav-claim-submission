@@ -221,6 +221,24 @@ export const useFileUpload = ({
     };
   }, [filePreviews]);
 
+  // Handle removing of file from preview list when it is uploaded successfully
+  useEffect(() => {
+    const uploadedFileSet = new Set<string>(
+      attachments.map(
+        (attachment) => `${attachment.originalFilename}-${attachment.fileSize}`,
+      ),
+    );
+
+    const remainingFilePreviews = filePreviews.filter(
+      (preview) =>
+        !uploadedFileSet.has(`${preview.file.name}-${preview.file.size}`),
+    );
+
+    if (filePreviews.length === remainingFilePreviews.length) return;
+
+    setFilePreviews(remainingFilePreviews);
+  }, [attachments, filePreviews]);
+
   return {
     // State
     isDragOver,
