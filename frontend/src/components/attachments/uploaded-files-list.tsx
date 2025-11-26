@@ -15,6 +15,7 @@ export interface UploadedFile {
   originalFilename: string;
   fileSize: number;
   mimeType: string;
+  driveShareableUrl?: string;
 }
 
 export interface UploadedFilesListProps {
@@ -61,14 +62,33 @@ const UploadedFilesList = React.memo<UploadedFilesListProps>(
               </div>
 
               {/* File Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {file.originalFilename}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatFileSize(file.fileSize)}
-                </p>
-              </div>
+              {file.driveShareableUrl ? (
+                <a
+                  href={file.driveShareableUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'flex-1 min-w-0',
+                    'cursor-pointer hover:opacity-80 transition-opacity',
+                  )}
+                >
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {file.originalFilename}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(file.fileSize)}
+                  </p>
+                </a>
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {file.originalFilename}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(file.fileSize)}
+                  </p>
+                </div>
+              )}
 
               {/* Status and Actions */}
               <div className="flex items-center gap-2">
