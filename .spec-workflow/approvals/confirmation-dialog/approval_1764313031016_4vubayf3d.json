@@ -1,0 +1,27 @@
+{
+  "id": "approval_1764313031016_4vubayf3d",
+  "title": "Tasks: Confirmation Dialog Implementation Breakdown",
+  "filePath": ".spec-workflow/specs/confirmation-dialog/tasks.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-11-28T06:57:11.016Z",
+  "category": "spec",
+  "categoryName": "confirmation-dialog",
+  "response": "Feedback Summary (2 comments):\n\nGeneral Comments:\n1. Prompt should always be written in 1 line.\n2. Design is updated. Replan for the tasks\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"Prompt should always be written in 1 line.\",\n      \"timestamp\": \"2025-11-28T07:20:13.651Z\",\n      \"id\": \"comment_1764314413651_ecso0gx28\"\n    },\n    {\n      \"type\": \"general\",\n      \"comment\": \"Design is updated. Replan for the tasks\",\n      \"timestamp\": \"2025-11-28T07:20:38.710Z\",\n      \"id\": \"comment_1764314438710_zyh25ma7z\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (2 comments):\\n\\nGeneral Comments:\\n1. Prompt should always be written in 1 line.\\n2. Design is updated. Replan for the tasks\\n\\n\",\n  \"timestamp\": \"2025-11-28T07:20:48.543Z\"\n}",
+  "respondedAt": "2025-11-28T07:20:48.552Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "Prompt should always be written in 1 line.",
+      "timestamp": "2025-11-28T07:20:13.651Z",
+      "id": "comment_1764314413651_ecso0gx28"
+    },
+    {
+      "type": "general",
+      "comment": "Design is updated. Replan for the tasks",
+      "timestamp": "2025-11-28T07:20:38.710Z",
+      "id": "comment_1764314438710_zyh25ma7z"
+    }
+  ]
+}
