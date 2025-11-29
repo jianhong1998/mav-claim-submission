@@ -1,6 +1,12 @@
 'use client';
 
-import React, { createContext, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+} from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,52 +58,58 @@ export const ConfirmationProvider: React.FC<ConfirmationProviderProps> = ({
    */
   const confirm = useCallback(
     (options: ConfirmOptions): Promise<boolean> => {
-      // Single dialog enforcement: reject new requests if dialog already open
-      if (state.isOpen) {
-        // eslint-disable-next-line no-console
-        console.warn('[ConfirmationDialog] Dialog already open');
-        return Promise.resolve(false);
-      }
-
-      // Create new Promise and store its resolver in state
+      // Create new Promise and use functional setState to access current state
       return new Promise<boolean>((resolve) => {
-        setState({
-          isOpen: true,
-          options,
-          resolver: resolve,
+        setState((currentState) => {
+          // Single dialog enforcement: reject new requests if dialog already open
+          if (currentState.isOpen) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[ConfirmationDialog] Dialog already open, rejecting new request',
+            );
+            resolve(false);
+            return currentState; // No state change
+          }
+
+          // Store resolver in state and open dialog
+          return {
+            isOpen: true,
+            options,
+            resolver: resolve,
+          };
         });
       });
     },
-    [state],
+    [], // No dependencies - function is stable
   );
 
   /**
    * Handles confirm button click - resolves Promise to true
    */
   const handleConfirm = useCallback(() => {
-    if (state.resolver) {
-      state.resolver(true);
-    }
-    setState({
-      isOpen: false,
-      options: null,
-      resolver: null,
+    setState((current) => {
+      current.resolver?.(true);
+      return {
+        isOpen: false,
+        options: null,
+        resolver: null,
+      };
     });
-  }, [state]);
+  }, []);
 
   /**
    * Handles cancel button click and ESC key - resolves Promise to false
    */
   const handleCancel = useCallback(() => {
-    if (state.resolver) {
-      state.resolver(false);
-    }
-    setState({
-      isOpen: false,
-      options: null,
-      resolver: null,
+    setState((current) => {
+      current.resolver?.(false);
+      return {
+        isOpen: false,
+        options: null,
+        resolver: null,
+      };
     });
-  }, [state]);
+  }, []);
 
   /**
    * Cleanup effect: resolve pending Promise to false on unmount
@@ -105,16 +117,20 @@ export const ConfirmationProvider: React.FC<ConfirmationProviderProps> = ({
    */
   useEffect(() => {
     return () => {
-      if (state.resolver) {
-        state.resolver(false);
-      }
+      setState((current) => {
+        current.resolver?.(false);
+        return current;
+      });
     };
-  }, [state]);
+  }, []); // Only run on mount/unmount
 
-  const contextValue: ConfirmationContextValue = {
-    confirm,
-    isOpen: state.isOpen,
-  };
+  const contextValue = useMemo<ConfirmationContextValue>(
+    () => ({
+      confirm,
+      isOpen: state.isOpen,
+    }),
+    [confirm, state.isOpen],
+  );
 
   return (
     <ConfirmationContext.Provider value={contextValue}>

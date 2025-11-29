@@ -718,7 +718,7 @@ describe('ConfirmationProvider Component Tests', () => {
       await userEvent.click(secondButton);
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        '[ConfirmationDialog] Dialog already open',
+        '[ConfirmationDialog] Dialog already open, rejecting new request',
       );
     });
 
