@@ -3,10 +3,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { IClaimMetadata } from '@project/types';
+import { useConfirmation } from '@/hooks/use-confirmation';
 
 export const useMarkClaimsReady = () => {
   const queryClient = useQueryClient();
   const [updatingClaims, setUpdatingClaims] = useState<Set<string>>(new Set());
+  const { confirm } = useConfirmation();
 
   const markReadyAndEmailMutation = useMutation({
     mutationFn: async (claimIds: string[]) => {
@@ -63,29 +65,49 @@ export const useMarkClaimsReady = () => {
   });
 
   const handleMarkAllReady = useCallback(
-    (draftClaims: IClaimMetadata[]) => {
+    async (draftClaims: IClaimMetadata[]) => {
       if (draftClaims.length === 0) return;
 
       const hasClaimsWithoutAttachments = draftClaims.some(
         (claim) => !claim.attachments?.length,
       );
 
-      let confirmMessage = `Are you sure you want to email and submit all ${draftClaims.length} claim${draftClaims.length !== 1 ? 's' : ''} for processing?\n\nThis will:`;
-      confirmMessage += `\n• Send email notifications for each claim`;
-      confirmMessage += `\n• Mark all claims as sent/submitted`;
-      confirmMessage += `\n• Make them ready for processing`;
+      const confirmed = await confirm({
+        title: 'Submit All Claims',
+        description: (
+          <div className="space-y-3">
+            <p>
+              Are you sure you want to email and submit all {draftClaims.length}{' '}
+              claim
+              {draftClaims.length !== 1 ? 's' : ''} for processing?
+            </p>
+            <div>
+              <p className="font-medium mb-2">This will:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Send email notifications for each claim</li>
+                <li>Mark all claims as sent/submitted</li>
+                <li>Make them ready for processing</li>
+              </ul>
+            </div>
+            {hasClaimsWithoutAttachments && (
+              <p className="text-yellow-600 dark:text-yellow-500 text-sm font-medium">
+                ⚠️ Warning: Some claims do not have any attachments. These will
+                still be submitted.
+              </p>
+            )}
+          </div>
+        ),
+        confirmText: 'Submit All',
+        cancelText: 'Cancel',
+        variant: 'default',
+      });
 
-      if (hasClaimsWithoutAttachments) {
-        confirmMessage +=
-          '\n\nWarning: Some claims do not have any attachments. These will still be submitted.';
-      }
-
-      if (window.confirm(confirmMessage)) {
+      if (confirmed) {
         const claimIds = draftClaims.map((claim) => claim.id);
         markReadyAndEmailMutation.mutate(claimIds);
       }
     },
-    [markReadyAndEmailMutation],
+    [confirm, markReadyAndEmailMutation],
   );
 
   return {

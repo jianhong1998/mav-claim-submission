@@ -515,7 +515,7 @@ describe('AttachmentList', () => {
       await user.click(deleteButtons[0]);
 
       expect(mockConfirm).toHaveBeenCalledWith(
-        'Are you sure you want to delete "receipt.pdf"? This action cannot be undone.',
+        'Delete Attachment\n\nAre you sure you want to delete "receipt.pdf"? This action cannot be undone.',
       );
 
       await waitFor(() => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ReactQueryProvider } from '@/components/providers/react-query-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { ConfirmationProvider } from '@/components/providers/confirmation-provider';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { Toaster } from 'sonner';
 import React from 'react';
@@ -32,24 +33,26 @@ const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
         <RuntimeConfigScript />
         <ReactQueryProvider>
           <AuthProvider>
-            <div className="min-h-screen bg-background">
-              <header className="border-b border-border bg-card">
-                <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                  <AppTitle />
-                  <div className="flex flex-row gap-3">
-                    <Navbar navItems={NAV_ITEMS} />
-                    <AuthHeader />
+            <ConfirmationProvider>
+              <div className="min-h-screen bg-background">
+                <header className="border-b border-border bg-card">
+                  <div className="container mx-auto flex h-16 items-center justify-between px-4">
+                    <AppTitle />
+                    <div className="flex flex-row gap-3">
+                      <Navbar navItems={NAV_ITEMS} />
+                      <AuthHeader />
+                    </div>
                   </div>
-                </div>
-              </header>
-              <main>{children}</main>
-            </div>
-            <Toaster
-              position="top-right"
-              duration={5000}
-              closeButton
-              richColors
-            />
+                </header>
+                <main>{children}</main>
+              </div>
+              <Toaster
+                position="top-right"
+                duration={5000}
+                closeButton
+                richColors
+              />
+            </ConfirmationProvider>
           </AuthProvider>
         </ReactQueryProvider>
       </body>

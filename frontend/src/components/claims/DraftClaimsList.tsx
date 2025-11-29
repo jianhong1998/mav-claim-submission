@@ -16,6 +16,7 @@ import EmptyState from '@/components/common/empty-states/empty-state';
 import { FileText } from 'lucide-react';
 import { getCategoryDisplayName } from '@/lib/claim-utils';
 import { formatMonthYear } from '@/lib/format-utils';
+import { useConfirmation } from '@/hooks/use-confirmation';
 
 interface DraftClaimsListProps {
   onEditClaim?: (claim: IClaimMetadata) => void;
@@ -32,6 +33,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [deletingClaim, setDeletingClaim] = useState<string | null>(null);
+  const { confirm } = useConfirmation();
 
   // Query for draft claims using existing GET /claims?status=draft endpoint
   const {
@@ -72,22 +74,39 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
   );
 
   const handleDeleteClaim = useCallback(
-    (claim: IClaimMetadata) => {
+    async (claim: IClaimMetadata) => {
       const hasAttachments = claim.attachments && claim.attachments.length > 0;
 
-      let confirmMessage = `Are you sure you want to delete the claim "${claim.claimName || `${getCategoryDisplayName(claim.category)} - ${formatMonthYear(claim.month, claim.year)}`}"?`;
+      const confirmed = await confirm({
+        title: 'Delete Claim',
+        description: (
+          <div className="space-y-3">
+            <p>
+              Are you sure you want to delete the claim &quot;
+              {claim.claimName ||
+                `${getCategoryDisplayName(claim.category)} - ${formatMonthYear(claim.month, claim.year)}`}
+              &quot;?
+            </p>
+            {hasAttachments && (
+              <p className="text-yellow-600 dark:text-yellow-500 text-sm font-medium">
+                ⚠️ Warning: This claim has attachments. Files will remain in
+                your Google Drive and should be manually removed if no longer
+                needed.
+              </p>
+            )}
+          </div>
+        ),
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        variant: 'destructive',
+      });
 
-      if (hasAttachments) {
-        confirmMessage +=
-          '\n\nWarning: This claim has attachments. Files will remain in your Google Drive and should be manually removed if no longer needed.';
-      }
-
-      if (window.confirm(confirmMessage)) {
+      if (confirmed) {
         setDeletingClaim(claim.id);
         deleteMutation.mutate(claim.id);
       }
     },
-    [deleteMutation],
+    [confirm, deleteMutation],
   );
 
   if (error) {
