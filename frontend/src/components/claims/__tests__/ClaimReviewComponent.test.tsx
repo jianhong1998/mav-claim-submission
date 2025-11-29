@@ -64,6 +64,15 @@ vi.mock('@/components/attachments/AttachmentList', () => ({
   ),
 }));
 
+// Mock useConfirmation hook
+const mockConfirmFn = vi.fn();
+vi.mock('@/hooks/use-confirmation', () => ({
+  useConfirmation: vi.fn(() => ({
+    confirm: mockConfirmFn,
+    isOpen: false,
+  })),
+}));
+
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({
   CheckCircle2: () => <span data-testid="CheckCircle2" />,
@@ -91,13 +100,6 @@ const mockToast = {
   error: toast.error as ReturnType<typeof vi.fn>,
   info: toast.info as ReturnType<typeof vi.fn>,
 };
-
-// Mock window.confirm
-const mockConfirm = vi.fn();
-Object.defineProperty(window, 'confirm', {
-  value: mockConfirm,
-  writable: true,
-});
 
 // Mock window.location
 const mockLocation = {
@@ -161,7 +163,7 @@ describe('ClaimReviewComponent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     wrapper = createTestWrapper();
-    mockConfirm.mockReturnValue(false); // Default to cancel
+    mockConfirmFn.mockResolvedValue(false); // Default to cancel
     mockLocation.href = '';
   });
 
@@ -428,7 +430,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const user = userEvent.setup();
       render(<ClaimReviewComponent />, { wrapper });
@@ -474,10 +476,13 @@ describe('ClaimReviewComponent', () => {
       });
       await user.click(markReadyButton);
 
-      expect(mockConfirm).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Are you sure you want to email and submit all 2 claims for processing?',
-        ),
+      expect(mockConfirmFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Submit All Claims',
+          confirmText: 'Submit All',
+          cancelText: 'Cancel',
+          variant: 'default',
+        }),
       );
     });
 
@@ -506,10 +511,17 @@ describe('ClaimReviewComponent', () => {
       });
       await user.click(markReadyButton);
 
-      expect(mockConfirm).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Warning: Some claims do not have any attachments. These will still be submitted.',
-        ),
+      expect(mockConfirmFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Submit All Claims',
+        }),
+      );
+
+      // Verify the description contains the warning by rendering it
+      const confirmCall = mockConfirmFn.mock.calls[0][0];
+      const { container } = render(<div>{confirmCall.description}</div>);
+      expect(container.textContent).toContain(
+        'Warning: Some claims do not have any attachments. These will still be submitted.',
       );
     });
 
@@ -522,7 +534,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockResolvedValue(createMockUpdateResponse());
       mockApiClient.post.mockResolvedValue({ success: true });
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const user = userEvent.setup();
       render(<ClaimReviewComponent />, { wrapper });
@@ -556,7 +568,7 @@ describe('ClaimReviewComponent', () => {
       const mockClaims = [createMockClaim()];
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
-      mockConfirm.mockReturnValue(false);
+      mockConfirmFn.mockResolvedValue(false);
 
       const user = userEvent.setup();
       render(<ClaimReviewComponent />, { wrapper });
@@ -581,7 +593,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockRejectedValue(new Error('API Error'));
       mockApiClient.post.mockRejectedValue(new Error('API Error'));
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       // Mock console.error to suppress expected error logs
       const consoleErrorSpy = vi
@@ -618,7 +630,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const user = userEvent.setup();
       render(<ClaimReviewComponent />, { wrapper });
@@ -670,7 +682,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const user = userEvent.setup();
       render(<ClaimReviewComponent />, { wrapper });
@@ -734,7 +746,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockImplementation(() => new Promise(() => {})); // Never resolves
       mockApiClient.post.mockImplementation(() => new Promise(() => {})); // Never resolves
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
       const onBack = vi.fn();
 
       const user = userEvent.setup();
@@ -792,7 +804,7 @@ describe('ClaimReviewComponent', () => {
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.put.mockResolvedValue(createMockUpdateResponse());
       mockApiClient.post.mockResolvedValue({ success: true });
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const queryClient = new QueryClient({
         defaultOptions: {

@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAttachmentList } from '@/hooks/attachments/useAttachmentList';
+import { useConfirmation } from '@/hooks/use-confirmation';
 import { IAttachmentMetadata, AttachmentStatus } from '@project/types';
 import {
   FileText,
@@ -83,6 +84,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
   showActions,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm } = useConfirmation();
   const fileTypeInfo = getFileTypeInfo(attachment.mimeType);
   const FileIcon = fileTypeInfo.icon; // Extract icon component
   const statusInfo = getStatusInfo(attachment.status);
@@ -90,9 +92,13 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
   const handleDelete = useCallback(async () => {
     if (isDeleting) return;
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${attachment.originalFilename}"? This action cannot be undone.`,
-    );
+    const confirmed = await confirm({
+      title: 'Delete Attachment',
+      description: `Are you sure you want to delete "${attachment.originalFilename}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
 
     if (!confirmed) return;
 
@@ -104,7 +110,13 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
     } finally {
       setIsDeleting(false);
     }
-  }, [attachment.id, attachment.originalFilename, onDelete, isDeleting]);
+  }, [
+    confirm,
+    attachment.id,
+    attachment.originalFilename,
+    onDelete,
+    isDeleting,
+  ]);
 
   const handleView = useCallback(() => {
     onView(attachment);

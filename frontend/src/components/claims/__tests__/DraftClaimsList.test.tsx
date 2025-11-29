@@ -32,6 +32,15 @@ vi.mock('@/lib/utils', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));
 
+// Mock useConfirmation hook
+const mockConfirmFn = vi.fn();
+vi.mock('@/hooks/use-confirmation', () => ({
+  useConfirmation: vi.fn(() => ({
+    confirm: mockConfirmFn,
+    isOpen: false,
+  })),
+}));
+
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({
   Edit: () => <span data-testid="Edit" />,
@@ -95,20 +104,13 @@ const createMockResponse = (
   status: 'success',
 });
 
-// Mock window.confirm
-const mockConfirm = vi.fn();
-Object.defineProperty(window, 'confirm', {
-  value: mockConfirm,
-  writable: true,
-});
-
 describe('DraftClaimsList', () => {
   let wrapper: ReturnType<typeof createTestWrapper>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     wrapper = createTestWrapper();
-    mockConfirm.mockReturnValue(false); // Default to cancel
+    mockConfirmFn.mockResolvedValue(false); // Default to cancel
   });
 
   afterEach(() => {
@@ -297,7 +299,7 @@ describe('DraftClaimsList', () => {
       const mockClaim = createMockClaim();
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       // Mock delete to hang so we can test disabled state
       mockApiClient.delete.mockImplementation(() => new Promise(() => {}));
@@ -336,10 +338,11 @@ describe('DraftClaimsList', () => {
       const deleteButton = screen.getByRole('button', { name: /delete/i });
       await userEvent.click(deleteButton);
 
-      expect(mockConfirm).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Are you sure you want to delete the claim "Test Claim"?',
-        ),
+      expect(mockConfirmFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Delete Claim',
+          variant: 'destructive',
+        }),
       );
     });
 
@@ -361,10 +364,18 @@ describe('DraftClaimsList', () => {
       const deleteButton = screen.getByRole('button', { name: /delete/i });
       await userEvent.click(deleteButton);
 
-      expect(mockConfirm).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Warning: This claim has attachments. Files will remain in your Google Drive',
-        ),
+      expect(mockConfirmFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Delete Claim',
+          variant: 'destructive',
+        }),
+      );
+
+      // Verify the description contains the warning by rendering it
+      const confirmCall = mockConfirmFn.mock.calls[0][0];
+      const { container } = render(<div>{confirmCall.description}</div>);
+      expect(container.textContent).toContain(
+        'Warning: This claim has attachments. Files will remain in your Google Drive',
       );
     });
 
@@ -373,7 +384,7 @@ describe('DraftClaimsList', () => {
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.delete.mockResolvedValue({ success: true });
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       render(<DraftClaimsList />, { wrapper });
 
@@ -396,7 +407,7 @@ describe('DraftClaimsList', () => {
       const mockClaim = createMockClaim();
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
-      mockConfirm.mockReturnValue(false);
+      mockConfirmFn.mockResolvedValue(false);
 
       render(<DraftClaimsList />, { wrapper });
 
@@ -415,7 +426,7 @@ describe('DraftClaimsList', () => {
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.delete.mockRejectedValue(new Error('Delete failed'));
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       render(<DraftClaimsList />, { wrapper });
 
@@ -435,7 +446,7 @@ describe('DraftClaimsList', () => {
       const mockClaim = createMockClaim();
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       // Mock delete to hang so we can test loading state
       mockApiClient.delete.mockImplementation(() => new Promise(() => {}));
@@ -513,7 +524,7 @@ describe('DraftClaimsList', () => {
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);
       mockApiClient.delete.mockResolvedValue({ success: true });
-      mockConfirm.mockReturnValue(true);
+      mockConfirmFn.mockResolvedValue(true);
 
       const queryClient = new QueryClient({
         defaultOptions: {

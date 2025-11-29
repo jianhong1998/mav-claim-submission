@@ -4,7 +4,7 @@
 
 ### Phase 1: Core Component Infrastructure
 
-- [ ] 1. Add AlertDialog UI primitives using shadcn CLI
+- [x] 1. Add AlertDialog UI primitives using shadcn CLI
   - **File**: `frontend/src/components/ui/alert-dialog.tsx` (new)
   - **Action**: Run `npx shadcn@latest add alert-dialog` from frontend directory
   - **Purpose**: Install shadcn/ui AlertDialog component with Radix UI primitives
@@ -47,7 +47,7 @@
     5. Mark task as complete in tasks.md: Change `- [-] 1.` to `- [x] 1.`
     ```
 
-- [ ] 2. Create TypeScript interfaces for confirmation system
+- [x] 2. Create TypeScript interfaces for confirmation system
   - **File**: `frontend/src/types/confirmation.ts` (new)
   - **Purpose**: Define type-safe interfaces for confirmation options and context
   - **Rationale**: Separate types file for reusability - both provider and hook need these interfaces
@@ -120,7 +120,7 @@
 
 ### Phase 2: State Management and Provider
 
-- [ ] 3. Implement ConfirmationProvider with Context and state management
+- [x] 3. Implement ConfirmationProvider with Context and state management
   - **Files**: `frontend/src/providers/confirmation-provider.tsx` (new)
   - **Purpose**: Global dialog state management with React Context and Promise-based API
   - **Components**: ConfirmationContext, ConfirmationProvider, dialog rendering logic
@@ -199,7 +199,7 @@
     5. Mark task as complete in tasks.md: Change `- [-] 3.` to `- [x] 3.`
     ```
 
-- [ ] 4. Create useConfirmation hook with fallback logic
+- [x] 4. Create useConfirmation hook with fallback logic
   - **File**: `frontend/src/hooks/use-confirmation.ts` (new)
   - **Purpose**: Consumer-facing hook API with graceful fallback to window.confirm
   - **Exports**: useConfirmation hook returning { confirm, isOpen }
@@ -265,7 +265,7 @@
 
 ### Phase 3: App Integration
 
-- [ ] 5. Integrate ConfirmationProvider in app root layout
+- [x] 5. Integrate ConfirmationProvider in app root layout
   - **File**: `frontend/src/app/layout.tsx` (modify)
   - **Purpose**: Wrap application with ConfirmationProvider for global access
   - **Change**: Add ConfirmationProvider wrapper around app children
@@ -326,7 +326,7 @@
 
 ### Phase 4: Replace window.confirm() Calls
 
-- [ ] 6. Replace window.confirm in useMarkClaimsReady hook
+- [x] 6. Replace window.confirm in useMarkClaimsReady hook
   - **File**: `frontend/src/hooks/claims/useMarkClaimsReady.ts` (modify)
   - **Purpose**: Replace window.confirm with custom dialog for batch claim submission
   - **Change**: Import useConfirmation, make callback async, replace window.confirm at line 83
@@ -411,7 +411,7 @@
     5. Mark task as complete in tasks.md: Change `- [-] 6.` to `- [x] 6.`
     ```
 
-- [ ] 7. Replace window.confirm in DraftClaimsList component
+- [x] 7. Replace window.confirm in DraftClaimsList component
   - **File**: `frontend/src/components/claims/DraftClaimsList.tsx` (modify)
   - **Purpose**: Replace window.confirm with custom dialog for claim deletion
   - **Change**: Import useConfirmation, make callback async, replace window.confirm at line 85
@@ -498,7 +498,7 @@
     5. Mark task as complete in tasks.md: Change `- [-] 7.` to `- [x] 7.`
     ```
 
-- [ ] 8. Replace window.confirm in AttachmentList component
+- [x] 8. Replace window.confirm in AttachmentList component
   - **File**: `frontend/src/components/attachments/AttachmentList.tsx` (modify)
   - **Purpose**: Replace window.confirm with custom dialog for attachment deletion
   - **Change**: Import useConfirmation, make callback async, replace window.confirm at line 93
@@ -584,7 +584,7 @@
 
 ### Phase 5: Testing
 
-- [ ] 9. Write unit tests for useConfirmation hook
+- [x] 9. Write unit tests for useConfirmation hook
   - **File**: `frontend/src/hooks/__tests__/use-confirmation.test.ts` (new)
   - **Purpose**: Test hook behavior and fallback logic
   - **Tests**: Provider present, provider missing, fallback to window.confirm
@@ -651,7 +651,7 @@
     5. Mark task as complete in tasks.md: Change `- [-] 9.` to `- [x] 9.`
     ```
 
-- [ ] 10. Write tests for ConfirmationProvider component
+- [x] 10. Write tests for ConfirmationProvider component
   - **File**: `frontend/src/providers/__tests__/confirmation-provider.test.tsx` (new)
   - **Purpose**: Test state management, Promise resolution, and dialog behavior
   - **Tests**: Open/close, confirm/cancel, Promise resolution, single dialog enforcement
@@ -735,7 +735,7 @@
 
 ### Phase 6: Quality Assurance
 
-- [ ] 11. Manual QA: Accessibility and mobile testing
+- [x] 11. Manual QA: Accessibility and mobile testing
   - **Files**: None (manual testing task)
   - **Purpose**: Verify accessibility compliance and mobile responsiveness
   - **Tests**: Keyboard navigation, screen reader, mobile touch targets, dark mode
