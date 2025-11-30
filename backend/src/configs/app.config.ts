@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import DatabaseConfig from '../db/database.config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
+import { ConsoleLogger } from '@nestjs/common';
 
 export class AppConfig {
   private constructor() {}
@@ -55,4 +56,15 @@ export class AppConfig {
       ];
     },
   });
+
+  public static getCustomLogger = (logKey: string) => {
+    const { NODE_ENV } = process.env;
+    const isLocal = NODE_ENV === 'local';
+
+    return new ConsoleLogger(logKey, {
+      json: !isLocal,
+      timestamp: false,
+      colors: isLocal,
+    });
+  };
 }

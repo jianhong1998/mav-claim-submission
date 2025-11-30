@@ -5,9 +5,12 @@ import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import session from 'express-session';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppConfig } from './configs/app.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: AppConfig.getCustomLogger(''),
+  });
   const configService = app.get(ConfigService);
 
   app.use(cookieParser(configService.get('BACKEND_COOKIE_SECRET', 'secret')));
