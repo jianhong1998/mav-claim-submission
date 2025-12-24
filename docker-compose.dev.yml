@@ -41,12 +41,24 @@ services:
       BACKEND_GOOGLE_REDIRECT_URI: ${BACKEND_GOOGLE_REDIRECT_URI}
       BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME: ${BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME}
       ENABLE_API_TEST_MODE: ${ENABLE_API_TEST_MODE:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     depends_on:
       postgres:
         condition: service_healthy
         restart: true
       db-migration-service:
         condition: service_completed_successfully
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-ap-southeast-1}
+        awslogs-group: /rpi/claim-submission-app/${NODE_ENV}/backend
+        awslogs-create-group: 'true' # Auto-create group if missing
+        awslogs-datetime-format: '%Y-%m-%dT%H:%M:%S.%L%z' # Optional: ISO timestamp format
+        awslogs-force-flush-interval-seconds: '1'
+        awslogs-max-buffered-events: '1' # force tiny batches
   db-migration-service:
     image: 'jianhong1998/mav-claim-submission-db-migration:latest-dev'
     platform: linux/arm64
@@ -58,7 +70,19 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_DB: ${DATABASE_DB}
       BACKEND_PORT: ${BACKEND_PORT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     restart: on-failure:3
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-ap-southeast-1}
+        awslogs-group: /rpi/claim-submission-app/${NODE_ENV}/db-migration-service
+        awslogs-create-group: 'true' # Auto-create group if missing
+        awslogs-datetime-format: '%Y-%m-%dT%H:%M:%S.%L%z' # Optional: ISO timestamp format
+        awslogs-force-flush-interval-seconds: '1'
+        awslogs-max-buffered-events: '1' # force tiny batches
   client:
     image: 'jianhong1998/mav-claim-submission-frontend:latest-dev'
     platform: linux/arm64
@@ -68,6 +92,18 @@ services:
       NODE_ENV: ${NODE_ENV}
       FRONTEND_PORT: ${FRONTEND_PORT}
       FRONTEND_BACKEND_BASE_URL: ${FRONTEND_BACKEND_BASE_URL}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-ap-southeast-1}
+        awslogs-group: /rpi/claim-submission-app/${NODE_ENV}/frontend
+        awslogs-create-group: 'true' # Auto-create group if missing
+        awslogs-datetime-format: '%Y-%m-%dT%H:%M:%S.%L%z' # Optional: ISO timestamp format
+        awslogs-force-flush-interval-seconds: '1'
+        awslogs-max-buffered-events: '1' # force tiny batches
 
 volumes:
   postgres_data:
