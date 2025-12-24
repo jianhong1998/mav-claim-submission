@@ -26,3 +26,4 @@ postgres-data
 .spec-workflow/session.json
 .spec-workflow/approvals/**/.snapshots
 .spec-workflow/**/specs/**/Implementation Logs
+audit.log
