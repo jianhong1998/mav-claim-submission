@@ -246,29 +246,33 @@ export class EmailPreviewService {
 11. Get recipients: `environmentUtil.getVariables().emailRecipients`
 12. Return `PreviewEmailResponse`
 
-### Component 2: EmailController (Extended)
+### Component 2: ClaimsController (Extended)
 
 **Purpose**: Handle HTTP preview endpoint with authentication and authorization
 
-**File**: `backend/src/modules/email/controllers/email.controller.ts`
+**File**: `backend/src/modules/claims/claims.controller.ts`
 
 **New Endpoint**:
 ```typescript
 @Controller('claims')
-export class EmailController {
-  constructor(private readonly emailPreviewService: EmailPreviewService) {}
+export class ClaimsController {
+  constructor(
+    private readonly claimDBUtil: ClaimDBUtil,
+    private readonly emailService: EmailService,
+    private readonly emailPreviewService: EmailPreviewService,  // NEW
+  ) {}
 
   /**
    * Preview email content for a draft claim
    * GET /api/claims/:claimId/preview
    */
-  @Get(':claimId/preview')
+  @Get(':id/preview')
   @UseGuards(JwtAuthGuard)
-  async previewEmail(
-    @CurrentUser() user: JwtPayload,
-    @Param('claimId', new ParseUUIDPipe()) claimId: string,
-  ): Promise<PreviewEmailResponse> {
-    return this.emailPreviewService.generatePreview(user.userId, claimId);
+  async getClaimPreview(
+    @User() user: UserEntity,
+    @Param('id', ParseUUIDPipe) claimId: string,
+  ): Promise<IPreviewEmailResponse> {
+    return this.emailPreviewService.generatePreview(user.id, claimId);
   }
 }
 ```
