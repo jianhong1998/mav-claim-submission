@@ -11,6 +11,7 @@ import {
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { DraftClaimCard } from './draft-claim-card';
+import { PreviewEmailModal } from '@/components/email/PreviewEmailModal';
 import LoadingSkeleton from '@/components/common/skeletons/loading-skeleton';
 import EmptyState from '@/components/common/empty-states/empty-state';
 import { FileText } from 'lucide-react';
@@ -33,6 +34,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [deletingClaim, setDeletingClaim] = useState<string | null>(null);
+  const [previewClaimId, setPreviewClaimId] = useState<string | null>(null);
   const { confirm } = useConfirmation();
 
   // Query for draft claims using existing GET /claims?status=draft endpoint
@@ -72,6 +74,10 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
     },
     [onEditClaim],
   );
+
+  const handlePreviewClaim = useCallback((claim: IClaimMetadata) => {
+    setPreviewClaimId(claim.id);
+  }, []);
 
   const handleDeleteClaim = useCallback(
     async (claim: IClaimMetadata) => {
@@ -153,12 +159,18 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
             claim={claim}
             onEdit={handleEditClaim}
             onDelete={handleDeleteClaim}
+            onPreview={handlePreviewClaim}
             isDeleting={deletingClaim === claim.id}
             className="relative"
             defaultExpanded={(claim.attachments?.length ?? 0) === 0}
           />
         ))}
       </div>
+
+      <PreviewEmailModal
+        claimId={previewClaimId}
+        onClose={() => setPreviewClaimId(null)}
+      />
     </div>
   );
 };

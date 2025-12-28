@@ -2,7 +2,7 @@
 
 ## Implementation Tasks
 
-- [ ] 1. Install DOMPurify dependency
+- [x] 1. Install DOMPurify dependency
   - Files:
     - `frontend/package.json` (MODIFY)
   - Run `pnpm add dompurify` and `pnpm add -D @types/dompurify` in frontend workspace
@@ -11,7 +11,7 @@
   - _Requirements: Requirement 4 (HTML sanitization)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer. Task: Install DOMPurify and @types/dompurify in frontend workspace using pnpm. Restrictions: Must install in frontend workspace only, not root. Success: pnpm list dompurify shows package installed, TypeScript can import DOMPurify. After completion, mark task 1 in-progress before starting, log implementation, then mark complete._
 
-- [ ] 2. Create useEmailPreview hook
+- [x] 2. Create useEmailPreview hook
   - Files:
     - `frontend/src/hooks/email/useEmailPreview.ts` (NEW)
   - Implement React Query hook to fetch preview from GET /claims/:id/preview
@@ -23,7 +23,7 @@
   - _Requirements: Requirement 5 (Loading State), Requirement 6 (Error Handling)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer with React Query expertise. Task: Create useEmailPreview hook using useQuery from @tanstack/react-query, calling apiClient.get. Restrictions: Use existing apiClient not raw axios, disable caching, disable auto-retry, only fetch when claimId not null, import IPreviewEmailResponse from @project/types. Success: Hook compiles, returns data/isLoading/isError/error/refetch, does not fetch when claimId is null. After completion, mark task 2 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 3. Create PreviewEmailModal component
+- [x] 3. Create PreviewEmailModal component
   - Files:
     - `frontend/src/components/email/PreviewEmailModal.tsx` (NEW)
   - Implement modal using existing Dialog components
@@ -37,7 +37,7 @@
   - _Requirements: Requirement 2 (Modal), Requirement 3 (Recipients), Requirement 4 (HTML), Requirement 5 (Loading), Requirement 6 (Error), Requirement 7 (Mobile), Requirement 8 (Accessibility)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer with React and accessibility expertise. Task: Create PreviewEmailModal using Dialog components, implementing loading/error/success states. Restrictions: Use existing Dialog/Button/Skeleton from ui folder, sanitize HTML with DOMPurify, make recipients collapsible, apply max-w-4xl class, handle mobile full-screen, include role=alert on errors, use client directive. Success: Component renders all states, recipients toggle, HTML sanitized, modal closes correctly, accessible with ARIA. After completion, mark task 3 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 4. Add Preview button to DraftClaimCard
+- [x] 4. Add Preview button to DraftClaimCard
   - Files:
     - `frontend/src/components/claims/draft-claim-card.tsx` (MODIFY)
   - Add onPreview: (claim: IClaimMetadata) => void to DraftClaimCardProps
@@ -49,7 +49,7 @@
   - _Requirements: Requirement 1 (Preview Button in Draft Claim Card)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer. Task: Modify DraftClaimCard to add onPreview callback prop and Preview button following existing Edit/Delete pattern. Restrictions: Add onPreview to props interface, use Eye icon, follow same Button styling, place between Expand and Edit, include aria-label, disable when isDeleting. Success: Preview button appears correctly, calls onPreview when clicked, follows responsive pattern. After completion, mark task 4 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 5. Integrate PreviewEmailModal in parent component
+- [x] 5. Integrate PreviewEmailModal in parent component
   - Files:
     - Find and modify parent component that renders DraftClaimCard
   - Add state: const [previewClaimId, setPreviewClaimId] = useState<string or null>(null)
@@ -60,7 +60,7 @@
   - _Requirements: Requirement 1 (Button triggers modal), Requirement 2 (Modal opens/closes)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer. Task: Find parent component rendering DraftClaimCard and integrate PreviewEmailModal with state management. Restrictions: Search codebase first, use useState for previewClaimId, pass onPreview callback, render PreviewEmailModal with correct props. Success: Clicking Preview opens modal, closing resets state, no console errors. After completion, mark task 5 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 6. Write unit tests for useEmailPreview hook
+- [-] 6. Write unit tests for useEmailPreview hook
   - Files:
     - `frontend/src/hooks/email/__tests__/useEmailPreview.test.ts` (NEW)
   - Test cases: loading state, successful fetch, error handling, null claimId, correct endpoint
