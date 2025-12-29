@@ -51,6 +51,12 @@ vi.mock('lucide-react', () => ({
   ChevronDown: () => <span data-testid="ChevronDown" />,
   ChevronUp: () => <span data-testid="ChevronUp" />,
   Upload: () => <span data-testid="Upload" />,
+  Eye: () => <span data-testid="Eye" />,
+}));
+
+// Mock PreviewEmailModal component
+vi.mock('@/components/email/PreviewEmailModal', () => ({
+  PreviewEmailModal: vi.fn(() => null),
 }));
 
 const mockApiClient = {

@@ -322,12 +322,117 @@ Authorization: Bearer <jwt-token>
 }
 ```
 
+### `POST /claims/:id/resend`
+- **Purpose**: Resend email for a claim in sent or failed status
+- **Authentication**: Required (JWT)
+- **URL Parameters**:
+  - `id`: Claim UUID
+- **Success Response** (200):
+```json
+{
+  "success": true,
+  "claim": {
+    "id": "uuid",
+    "userId": "user-uuid",
+    "category": "telco",
+    "claimName": "Phone bill reimbursement",
+    "month": 9,
+    "year": 2025,
+    "totalAmount": 45.50,
+    "status": "sent",
+    "submissionDate": "2025-01-01T00:00:00Z",
+    "attachments": [],
+    "createdAt": "2025-01-01T00:00:00Z",
+    "updatedAt": "2025-01-01T00:00:30Z"
+  }
+}
+```
+- **Bad Request Error** (400):
+```json
+{
+  "statusCode": 400,
+  "message": "Cannot resend email: Claim status is draft, expected sent or failed"
+}
+```
+- **Not Found Error** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "Claim not found"
+}
+```
+
+### `GET /claims/:id/preview`
+- **Purpose**: Generate a preview of the email that would be sent for a claim submission
+- **Authentication**: Required (JWT)
+- **URL Parameters**:
+  - `id`: Claim UUID (must be a valid UUID format)
+- **Constraints**:
+  - Claim must be in `draft` status
+  - User must own the claim
+  - No actual email is sent
+- **Request Example**:
+```bash
+GET /claims/123e4567-e89b-12d3-a456-426614174000/preview
+Cookie: jwt=<token>
+```
+- **Success Response** (200):
+```json
+{
+  "subject": "John Doe - Claim Submission: Gym Membership (January 2025)",
+  "htmlBody": "<html>...</html>",
+  "recipients": ["finance@mavericks-consulting.com"],
+  "cc": ["manager@example.com"],
+  "bcc": []
+}
+```
+- **Bad Request Error** (400):
+```json
+{
+  "statusCode": 400,
+  "message": "Cannot preview email: Claim status is sent, expected draft",
+  "error": "Bad Request"
+}
+```
+- **Forbidden Error** (403):
+```json
+{
+  "statusCode": 403,
+  "message": "Access denied: You do not own this claim",
+  "error": "Forbidden"
+}
+```
+- **Not Found Error** (404):
+```json
+{
+  "statusCode": 404,
+  "message": "Claim not found",
+  "error": "Not Found"
+}
+```
+- **Internal Server Error** (500):
+```json
+{
+  "statusCode": 500,
+  "message": "Failed to generate email preview: <error details>"
+}
+```
+
+### Preview Response Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| `subject` | string | Email subject line with user name, category, and claim period |
+| `htmlBody` | string | Complete HTML content of the email body |
+| `recipients` | string[] | Primary recipient email addresses (typically finance team) |
+| `cc` | string[] | CC email addresses from user's email preferences |
+| `bcc` | string[] | BCC email addresses from user's email preferences |
+
 ### Status Transition Rules
 Valid status transitions:
 - `draft` → `sent`
 - `sent` → `paid`, `draft`, `failed`
 - `failed` → `draft`, `sent`
-- `paid` → (no transitions allowed)
+- `paid` → `sent` (for workflow corrections)
 
 ### Business Rules Validation
 All endpoints enforce these business rules:

@@ -17,6 +17,7 @@ vi.mock('lucide-react', () => ({
   DollarSign: () => <span data-testid="DollarSign" />,
   ChevronDown: () => <span data-testid="ChevronDown" />,
   ChevronUp: () => <span data-testid="ChevronUp" />,
+  Eye: () => <span data-testid="Eye" />,
 }));
 
 vi.mock('@/components/attachments/FileUploadComponent', () => ({
@@ -58,6 +59,7 @@ const createMockClaim = (
 describe('DraftClaimCard', () => {
   const mockOnEdit = vi.fn();
   const mockOnDelete = vi.fn();
+  const mockOnPreview = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,6 +80,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -99,6 +102,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -118,6 +122,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -136,6 +141,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -152,6 +158,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -169,6 +176,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -186,6 +194,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           defaultExpanded={true}
         />,
       );
@@ -202,6 +211,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -232,6 +242,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           defaultExpanded={true}
         />,
       );
@@ -251,6 +262,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -269,6 +281,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           isDeleting={true}
         />,
       );
@@ -287,6 +300,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -305,6 +319,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           isDeleting={true}
         />,
       );
@@ -323,6 +338,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           isDeleting={true}
         />,
       );
@@ -338,6 +354,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           isDeleting={true}
         />,
       );
@@ -354,6 +371,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           isDeleting={true}
           defaultExpanded={true}
         />,
@@ -373,6 +391,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
           className="custom-class"
         />,
       );
@@ -391,6 +410,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 
@@ -400,6 +420,7 @@ describe('DraftClaimCard', () => {
           claim={claim}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
+          onPreview={mockOnPreview}
         />,
       );
 

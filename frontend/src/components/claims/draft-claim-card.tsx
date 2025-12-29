@@ -18,6 +18,7 @@ import {
   DollarSign,
   ChevronDown,
   ChevronUp,
+  Eye,
 } from 'lucide-react';
 import { getCategoryDisplayName } from '@/lib/claim-utils';
 import { formatAmount, formatMonthYear } from '@/lib/format-utils';
@@ -28,6 +29,7 @@ export interface DraftClaimCardProps {
   claim: IClaimMetadata;
   onEdit: (claim: IClaimMetadata) => void;
   onDelete: (claim: IClaimMetadata) => void;
+  onPreview: (claim: IClaimMetadata) => void;
   isDeleting?: boolean;
   defaultExpanded?: boolean;
   className?: string;
@@ -43,6 +45,7 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
     claim,
     onEdit,
     onDelete,
+    onPreview,
     isDeleting = false,
     defaultExpanded = false,
     className,
@@ -94,7 +97,7 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
             </div>
 
             {/* Mobile: Full width buttons, Desktop: Compact buttons */}
-            <div className="flex items-center gap-2 sm:gap-1 sm:flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-1 sm:flex-shrink-0 sm:flex-nowrap">
               <Button
                 variant="ghost"
                 size="sm"
@@ -113,6 +116,17 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
                 <span className="sm:sr-only">
                   {isExpanded ? 'Collapse' : 'Expand'}
                 </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPreview(claim)}
+                disabled={isDeleting}
+                className="flex-1 sm:flex-none min-h-10 sm:min-h-8 touch-manipulation cursor-pointer"
+                aria-label="Preview email"
+              >
+                <Eye className="h-4 w-4 sm:mr-0 mr-1" />
+                <span className="sm:sr-only">Preview</span>
               </Button>
               <Button
                 variant="ghost"

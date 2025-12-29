@@ -9,9 +9,11 @@ import {
   Query,
   UseGuards,
   ValidationPipe,
+  ParseUUIDPipe,
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   UnprocessableEntityException,
   InternalServerErrorException,
   UnauthorizedException,
@@ -49,6 +51,7 @@ import {
   ClaimCategory,
   AttachmentMimeType,
   AttachmentStatus,
+  IPreviewEmailResponse,
 } from '@project/types';
 import {
   ClaimCreateRequestDto,
@@ -60,6 +63,7 @@ import {
 import { IClaimCreationData } from './types/claim-creation-data.type';
 import { IClaimMetadata, IClaimEmailRequest } from '@project/types';
 import { EmailService } from '../email/services/email.service';
+import { EmailPreviewService } from '../email/services/email-preview.service';
 import { CLAIM_CATEGORY_DISPLAY_MAP } from './constants/claim-display-name.constants';
 
 @ApiTags('Claims')
@@ -83,6 +87,7 @@ export class ClaimsController {
   constructor(
     private readonly claimDBUtil: ClaimDBUtil,
     private readonly emailService: EmailService,
+    private readonly emailPreviewService: EmailPreviewService,
   ) {}
 
   /**
@@ -1133,6 +1138,161 @@ export class ClaimsController {
         error,
       );
       this.handleClaimOperationError(error, 'resend claim email');
+    }
+  }
+
+  /**
+   * Preview email content for a draft claim
+   * Requirements: Requirement 6 - API endpoint for previewing email content
+   * Endpoint: GET /api/claims/:id/preview
+   */
+  @Get(':id/preview')
+  @ApiOperation({
+    summary: 'Preview claim email',
+    description:
+      'Generate a preview of the email that would be sent for a claim submission. The claim must be in draft status and owned by the authenticated user. No actual email is sent.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the claim to preview',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email preview generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        subject: {
+          type: 'string',
+          example: 'John Doe - Claim Submission: Gym Membership (January 2025)',
+          description: 'Email subject line',
+        },
+        htmlBody: {
+          type: 'string',
+          example: '<html>...</html>',
+          description: 'HTML content of the email',
+        },
+        recipients: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['finance@mavericks-consulting.com'],
+          description: 'Primary recipient email addresses',
+        },
+        cc: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['manager@mavericks-consulting.com'],
+          description: 'CC email addresses from user preferences',
+        },
+        bcc: {
+          type: 'array',
+          items: { type: 'string' },
+          example: [],
+          description: 'BCC email addresses from user preferences',
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Validation error - invalid claim ID format or claim not in draft status',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: {
+          type: 'string',
+          example: 'Cannot preview email: Claim status is sent, expected draft',
+        },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - user does not own the claim',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 403 },
+        message: {
+          type: 'string',
+          example: 'Access denied: You do not own this claim',
+        },
+        error: { type: 'string', example: 'Forbidden' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Claim not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: {
+          type: 'string',
+          example: 'Claim not found',
+        },
+        error: { type: 'string', example: 'Not Found' },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Server error during preview generation',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: {
+          type: 'string',
+          example: 'Failed to generate email preview. Please try again.',
+        },
+      },
+    },
+  })
+  async getClaimPreview(
+    @User() user: UserEntity,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<IPreviewEmailResponse> {
+    try {
+      this.logger.log(
+        `Generating email preview for claim ${id} by user ${user.id}`,
+      );
+
+      const preview = await this.emailPreviewService.generatePreview(
+        user.id,
+        id,
+      );
+
+      this.logger.log(`Email preview generated successfully for claim ${id}`);
+
+      return preview;
+    } catch (error) {
+      this.logger.error(
+        `Email preview generation failed for claim ${id} by user ${user.id}:`,
+        error,
+      );
+
+      // Re-throw known HTTP exceptions
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      // Default error handling
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Email preview generation failed';
+      throw new InternalServerErrorException(
+        `Failed to generate email preview: ${errorMessage}`,
+      );
     }
   }
 

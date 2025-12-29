@@ -7,6 +7,7 @@ import { UserModule } from '../user/user.module';
 import { AttachmentModule } from '../attachments/attachment.module';
 import { EmailController } from './controllers/email.controller';
 import { EmailService } from './services/email.service';
+import { EmailPreviewService } from './services/email-preview.service';
 import { GmailClient } from './services/gmail-client.service';
 import { EmailTemplateService } from './services/email-template.service';
 import { AttachmentProcessorService } from './services/attachment-processor.service';
@@ -22,10 +23,16 @@ import { AttachmentProcessorService } from './services/attachment-processor.serv
   controllers: [EmailController],
   providers: [
     EmailService,
+    EmailPreviewService,
     GmailClient,
     EmailTemplateService,
     AttachmentProcessorService,
   ],
-  exports: [EmailService, GmailClient, EmailTemplateService],
+  exports: [
+    EmailService,
+    EmailPreviewService,
+    GmailClient,
+    EmailTemplateService,
+  ],
 })
 export class EmailModule {}
