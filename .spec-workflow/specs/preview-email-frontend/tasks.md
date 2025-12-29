@@ -60,7 +60,7 @@
   - _Requirements: Requirement 1 (Button triggers modal), Requirement 2 (Modal opens/closes)_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: Frontend Developer. Task: Find parent component rendering DraftClaimCard and integrate PreviewEmailModal with state management. Restrictions: Search codebase first, use useState for previewClaimId, pass onPreview callback, render PreviewEmailModal with correct props. Success: Clicking Preview opens modal, closing resets state, no console errors. After completion, mark task 5 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [-] 6. Write unit tests for useEmailPreview hook
+- [x] 6. Write unit tests for useEmailPreview hook
   - Files:
     - `frontend/src/hooks/email/__tests__/useEmailPreview.test.ts` (NEW)
   - Test cases: loading state, successful fetch, error handling, null claimId, correct endpoint
@@ -70,7 +70,7 @@
   - _Requirements: Testing Strategy from design.md_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: QA Engineer with React Testing expertise. Task: Create unit tests for useEmailPreview hook covering all states. Restrictions: Mock apiClient with vi.mock, use renderHook from testing-library, wrap in QueryClientProvider, verify endpoint called. Success: All 5 test cases pass, mocks configured correctly. After completion, mark task 6 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 7. Write unit tests for PreviewEmailModal component
+- [x] 7. Write unit tests for PreviewEmailModal component
   - Files:
     - `frontend/src/components/email/__tests__/PreviewEmailModal.test.tsx` (NEW)
   - Test cases: loading skeleton, error message, preview content, close button, recipient toggle, null claimId
