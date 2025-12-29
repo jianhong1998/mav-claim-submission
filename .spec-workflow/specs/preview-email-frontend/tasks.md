@@ -80,7 +80,7 @@
   - _Requirements: Testing Strategy from design.md_
   - _Prompt: Implement the task for spec preview-email-frontend, first run spec-workflow-guide to get the workflow guide then implement the task. Role: QA Engineer with React Testing expertise. Task: Create unit tests for PreviewEmailModal covering all states and interactions. Restrictions: Mock useEmailPreview with vi.mock, use testing-library for rendering and events, test all UI states. Success: All test cases pass, behavior verified for all states. After completion, mark task 7 in-progress before starting, log implementation with artifacts, then mark complete._
 
-- [ ] 8. Manual testing and validation
+- [x] 8. Manual testing and validation
   - Manual testing tasks:
     - Start frontend and backend services
     - Create/ensure draft claim exists with attachments
