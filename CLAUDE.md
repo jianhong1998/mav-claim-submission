@@ -8,21 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture & Requirements
 
-📋 **[System Architecture](docs/project-info/architecture.md)** - TurboRepo structure, components, database schema, and technology stack
+- **[System Architecture](docs/project-info/architecture.md)** - TurboRepo structure, components, database schema, technology stack
+- **[Business Logic](docs/project-info/business-logic.md)** - Claim categories, validation rules, status flows
+- **[API Endpoints](docs/project-info/api-endpoints.md)** - Authentication, email, claims management endpoints
+- **[Google Drive Integration](docs/project-info/google-drive-integration.md)** - Client-side uploads, file organization
+- **[Development Commands](docs/project-info/development-commands.md)** - TurboRepo, Make, testing commands
+- **[Architecture Decision Records](docs/adr/)** - Key architectural decisions (e.g., ADR-003: hybrid email attachments)
 
-🏢 **[Business Logic](docs/project-info/business-logic.md)** - Claim categories, validation rules, status flows, and Google Drive integration requirements
-
-🔗 **[API Endpoints](docs/project-info/api-endpoints.md)** - Authentication, email, and claims management endpoints (existing and planned)
-
-☁️ **[Google Drive Integration](docs/project-info/google-drive-integration.md)** - Client-side uploads, file organization, and email workflow
-
-⚡ **[Development Commands](docs/project-info/development-commands.md)** - TurboRepo, Make, testing, and setup commands
-
-📝 **[Architecture Decision Records](docs/adr/)** - Key architectural decisions and their rationale
-
-## Key Development Patterns
-
-### Workspace Structure
+## Workspace Structure
 
 ```
 backend/          # NestJS API with Google OAuth & Gmail
@@ -31,166 +24,108 @@ packages/types/   # Shared TypeScript types as @project/types
 api-test/         # Integration testing suite
 ```
 
-### Essential Commands
+## Essential Commands
 
 ```bash
 # Development
-pnpm run dev           # Start all workspaces
+pnpm run dev              # Start all workspaces
 make format && make lint  # Always run after code changes
 
 # Database
-make up                # Start PostgreSQL
-make db/data/up        # Run migrations & seed data
-pnpm run migration:generate --name=Name  # Create migration
+make up                   # Start PostgreSQL
+make db/data/up           # Run migrations & seed data
+make db/migration/generate name=MigrationName  # Create migration
 
 # Testing
-make test/unit         # Backend unit tests
-make test/api          # API integration tests
+make test/unit            # Backend unit tests (vitest)
+make test/api             # API integration tests
+make test/ui              # Frontend unit tests
+
+# Implementation verification
+make check-implementation/backend      # format + lint + build + unit tests
+make check-implementation/frontend     # format + lint + build + UI tests
+make check-implementation/backend/with-api-test  # includes API tests
 ```
 
-### Google Workspace Integration
+## Backend Module Structure
 
-- **Authentication**: Google OAuth with @mavericks-consulting.com domain
-- **File Storage**: Employee's personal Google Drive (not S3)
-- **Email**: Gmail API with shareable Drive URLs (no attachments)
-- **Required Scopes**: Gmail send + Drive file access
+NestJS modules in `backend/src/modules/`:
 
-### Critical Implementation Notes
+| Module        | Purpose                                             |
+| ------------- | --------------------------------------------------- |
+| `app`         | Root module, imports all feature modules            |
+| `auth`        | Google OAuth, JWT sessions, guards                  |
+| `claims`      | Claim CRUD, validation, status flow                 |
+| `attachments` | File metadata handling                              |
+| `drive`       | Google Drive token endpoint for client-side uploads |
+| `email`       | Gmail API, email templates, preview service         |
+| `user`        | User profile, email preferences                     |
+| `internal`    | Test data endpoints (feature-flagged)               |
+| `common`      | Shared utilities, base classes                      |
 
-**Google Drive Client-Side Uploads**: Files upload directly from browser to employee's Google Drive using OAuth tokens. Backend only handles metadata.
+## Frontend Structure
 
-**Hybrid Email Attachments**: Gmail API sends small files (<5MB) as attachments, large files (≥5MB) as Google Drive shareable URLs. See [ADR-003](docs/adr/003-hybrid-email-attachments.md) for decision rationale.
+Next.js App Router in `frontend/src/`:
 
-**Claim Status Flow**: `draft → sent ↔ paid`
-
-**Dark Mode Only**: UI exclusively uses dark theme with mobile-responsive design.
+| Directory            | Purpose                                                  |
+| -------------------- | -------------------------------------------------------- |
+| `app/`               | Pages: `/`, `/login`, `/callback`, `/profile`, `/claims` |
+| `components/ui/`     | Base components (Dialog, Button, Skeleton)               |
+| `components/claims/` | Claim-specific components                                |
+| `components/email/`  | Email preview modal                                      |
+| `hooks/queries/`     | TanStack Query hooks                                     |
+| `hooks/email/`       | Email-specific hooks                                     |
+| `lib/`               | API client, utilities                                    |
 
 ## TypeScript Standards
 
-- **Strict mode enabled** across all workspaces
-- **No `any` types** - always use proper typing
+- **Strict mode** across all workspaces - no `any` types
 - **Shared types**: Import from `@project/types` for cross-workspace consistency
 - **Path aliases**: Backend uses `src/` prefix, frontend uses `@/` prefix
-- **Enum Pattern**: Use `Object.freeze()` with `as const` instead of TypeScript `enum`
 
-### Enum Implementation Pattern
-
-**❌ Avoid TypeScript `enum`:**
+### Enum Pattern - Use `Object.freeze()` instead of TypeScript `enum`:
 
 ```typescript
-// DON'T use this pattern
-export enum ClaimCategory {
-  TELCO = 'telco',
-  FITNESS = 'fitness',
-}
-```
-
-**✅ Prefer `Object.freeze()` with `as const`:**
-
-```typescript
-// USE this pattern instead
+// Correct pattern
 export const ClaimCategory = Object.freeze({
   TELCO: 'telco',
   FITNESS: 'fitness',
-  DENTAL: 'dental',
-  COMPANY_EVENT: 'company-event',
-  COMPANY_LUNCH: 'company-lunch',
-  COMPANY_DINNER: 'company-dinner',
-  OTHERS: 'others',
 } as const);
 export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
 ```
 
-**Benefits of `Object.freeze()` pattern:**
+## Google Workspace Integration
 
-- Better tree-shaking support
-- More predictable JavaScript output
-- Avoids TypeScript enum pitfalls
-- Compatible with const assertions
-- Better integration with module systems
+- **Authentication**: Google OAuth with @mavericks-consulting.com domain restriction
+- **File Storage**: Employee's personal Google Drive (client-side uploads, backend stores metadata only)
+- **Email**: Gmail API with hybrid attachment handling (small files as attachments, large files as Drive URLs)
+- **Required Scopes**: Gmail send + Drive file access
+
+## Key Implementation Details
+
+**Claim Status Flow**: `draft → sent ↔ paid`
+
+**Hybrid Email Attachments** (ADR-003): Files <5MB sent as attachments, ≥5MB as shareable Drive URLs.
+
+**Client-Side Drive Uploads**: Files upload directly from browser using OAuth tokens. Backend handles metadata only.
+
+**Dark Mode Only**: UI uses dark theme exclusively.
 
 ## Environment Variables
 
-Managed from root `.env` file:
+Managed from root `.env` file. Key variables:
 
-- `DATABASE_*`: PostgreSQL settings
+- `DATABASE_*`: PostgreSQL connection
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth credentials
-- **Required**: Gmail API and Google Drive API enabled in Google Cloud Console
+- `BACKEND_GOOGLE_DRIVE_CLAIMS_FOLDER_NAME`: Required - root folder for claims in Drive
+- `ENABLE_API_TEST_MODE`: Feature flag for test data endpoints (must be disabled in production)
 
-## Special App Requirements
+## Specification Workflow
 
-- For claim features, refer to detailed requirements in `docs/specifications/002/`
-- Google Drive integration must use client-side uploads with OAuth tokens
-- Email processing must be synchronous using Gmail API
-- UI must support dark mode and mobile responsiveness only
+Active specs in `.spec-workflow/specs/`:
 
-## Current Status
-
-✅ **Implemented**:
-
-- **Google OAuth Authentication**: Complete OAuth 2.0 flow with JWT sessions
-  - Domain restriction to @mavericks-consulting.com accounts
-  - Passport.js Google OAuth strategy with automatic token refresh
-  - JWT tokens in HttpOnly cookies (24-hour expiry)
-  - Encrypted OAuth token storage in PostgreSQL
-  - Rate limiting on OAuth endpoints (10/min initiate, 20/min callback)
-- **Frontend Authentication**:
-  - AuthProvider with React Context for global auth state
-  - Google OAuth button with accessibility features
-  - Auth status hook with React Query (30s stale time)
-  - OAuth callback page for session refresh
-  - Performance optimized for <100ms auth checks
-- **Database Layer**: Complete entity models with proper relationships:
-  - User entity with Google OAuth integration
-  - Claims entity with categories, status flow, and validation constraints
-  - Attachments entity with Google Drive file metadata
-  - OAuth tokens entity with encryption and auto-refresh
-- **Database Utilities**: Full CRUD operations for all entities with TypeORM
-- **Business Logic**: Claim categories, status enums using Object.freeze() pattern
-- **Architecture**: TurboRepo monorepo with NestJS backend, Next.js frontend
-- **Testing**: Vitest unit testing setup with coverage reporting
-- **Development Tools**: ESLint, Prettier, TypeScript strict mode across workspaces
-- **Client-Side Google Drive Upload**: Complete implementation of direct browser-to-Drive uploads
-  - Drive token endpoint for secure OAuth token distribution
-  - Frontend DriveUploadClient for direct Google Drive API integration
-  - Metadata-only backend storage with AttachmentMetadataDto
-  - Comprehensive error handling with exponential backoff retry logic
-  - Unit and integration test coverage for all components
-- **Internal Test Data Endpoints**: HTTP endpoints for test data lifecycle management
-  - POST /internal/test-data: Idempotent test user creation
-  - DELETE /internal/test-data: Test user deletion with database CASCADE cleanup
-  - ApiTestModeGuard: Feature flag protection via ENABLE_API_TEST_MODE environment variable
-  - Shared TEST_USER_DATA constant in @project/types package
-  - API tests migrated from direct database access to HTTP endpoints
-  - Removed pg dependency from api-test workspace
-  - Comprehensive unit and integration test coverage
-  - **Security Note**: Feature flag must be disabled in production (returns 404 when disabled)
-- **User Profile Management**: Complete user profile customization and email preferences
-  - Profile page (/profile) with username editing and CC/BCC email preferences for claim submissions
-  - Database schema: user_email_preferences table with unique composite index on (userId, emailAddress)
-  - Email integration: CC/BCC preferences automatically applied to claim submission emails
-  - Validation: prevents own email, duplicate emails, and enforces authorization (users can only edit their own profile)
-  - PATCH /api/users/:userId endpoint with JWT authentication and authorization checks
-
-🚧 **In Development**:
-
-- **Hybrid Email Attachments** (Spec: `.spec-workflow/specs/email-attachments-analysis/`):
-  - ADR-003: Hybrid attachment decision documented ✅
-  - AttachmentProcessorService: Size-based decision logic (5MB threshold)
-  - GoogleDriveClient.downloadFile(): In-memory file download from Drive
-  - GmailClient: RFC 2822 multipart MIME support for attachments
-  - EmailTemplateService: Mixed attachment + link rendering
-  - Status: Task 0.1 complete (ADR), ready for implementation phase
-- **API Endpoints**: Implementing remaining endpoints:
-  - Claims management endpoints (create, list, update)
-  - Email send endpoint with Gmail API integration
-- **Swagger Integration**: API documentation with OpenAPI specifications
-
-📋 **Next Phase**:
-
-- Complete hybrid email attachments implementation (Tasks 1.1-3.5)
-- Complete claim management API endpoints
-- Frontend claim submission and management interfaces
+- `preview-email-content/` - Backend email preview API (complete)
+- `preview-email-frontend/` - Frontend email preview UI (complete)
 
 ## Role Definition
 
@@ -356,8 +291,7 @@ Use `specs-workflow` when writing requirements and design documents:
 
 ## Development Practices
 
-- Always use agents if suitable for the task
-- Always run `make format` and `make lint` after code changes
-- always format code with command `make format` before running lint check
-- Always pause and prompt user to run services (including backend, frontend and database). Do not run service yourself.
-- Always check which folder you are in before running `Make` command. The `Make` commands only work at the project root folder.
+- Always run `make format && make lint` after code changes
+- Always check which folder you are in before running `Make` commands (root only)
+- Do not run services yourself - prompt user to start backend, frontend, and database
+- Use agents when suitable for the task
