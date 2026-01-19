@@ -103,6 +103,11 @@ db/migration/generate:
 		chmod +x ./scripts/generate-migration.sh && \
 		./scripts/generate-migration.sh ${name}
 
+db/migration/revert:
+	@cd backend && \
+		chmod +x ./scripts/revert-migration.sh && \
+		./scripts/revert-migration.sh
+
 check-implementation/frontend:
 	@$(MAKE) format lint build/frontend test/ui
 

@@ -16,6 +16,7 @@ import { UserEntity } from '../../user/entities/user.entity';
 import { AttachmentEntity } from './attachment.entity';
 import { ClaimStatus } from '../enums/claim-status.enum';
 import { ClaimCategory } from '../enums/claim-category.enum';
+import { ClaimCategoryEntity } from 'src/modules/claim-category/entities/claim-category.entity';
 
 @Entity('claims')
 @Index(['userId'])
@@ -49,6 +50,14 @@ export class ClaimEntity {
     nullable: false,
   })
   category: ClaimCategory;
+
+  @ManyToOne(() => ClaimCategoryEntity, (category) => category.uuid, {
+    nullable: false,
+  })
+  @JoinColumn({
+    name: 'category_id',
+  })
+  categoryEntity: ClaimCategoryEntity;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   claimName: string | null;
