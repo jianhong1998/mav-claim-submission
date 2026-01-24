@@ -40,7 +40,13 @@ describe('EmailService Integration Tests', () => {
       email: 'test@mavericks-consulting.com',
       name: 'John Doe',
     },
-    category: 'telco',
+    categoryEntity: {
+      uuid: 'category-uuid-telco',
+      code: 'telco',
+      name: 'Telecommunications',
+      isEnabled: true,
+      limit: null,
+    },
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,
@@ -49,6 +55,7 @@ describe('EmailService Integration Tests', () => {
     submissionDate: null,
     createdAt: new Date('2025-09-01T00:00:00Z'),
     updatedAt: new Date('2025-09-01T00:00:00Z'),
+    deletedAt: null,
   });
 
   const createMockUser = () => ({

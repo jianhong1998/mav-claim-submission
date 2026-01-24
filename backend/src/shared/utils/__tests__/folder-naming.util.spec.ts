@@ -559,10 +559,10 @@ describe('FolderNamingUtil', () => {
         'telco',
         'fitness',
         'dental',
-        'skill',
-        'event',
-        'lunch',
-        'dinner',
+        'skill-enhancement',
+        'company-event',
+        'company-lunch',
+        'company-dinner',
         'others',
       ];
       validCategories.forEach((category) => {
@@ -620,7 +620,7 @@ describe('FolderNamingUtil', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.folderName).toMatch(
-        /^2024-09-\d{10}-lunch-team-building-lunch$/,
+        /^2024-09-\d{10}-company-lunch-team-building-lunch$/,
       );
     });
 

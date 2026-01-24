@@ -18,10 +18,7 @@ export interface UseCategoriesParams {
  */
 export const useCategories = (params?: UseCategoriesParams) => {
   // Memoized query key to prevent recreation on every render
-  const queryKey = useMemo(
-    () => categoryQueryKeys.list(params),
-    [params, params?.includeDisabled, params?.includeDeleted],
-  );
+  const queryKey = useMemo(() => categoryQueryKeys.list(params), [params]);
 
   // Memoized query function
   const queryFn = useCallback(async (): Promise<IClaimCategory[]> => {

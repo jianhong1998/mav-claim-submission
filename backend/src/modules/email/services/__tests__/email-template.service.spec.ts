@@ -30,7 +30,13 @@ describe('EmailTemplateService', () => {
     mockClaim = {
       id: 'claim-123',
       userId: 'user-123',
-      category: 'telco',
+      categoryEntity: {
+        uuid: 'category-uuid-telco',
+        code: 'telco',
+        name: 'Telecommunications',
+        isEnabled: true,
+        limit: null,
+      },
       claimName: 'Monthly Phone Bill',
       month: 9,
       year: 2025,
@@ -153,14 +159,23 @@ describe('EmailTemplateService', () => {
 
       it('should format different claim categories correctly', () => {
         const categories = [
-          { enum: 'fitness', expected: 'Fitness & Wellness' },
-          { enum: 'dental', expected: 'Dental' },
-          { enum: 'company-event', expected: 'Company Event' },
-          { enum: 'others', expected: 'Others' },
+          { code: 'fitness', expected: 'Fitness & Wellness' },
+          { code: 'dental', expected: 'Dental' },
+          { code: 'company-event', expected: 'Company Event' },
+          { code: 'others', expected: 'Others' },
         ];
 
-        categories.forEach(({ enum: category, expected }) => {
-          const claimWithCategory = { ...mockClaim, category };
+        categories.forEach(({ code, expected }) => {
+          const claimWithCategory = {
+            ...mockClaim,
+            categoryEntity: {
+              uuid: `category-uuid-${code}`,
+              code: code,
+              name: expected,
+              isEnabled: true,
+              limit: null,
+            },
+          };
           const html = emailTemplateService.generateClaimEmail(
             claimWithCategory,
             mockUser,
@@ -465,13 +480,22 @@ describe('EmailTemplateService', () => {
 
       it('should handle different categories in subject', () => {
         const categories = [
-          { enum: 'fitness', expected: 'Fitness & Wellness' },
-          { enum: 'dental', expected: 'Dental' },
-          { enum: 'company-lunch', expected: 'Company Lunch' },
+          { code: 'fitness', expected: 'Fitness & Wellness' },
+          { code: 'dental', expected: 'Dental' },
+          { code: 'company-lunch', expected: 'Company Lunch' },
         ];
 
-        categories.forEach(({ enum: category, expected }) => {
-          const claimWithCategory = { ...mockClaim, category };
+        categories.forEach(({ code, expected }) => {
+          const claimWithCategory = {
+            ...mockClaim,
+            categoryEntity: {
+              uuid: `category-uuid-${code}`,
+              code: code,
+              name: expected,
+              isEnabled: true,
+              limit: null,
+            },
+          };
           const subject =
             emailTemplateService.generateSubject(claimWithCategory);
           expect(subject).toContain(expected);
@@ -489,7 +513,13 @@ describe('EmailTemplateService', () => {
       it('should handle unknown categories gracefully', () => {
         const claimWithUnknownCategory = {
           ...mockClaim,
-          category: 'unknown-category',
+          categoryEntity: {
+            uuid: 'category-uuid-unknown',
+            code: 'unknown-category',
+            name: 'Unknown Category',
+            isEnabled: true,
+            limit: null,
+          },
         };
         const subject = emailTemplateService.generateSubject(
           claimWithUnknownCategory,
@@ -502,7 +532,13 @@ describe('EmailTemplateService', () => {
       it('should handle hyphenated categories', () => {
         const claimWithHyphenated = {
           ...mockClaim,
-          category: 'skill-enhancement',
+          categoryEntity: {
+            uuid: 'category-uuid-skill',
+            code: 'skill-enhancement',
+            name: 'Skill Enhancement',
+            isEnabled: true,
+            limit: null,
+          },
         };
         const subject =
           emailTemplateService.generateSubject(claimWithHyphenated);
@@ -545,7 +581,16 @@ describe('EmailTemplateService', () => {
         ];
 
         knownCategories.forEach(({ input, expected }) => {
-          const claimWithCategory = { ...mockClaim, category: input };
+          const claimWithCategory = {
+            ...mockClaim,
+            categoryEntity: {
+              uuid: `category-uuid-${input}`,
+              code: input,
+              name: expected,
+              isEnabled: true,
+              limit: null,
+            },
+          };
           const html = emailTemplateService.generateClaimEmail(
             claimWithCategory,
             mockUser,
@@ -558,7 +603,13 @@ describe('EmailTemplateService', () => {
       it('should capitalize unknown categories', () => {
         const claimWithUnknown = {
           ...mockClaim,
-          category: 'custom-category-name',
+          categoryEntity: {
+            uuid: 'category-uuid-custom',
+            code: 'custom-category-name',
+            name: 'Custom Category Name',
+            isEnabled: true,
+            limit: null,
+          },
         };
         const html = emailTemplateService.generateClaimEmail(
           claimWithUnknown,

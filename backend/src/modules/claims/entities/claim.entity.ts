@@ -79,5 +79,5 @@ export class ClaimEntity {
   updatedAt: Date;
 
   @DeleteDateColumn({ type: 'timestamp with time zone', nullable: true })
-  deletedAt?: Date;
+  deletedAt?: Date | null;
 }

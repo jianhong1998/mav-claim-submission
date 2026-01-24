@@ -127,7 +127,19 @@ export class FolderNamingUtil {
         'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
       );
     } else {
-      const [year, month, timestamp, category] = parts;
+      const year = parts[0];
+      const month = parts[1];
+      const timestamp = parts[2];
+
+      // Category can contain hyphens (e.g., "skill-enhancement", "company-lunch")
+      // Reconstruct from parts[3] onwards and find which valid category it matches
+      const remainingParts = parts.slice(3).join('-');
+
+      // Find which valid category code this folder name uses
+      const matchedCategory = VALID_CATEGORY_CODES.find(
+        (code) =>
+          remainingParts === code || remainingParts.startsWith(`${code}-`),
+      );
 
       if (
         !/^\d{4}$/.test(year) ||
@@ -145,19 +157,7 @@ export class FolderNamingUtil {
         errors.push('Invalid timestamp format');
       }
 
-      if (
-        !VALID_CATEGORY_CODES.includes(
-          category as
-            | 'telco'
-            | 'fitness'
-            | 'dental'
-            | 'skill-enhancement'
-            | 'company-event'
-            | 'company-lunch'
-            | 'company-dinner'
-            | 'others',
-        )
-      ) {
+      if (!matchedCategory) {
         errors.push('Invalid category code');
       }
     }
