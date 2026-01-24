@@ -11,6 +11,7 @@ export const QueryGroup = Object.freeze({
   DRIVE: 'drive',
   ATTACHMENTS: 'attachments',
   USER: 'user',
+  CATEGORIES: 'categories',
 } as const);
 export type QueryGroup = (typeof QueryGroup)[keyof typeof QueryGroup];
 
@@ -52,5 +53,22 @@ export const attachmentQueryKeys = {
       type: QueryType.ONE,
       subTypes: ['upload'],
       key: { claimId, filename },
+    }),
+} as const;
+
+// Category-specific query key generators
+export const categoryQueryKeys = {
+  all: () => [QueryGroup.CATEGORIES] as const,
+  lists: () =>
+    getQueryKey({
+      group: QueryGroup.CATEGORIES,
+      type: QueryType.LIST,
+      key: 'all',
+    }),
+  list: (params?: { includeDisabled?: boolean; includeDeleted?: boolean }) =>
+    getQueryKey({
+      group: QueryGroup.CATEGORIES,
+      type: QueryType.LIST,
+      key: { params },
     }),
 } as const;

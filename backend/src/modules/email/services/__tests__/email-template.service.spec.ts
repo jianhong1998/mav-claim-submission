@@ -3,7 +3,6 @@ import { EmailTemplateService } from '../email-template.service';
 import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
 
@@ -31,7 +30,7 @@ describe('EmailTemplateService', () => {
     mockClaim = {
       id: 'claim-123',
       userId: 'user-123',
-      category: ClaimCategory.TELCO,
+      category: 'telco',
       claimName: 'Monthly Phone Bill',
       month: 9,
       year: 2025,
@@ -154,10 +153,10 @@ describe('EmailTemplateService', () => {
 
       it('should format different claim categories correctly', () => {
         const categories = [
-          { enum: ClaimCategory.FITNESS, expected: 'Fitness & Wellness' },
-          { enum: ClaimCategory.DENTAL, expected: 'Dental' },
-          { enum: ClaimCategory.COMPANY_EVENT, expected: 'Company Event' },
-          { enum: ClaimCategory.OTHERS, expected: 'Others' },
+          { enum: 'fitness', expected: 'Fitness & Wellness' },
+          { enum: 'dental', expected: 'Dental' },
+          { enum: 'company-event', expected: 'Company Event' },
+          { enum: 'others', expected: 'Others' },
         ];
 
         categories.forEach(({ enum: category, expected }) => {
@@ -466,9 +465,9 @@ describe('EmailTemplateService', () => {
 
       it('should handle different categories in subject', () => {
         const categories = [
-          { enum: ClaimCategory.FITNESS, expected: 'Fitness & Wellness' },
-          { enum: ClaimCategory.DENTAL, expected: 'Dental' },
-          { enum: ClaimCategory.COMPANY_LUNCH, expected: 'Company Lunch' },
+          { enum: 'fitness', expected: 'Fitness & Wellness' },
+          { enum: 'dental', expected: 'Dental' },
+          { enum: 'company-lunch', expected: 'Company Lunch' },
         ];
 
         categories.forEach(({ enum: category, expected }) => {
@@ -490,7 +489,7 @@ describe('EmailTemplateService', () => {
       it('should handle unknown categories gracefully', () => {
         const claimWithUnknownCategory = {
           ...mockClaim,
-          category: 'unknown-category' as ClaimCategory,
+          category: 'unknown-category',
         };
         const subject = emailTemplateService.generateSubject(
           claimWithUnknownCategory,
@@ -503,7 +502,7 @@ describe('EmailTemplateService', () => {
       it('should handle hyphenated categories', () => {
         const claimWithHyphenated = {
           ...mockClaim,
-          category: 'skill-enhancement' as ClaimCategory,
+          category: 'skill-enhancement',
         };
         const subject =
           emailTemplateService.generateSubject(claimWithHyphenated);
@@ -536,13 +535,13 @@ describe('EmailTemplateService', () => {
     describe('Category formatting', () => {
       it('should format known categories', () => {
         const knownCategories = [
-          { input: ClaimCategory.TELCO, expected: 'Telecommunications' },
-          { input: ClaimCategory.FITNESS, expected: 'Fitness & Wellness' },
-          { input: ClaimCategory.DENTAL, expected: 'Dental' },
-          { input: ClaimCategory.COMPANY_EVENT, expected: 'Company Event' },
-          { input: ClaimCategory.COMPANY_LUNCH, expected: 'Company Lunch' },
-          { input: ClaimCategory.COMPANY_DINNER, expected: 'Company Dinner' },
-          { input: ClaimCategory.OTHERS, expected: 'Others' },
+          { input: 'telco', expected: 'Telecommunications' },
+          { input: 'fitness', expected: 'Fitness & Wellness' },
+          { input: 'dental', expected: 'Dental' },
+          { input: 'company-event', expected: 'Company Event' },
+          { input: 'company-lunch', expected: 'Company Lunch' },
+          { input: 'company-dinner', expected: 'Company Dinner' },
+          { input: 'others', expected: 'Others' },
         ];
 
         knownCategories.forEach(({ input, expected }) => {
@@ -559,7 +558,7 @@ describe('EmailTemplateService', () => {
       it('should capitalize unknown categories', () => {
         const claimWithUnknown = {
           ...mockClaim,
-          category: 'custom-category-name' as ClaimCategory,
+          category: 'custom-category-name',
         };
         const html = emailTemplateService.generateClaimEmail(
           claimWithUnknown,

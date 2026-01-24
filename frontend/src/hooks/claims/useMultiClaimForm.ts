@@ -4,15 +4,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import {
-  ClaimCategory,
   IClaimCreateRequest,
   IClaimResponse,
   IClaimMetadata,
+  IClaimCategory,
 } from '@project/types';
-import { MONTHLY_LIMITS } from '@/lib/claim-utils';
 
 interface FormData {
-  category: ClaimCategory;
+  category: string;
   claimName: string;
   month: number;
   year: number;
@@ -23,6 +22,7 @@ interface UseMultiClaimFormOptions {
   onClaimCreated?: (claim: IClaimMetadata) => void;
   existingDraftClaims?: IClaimMetadata[];
   claimId?: string;
+  categories?: IClaimCategory[];
 }
 
 /**
@@ -31,10 +31,12 @@ interface UseMultiClaimFormOptions {
 const validateMonthlyLimits = (
   newClaim: FormData,
   existingClaims: IClaimMetadata[] = [],
+  categories: IClaimCategory[] = [],
   excludeClaimId?: string,
 ): string | null => {
+  const category = categories.find((cat) => cat.code === newClaim.category);
   const categoryLimit =
-    MONTHLY_LIMITS[newClaim.category as keyof typeof MONTHLY_LIMITS];
+    category?.limit?.type === 'monthly' ? category.limit.amount : null;
   if (!categoryLimit) return null; // No limit for this category
 
   // Calculate existing amount for this category/month/year
@@ -66,13 +68,17 @@ export const useMultiClaimForm = ({
   onClaimCreated,
   existingDraftClaims = [],
   claimId,
+  categories = [],
 }: UseMultiClaimFormOptions) => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
 
+  // Get default category code (first category or empty string)
+  const defaultCategory = categories.length > 0 ? categories[0].code : '';
+
   const form = useForm<FormData>({
     defaultValues: {
-      category: ClaimCategory.TELCO,
+      category: defaultCategory,
       claimName: '',
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
@@ -89,7 +95,7 @@ export const useMultiClaimForm = ({
         void queryClient.invalidateQueries({ queryKey: ['claims', 'draft'] });
         onClaimCreated?.(response.claim);
         form.reset({
-          category: ClaimCategory.TELCO,
+          category: defaultCategory,
           claimName: '',
           month: new Date().getMonth() + 1,
           year: new Date().getFullYear(),
@@ -139,6 +145,7 @@ export const useMultiClaimForm = ({
       const limitError = validateMonthlyLimits(
         data,
         existingDraftClaims,
+        categories,
         claimId,
       );
       if (limitError) {
@@ -154,7 +161,7 @@ export const useMultiClaimForm = ({
         return;
       }
 
-      if (data.category === ClaimCategory.OTHERS && !data.claimName.trim()) {
+      if (data.category === 'others' && !data.claimName.trim()) {
         toast.error('Please enter a claim name for Others category');
         setIsCreating(false);
         return;
@@ -175,7 +182,13 @@ export const useMultiClaimForm = ({
         createClaimMutation.mutate(claimRequest);
       }
     },
-    [createClaimMutation, updateClaimMutation, existingDraftClaims, claimId],
+    [
+      createClaimMutation,
+      updateClaimMutation,
+      existingDraftClaims,
+      claimId,
+      categories,
+    ],
   );
 
   return {

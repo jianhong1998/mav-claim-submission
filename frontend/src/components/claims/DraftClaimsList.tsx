@@ -18,6 +18,7 @@ import { FileText } from 'lucide-react';
 import { getCategoryDisplayName } from '@/lib/claim-utils';
 import { formatMonthYear } from '@/lib/format-utils';
 import { useConfirmation } from '@/hooks/use-confirmation';
+import { useCategoriesForDisplay } from '@/hooks/categories/useCategories';
 
 interface DraftClaimsListProps {
   onEditClaim?: (claim: IClaimMetadata) => void;
@@ -36,6 +37,9 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
   const [deletingClaim, setDeletingClaim] = useState<string | null>(null);
   const [previewClaimId, setPreviewClaimId] = useState<string | null>(null);
   const { confirm } = useConfirmation();
+
+  // Fetch categories for display
+  const { data: categories = [] } = useCategoriesForDisplay();
 
   // Query for draft claims using existing GET /claims?status=draft endpoint
   const {
@@ -90,7 +94,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
             <p>
               Are you sure you want to delete the claim &quot;
               {claim.claimName ||
-                `${getCategoryDisplayName(claim.category)} - ${formatMonthYear(claim.month, claim.year)}`}
+                `${getCategoryDisplayName(claim.category, categories)} - ${formatMonthYear(claim.month, claim.year)}`}
               &quot;?
             </p>
             {hasAttachments && (
@@ -112,7 +116,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
         deleteMutation.mutate(claim.id);
       }
     },
-    [confirm, deleteMutation],
+    [confirm, deleteMutation, categories],
   );
 
   if (error) {
@@ -160,6 +164,7 @@ export const DraftClaimsList: React.FC<DraftClaimsListProps> = ({
             onEdit={handleEditClaim}
             onDelete={handleDeleteClaim}
             onPreview={handlePreviewClaim}
+            categories={categories}
             isDeleting={deletingClaim === claim.id}
             className="relative"
             defaultExpanded={(claim.attachments?.length ?? 0) === 0}

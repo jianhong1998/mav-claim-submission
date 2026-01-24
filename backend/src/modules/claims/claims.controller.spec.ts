@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ClaimsController } from './claims.controller';
-import { ClaimStatus, ClaimCategory } from '@project/types';
+import { ClaimStatus } from '@project/types';
 import { UserEntity } from '../user/entities/user.entity';
 import { ClaimEntity } from './entities/claim.entity';
 
@@ -20,7 +20,7 @@ interface ClaimsControllerWithPrivateMethods {
   ): void;
   validateMonthlyLimit(
     userId: string,
-    category: ClaimCategory,
+    category: string,
     month: number,
     year: number,
     newAmount: number,
@@ -28,7 +28,7 @@ interface ClaimsControllerWithPrivateMethods {
   ): Promise<void>;
   validateYearlyLimit(
     userId: string,
-    category: ClaimCategory,
+    category: string,
     year: number,
     newAmount: number,
     excludeClaimId?: string,
@@ -295,7 +295,7 @@ describe('ClaimsController - Resend Email Endpoint', () => {
   const mockClaimEntity: ClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
-    category: ClaimCategory.TELCO,
+    category: 'telco',
     claimName: 'Test Claim',
     month: 9,
     year: 2025,
@@ -341,7 +341,7 @@ describe('ClaimsController - Resend Email Endpoint', () => {
       // Mock the private mapClaimEntityToMetadata method
       const mockMetadata = {
         id: claimId,
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Test Claim',
         month: 9,
         year: 2025,
@@ -395,7 +395,7 @@ describe('ClaimsController - Resend Email Endpoint', () => {
 
       const mockMetadata = {
         id: claimId,
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Test Claim',
         month: 9,
         year: 2025,
@@ -652,7 +652,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           10,
           2024,
           50, // $80 + $40 + $50 = $170 > $150
@@ -681,7 +681,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.FITNESS,
+          'fitness',
           11,
           2024,
           15, // $40 + $15 = $55 > $50
@@ -712,7 +712,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           9,
           2024,
           40, // $100 + $40 = $140 < $150
@@ -738,7 +738,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           8,
           2024,
           500, // Dental has no monthly limit (has yearly limit instead)
@@ -764,7 +764,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           7,
           2024,
           80, // $80 (claim-1) + $80 (new amount) = $160 > $150
@@ -792,7 +792,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           6,
           2024,
           40, // Same amount as before
@@ -815,7 +815,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           5,
           2024,
           50, // $0 + $50 = $50 < $150
@@ -838,7 +838,7 @@ describe('ClaimsController - Monthly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateMonthlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           4,
           2024,
           50, // $100 + $50 = $150 (exactly at limit, not exceeding)
@@ -917,7 +917,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100, // $200 + $50 + $100 = $350 > $300
         ),
@@ -942,7 +942,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           51, // $150 + $100 + $51 = $301 > $300
         ),
@@ -969,7 +969,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100, // $100 + $50 + $100 = $250 < $300
         ),
@@ -993,7 +993,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           50, // $75 + $50 + $75 + $50 = $250 < $300
         ),
@@ -1018,7 +1018,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.TELCO,
+          'telco',
           2024,
           1000, // Telco has no yearly limit (has monthly limit instead)
         ),
@@ -1040,7 +1040,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.FITNESS,
+          'fitness',
           2024,
           500, // Fitness has no yearly limit (has monthly limit instead)
         ),
@@ -1065,7 +1065,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100, // $150 (claim-1) + $100 (new amount) = $250 < $300
           'claim-2', // Exclude claim-2 ($100) from calculation
@@ -1089,7 +1089,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           150, // $200 (claim-1) + $150 (new amount) = $350 > $300
           'claim-2', // Exclude claim-2 from calculation
@@ -1115,7 +1115,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100, // Same amount as claim-2
           'claim-2',
@@ -1136,7 +1136,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           150, // $0 + $150 = $150 < $300
         ),
@@ -1158,7 +1158,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100, // $200 + $100 = $300 (exactly at limit, not exceeding)
         ),
@@ -1180,7 +1180,7 @@ describe('ClaimsController - Yearly Limit Validation', () => {
           controller as unknown as ClaimsControllerWithPrivateMethods
         ).validateYearlyLimit(
           userId,
-          ClaimCategory.DENTAL,
+          'dental',
           2024,
           100.01, // $200 + $100.01 = $300.01 > $300
         ),

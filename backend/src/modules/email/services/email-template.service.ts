@@ -58,7 +58,7 @@ export class EmailTemplateService {
     const variables = {
       employeeName: this.escapeHtml(user.name),
       employeeEmail: this.escapeHtml(user.email),
-      category: this.formatCategory(claim.category),
+      category: this.formatCategory(claim.categoryEntity.code),
       claimNameSection: claim.claimName
         ? `<span>${this.escapeHtml(claim.claimName)}</span>`
         : '',
@@ -79,7 +79,7 @@ export class EmailTemplateService {
    * Requirements: 2.2 - Subject format: "Claim for [Category] ([Month]/[Year]) ($[Total Amount])"
    */
   generateSubject(claim: ClaimEntity): string {
-    const category = this.formatCategory(claim.category);
+    const category = this.formatCategory(claim.categoryEntity.code);
     const period = `${claim.month.toString().padStart(2, '0')}/${claim.year}`;
     const totalAmount = this.formatCurrency(claim.totalAmount);
 

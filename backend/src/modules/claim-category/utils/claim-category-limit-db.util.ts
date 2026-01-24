@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { ClaimCategoryLimitEntity } from '../entities/claim-category-limit.entity';
@@ -10,6 +11,7 @@ export class ClaimCategoryLimitDBUtil extends BaseDBUtil<
   IClaimCategoryLimitCreationParams
 > {
   public constructor(
+    @InjectRepository(ClaimCategoryLimitEntity)
     protected readonly repo: Repository<ClaimCategoryLimitEntity>,
   ) {
     super(ClaimCategoryLimitEntity, repo);

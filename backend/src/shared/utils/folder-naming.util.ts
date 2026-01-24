@@ -1,9 +1,7 @@
-import { ClaimCategory } from '../../modules/claims/enums/claim-category.enum';
-
 export interface ClaimDataForFolderNaming {
   id: string;
   claimName: string | null;
-  category: ClaimCategory;
+  category: string;
   month: number;
   year: number;
   createdAt: Date;
@@ -16,16 +14,17 @@ export interface FolderNameGenerationResult {
   errors: string[];
 }
 
-const CategoryCodeMapping = Object.freeze({
-  [ClaimCategory.TELCO]: 'telco',
-  [ClaimCategory.FITNESS]: 'fitness',
-  [ClaimCategory.DENTAL]: 'dental',
-  [ClaimCategory.SKILL_ENHANCEMENT]: 'skill',
-  [ClaimCategory.COMPANY_EVENT]: 'event',
-  [ClaimCategory.COMPANY_LUNCH]: 'lunch',
-  [ClaimCategory.COMPANY_DINNER]: 'dinner',
-  [ClaimCategory.OTHERS]: 'others',
-} as const);
+// Valid category codes - category is already a code string from database
+const VALID_CATEGORY_CODES = Object.freeze([
+  'telco',
+  'fitness',
+  'dental',
+  'skill-enhancement',
+  'company-event',
+  'company-lunch',
+  'company-dinner',
+  'others',
+] as const);
 
 const CLAIM_NAME_MAX_LENGTH = 30;
 const TOTAL_PATH_MAX_LENGTH = 200;
@@ -43,7 +42,7 @@ export class FolderNamingUtil {
 
       const formattedMonth = month.toString().padStart(2, '0');
       const timestamp = Math.floor(createdAt.getTime() / 1000);
-      const categoryCode = CategoryCodeMapping[category];
+      const categoryCode = category; // Category is already a code string
 
       const processedClaimName = this.sanitizeClaimName(claimName);
 
@@ -146,10 +145,19 @@ export class FolderNamingUtil {
         errors.push('Invalid timestamp format');
       }
 
-      const validCategoryCodes = Object.values(
-        CategoryCodeMapping,
-      ) as readonly string[];
-      if (!validCategoryCodes.includes(category)) {
+      if (
+        !VALID_CATEGORY_CODES.includes(
+          category as
+            | 'telco'
+            | 'fitness'
+            | 'dental'
+            | 'skill-enhancement'
+            | 'company-event'
+            | 'company-lunch'
+            | 'company-dinner'
+            | 'others',
+        )
+      ) {
         errors.push('Invalid category code');
       }
     }

@@ -9,14 +9,12 @@ import {
   Length,
   IsEnum,
 } from 'class-validator';
-import { ClaimCategory, ClaimStatus } from '@project/types';
+import { ClaimStatus } from '@project/types';
 
 export class ClaimUpdateRequestDto {
-  @IsEnum(ClaimCategory, {
-    message: `Category must be one of: ${Object.values(ClaimCategory).join(', ')}`,
-  })
+  @IsString({ message: 'Category must be a string' })
   @IsOptional()
-  category?: ClaimCategory;
+  category?: string;
 
   @IsString()
   @IsOptional()

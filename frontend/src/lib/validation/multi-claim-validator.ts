@@ -1,7 +1,7 @@
 import {
-  ClaimCategory,
   IClaimMetadata,
   IClaimCreateRequest,
+  IClaimCategory,
 } from '@project/types';
 
 /**
@@ -12,12 +12,6 @@ import {
  * - Business rules validation
  * - Cross-claim validation logic
  */
-
-// Monthly limits for specific categories
-const MONTHLY_LIMITS = new Map<string, number>([
-  [ClaimCategory.TELCO, 150],
-  [ClaimCategory.FITNESS, 50],
-]);
 
 // Business constants
 const CLAIM_SUBMISSION_DEADLINE_MONTHS = 2;
@@ -94,7 +88,7 @@ export function validateSingleClaim(
   }
 
   // Category-specific validation
-  if (claim.category === ClaimCategory.OTHERS && !claim.claimName?.trim()) {
+  if (claim.category === 'others' && !claim.claimName?.trim()) {
     errors.push({
       field: 'claimName',
       message: 'Claim name is required for Others category',
@@ -114,6 +108,7 @@ export function validateSingleClaim(
 export function validateMonthlyLimits(
   claims: IClaimCreateRequest[],
   existingClaims: IClaimMetadata[] = [],
+  categories: IClaimCategory[] = [],
 ): ClaimValidationResult {
   const errors: ValidationError[] = [];
 
@@ -147,7 +142,7 @@ export function validateMonthlyLimits(
   claimGroups.forEach((group, key) => {
     const [category, month, year] = key.split('-');
 
-    const limit = getMonthlyLimit(category);
+    const limit = getMonthlyLimit(category, categories);
 
     if (!limit || group.total <= limit) return;
 
@@ -170,6 +165,7 @@ export function validateMonthlyLimits(
 export function validateMultipleClaims(
   claims: IClaimCreateRequest[],
   existingClaims: IClaimMetadata[] = [],
+  categories: IClaimCategory[] = [],
 ): MultiClaimValidationResult {
   const claimErrors: Record<string, ValidationError[]> = {};
   const globalErrors: ValidationError[] = [];
@@ -183,7 +179,11 @@ export function validateMultipleClaims(
   });
 
   // Validate monthly limits across all claims
-  const monthlyLimitValidation = validateMonthlyLimits(claims, existingClaims);
+  const monthlyLimitValidation = validateMonthlyLimits(
+    claims,
+    existingClaims,
+    categories,
+  );
   if (!monthlyLimitValidation.isValid) {
     globalErrors.push(...monthlyLimitValidation.errors);
   }
@@ -227,31 +227,40 @@ export function validateMultipleClaims(
 /**
  * Check if a category has monthly limits
  */
-export function hasMonthlyLimit(category: string): boolean {
-  return MONTHLY_LIMITS.has(category);
+export function hasMonthlyLimit(
+  category: string,
+  categories: IClaimCategory[],
+): boolean {
+  const cat = categories.find((c) => c.code === category);
+  return cat?.limit?.type === 'monthly';
 }
 
 /**
  * Get the monthly limit for a category
  */
-export function getMonthlyLimit(category: string): number | null {
-  return MONTHLY_LIMITS.get(category) ?? null;
+export function getMonthlyLimit(
+  category: string,
+  categories: IClaimCategory[],
+): number | null {
+  const cat = categories.find((c) => c.code === category);
+  return cat?.limit?.type === 'monthly' ? cat.limit.amount : null;
 }
 
 /**
  * Calculate remaining limit for a category in a specific month/year
  */
 export function calculateRemainingLimit(
-  category: ClaimCategory,
+  category: string,
   month: number,
   year: number,
   existingClaims: IClaimMetadata[],
+  categories: IClaimCategory[],
 ): number | null {
-  if (!hasMonthlyLimit(category)) {
+  if (!hasMonthlyLimit(category, categories)) {
     return null;
   }
 
-  const limit = getMonthlyLimit(category)!;
+  const limit = getMonthlyLimit(category, categories)!;
   const usedAmount = existingClaims
     .filter(
       (claim) =>

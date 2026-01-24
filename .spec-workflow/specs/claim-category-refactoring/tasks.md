@@ -10,7 +10,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 1: Foundation
 
-- [ ] 1. Update shared types package
+- [x] 1. Update shared types package
   - Files: `packages/types/src/dtos/claim.dto.ts`, `packages/types/src/dtos/claim-category.dto.ts` (new)
   - Remove `ClaimCategory` enum from claim.dto.ts
   - Change `IClaimMetadata.category` to `string` type
@@ -24,7 +24,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 2: Backend Category API
 
-- [ ] 2. Implement ClaimCategoryService methods
+- [x] 2. Implement ClaimCategoryService methods
   - Files: `backend/src/modules/claim-category/services/claim-category-services.ts`, `backend/src/modules/claim-category/types/` (new types if needed)
   - Implement `getByCode(code: string)` - lookup single category with limit relation
   - Implement `getAllCategories(params?: IGetAllCategoriesParams)` - with includeDisabled/includeDeleted filtering
@@ -34,7 +34,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
   - _Requirements: 2, 3, 4_
   - _Prompt: Implement the task for spec claim-category-refactoring, first run spec-workflow-guide to get the workflow guide then implement the task: Role: NestJS Backend Developer | Task: Implement ClaimCategoryService methods following design.md section 1 - getByCode() and getAllCategories() with filtering params | Restrictions: Use existing BaseDBUtil patterns, eager load limit relation, filter by isEnabled for getByCode. Do not modify controller yet. | Success: Service methods work, getByCode returns entity with limit or null, getAllCategories respects filter params. Mark task in-progress before starting, log implementation with log-implementation tool after completion, then mark complete._
 
-- [ ] 3. Implement ClaimCategoryController endpoint
+- [x] 3. Implement ClaimCategoryController endpoint
   - Files: `backend/src/modules/claim-category/controllers/claim-category.controller.ts`, `backend/src/modules/claim-category/dto/` (response DTO)
   - Add `GET /claim-categories` endpoint with JwtAuthGuard
   - Accept `includeDisabled` and `includeDeleted` query params
@@ -46,7 +46,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 3: Backend Claims Refactoring
 
-- [ ] 4. Update Claims DTOs and internal types
+- [x] 4. Update Claims DTOs and internal types
   - Files: `backend/src/modules/claims/dto/claim-create-request.dto.ts`, `backend/src/modules/claims/dto/claim-update-request.dto.ts`, `backend/src/modules/claims/types/claim-creation-data.type.ts`
   - Change `category` from `@IsEnum(ClaimCategory)` to `@IsString()` + `@IsNotEmpty()`
   - Update `IClaimCreationData` to use `categoryId: string` instead of `category: ClaimCategory`
@@ -56,7 +56,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
   - _Requirements: 2, 3_
   - _Prompt: Implement the task for spec claim-category-refactoring, first run spec-workflow-guide to get the workflow guide then implement the task: Role: NestJS Backend Developer | Task: Update Claims DTOs - replace @IsEnum with @IsString, update IClaimCreationData to use categoryId | Restrictions: Do not modify controller logic yet, only types and validation decorators. Keep other DTO fields unchanged. | Success: DTOs accept string category, IClaimCreationData has categoryId field, no ClaimCategory enum imports. Mark task in-progress before starting, log implementation with log-implementation tool after completion, then mark complete._
 
-- [ ] 5. Refactor ClaimsController validation and creation logic
+- [x] 5. Refactor ClaimsController validation and creation logic
   - Files: `backend/src/modules/claims/claims.controller.ts`, `backend/src/modules/claims/utils/claim-db.util.ts`
   - Inject ClaimCategoryService into ClaimsController
   - Add category lookup in createClaim() - validate category exists and is enabled
@@ -70,7 +70,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 4: Database Migration
 
-- [ ] 6. Update ClaimEntity and generate migration
+- [x] 6. Update ClaimEntity and generate migration
   - Files: `backend/src/modules/claims/entities/claim.entity.ts`, `backend/src/db/migrations/` (generated)
   - Remove `category` field (the enum column) from ClaimEntity
   - Keep `categoryEntity` ManyToOne relation (already exists)
@@ -83,7 +83,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 5: Backend Cleanup
 
-- [ ] 7. Delete hard-coded backend constants
+- [x] 7. Delete hard-coded backend constants
   - Files to DELETE: `backend/src/modules/claims/enums/claim-category.enum.ts`, `backend/src/modules/claims/constants/claim-limits.constants.ts`, `backend/src/modules/claims/constants/claim-display-name.constants.ts`
   - Remove all imports of deleted files across backend
   - Remove old `validateMonthlyLimit()` and `validateYearlyLimit()` methods if not already removed
@@ -94,7 +94,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 6: Frontend Implementation
 
-- [ ] 8. Implement frontend category hooks
+- [x] 8. Implement frontend category hooks
   - Files: `frontend/src/hooks/categories/useCategories.ts` (new), `frontend/src/hooks/queries/keys/key.ts`
   - Add `CATEGORIES` to QueryGroup enum
   - Add `categoryQueryKeys` with list function
@@ -106,7 +106,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
   - _Requirements: 8_
   - _Prompt: Implement the task for spec claim-category-refactoring, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Frontend Developer | Task: Create useCategories hooks following design.md section 4 - base hook with params, two convenience hooks for selection vs display | Restrictions: Follow existing useUserProfile pattern exactly, use React Query with proper staleTime, handle loading/error states. | Success: Hooks fetch from /claim-categories, useCategoriesForSelection returns enabled only, useCategoriesForDisplay returns all including disabled/deleted. Mark task in-progress before starting, log implementation with log-implementation tool after completion, then mark complete._
 
-- [ ] 9. Update frontend components and utilities
+- [x] 9. Update frontend components and utilities
   - Files: `frontend/src/components/claims/category-select.tsx`, `frontend/src/lib/claim-utils.ts`, `frontend/src/lib/validation/multi-claim-validator.ts`
   - Update CategorySelect to accept `categories` prop from hook, not use hard-coded enum
   - Update `getCategoryDisplayName()` to accept categories array parameter
@@ -119,7 +119,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 7: Frontend Cleanup
 
-- [ ] 10. Delete hard-coded frontend constants
+- [x] 10. Delete hard-coded frontend constants
   - Files: `frontend/src/lib/claim-utils.ts` (remove MONTHLY_LIMITS, categoryNames), `frontend/src/lib/validation/multi-claim-validator.ts` (remove MONTHLY_LIMITS)
   - Remove all hard-coded category maps and limits
   - Remove ClaimCategory enum imports from frontend
@@ -130,7 +130,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
 
 ## Phase 8: Testing
 
-- [ ] 11. Backend unit tests for ClaimCategoryService
+- [x] 11. Backend unit tests for ClaimCategoryService
   - Files: `backend/src/modules/claim-category/services/__tests__/claim-category-services.test.ts` (new)
   - Test `getByCode()` - found, not found, disabled category cases
   - Test `getAllCategories()` - default params, includeDisabled, includeDeleted
@@ -140,7 +140,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
   - _Requirements: 2, 3, 4_
   - _Prompt: Implement the task for spec claim-category-refactoring, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Write unit tests for ClaimCategoryService methods - test all paths including edge cases | Restrictions: Mock database util, test logic only. Follow existing backend test patterns. | Success: Tests pass, cover success and error paths, good coverage of filter combinations. Mark task in-progress before starting, log implementation with log-implementation tool after completion, then mark complete._
 
-- [ ] 12. API integration tests
+- [x] 12. API integration tests
   - Files: `api-test/src/tests/claim-categories.test.ts` (new), update `api-test/src/tests/claims.test.ts`
   - Test `GET /claim-categories` - auth required, returns categories, respects query params
   - Test claim creation with valid category
@@ -151,7 +151,7 @@ Shared Types → Backend Service/API → Claims Refactoring → Migration → Cl
   - _Requirements: 1, 2, 3, 4_
   - _Prompt: Implement the task for spec claim-category-refactoring, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: Write API integration tests for claim-categories endpoint and updated claims behavior | Restrictions: Follow existing api-test patterns. Test real API calls, not mocks. Ensure test database has seeded categories. | Success: All API tests pass, cover auth, valid/invalid category, limit exceeded scenarios. Mark task in-progress before starting, log implementation with log-implementation tool after completion, then mark complete._
 
-- [ ] 13. Frontend tests for category hooks and components
+- [x] 13. Frontend tests for category hooks and components
   - Files: `frontend/src/hooks/categories/__tests__/useCategories.test.ts` (new), update component tests
   - Test useCategories hook - loading, success, error states
   - Test useCategoriesForSelection vs useCategoriesForDisplay different params

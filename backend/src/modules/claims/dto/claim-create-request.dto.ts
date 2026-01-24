@@ -8,23 +8,18 @@ import {
   Min,
   Max,
   Length,
-  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ClaimCategory } from '@project/types';
 
 export class ClaimCreateRequestDto {
   @ApiProperty({
-    description: 'Category of the expense claim',
-    enum: ClaimCategory,
-    example: ClaimCategory.TELCO,
-    enumName: 'ClaimCategory',
+    description: 'Category code of the expense claim',
+    example: 'telco',
+    type: 'string',
   })
-  @IsEnum(ClaimCategory, {
-    message: `Category must be one of: ${Object.values(ClaimCategory).join(', ')}`,
-  })
-  @IsNotEmpty()
-  category: ClaimCategory;
+  @IsString({ message: 'Category must be a string' })
+  @IsNotEmpty({ message: 'Category is required' })
+  category: string;
 
   @ApiProperty({
     description: 'Optional descriptive name for the claim',

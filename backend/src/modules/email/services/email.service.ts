@@ -173,7 +173,7 @@ export class EmailService {
         claim: {
           id: updatedClaim.id,
           userId: updatedClaim.userId,
-          category: updatedClaim.category,
+          category: updatedClaim.categoryEntity.code,
           claimName: updatedClaim.claimName,
           month: updatedClaim.month,
           year: updatedClaim.year,

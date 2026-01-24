@@ -4,6 +4,7 @@ import { IClaimCreationData } from '../types/claim-creation-data.type';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
+import { ClaimCategoryEntity } from 'src/modules/claim-category/entities/claim-category.entity';
 
 @Injectable()
 export class ClaimDBUtil extends BaseDBUtil<ClaimEntity, IClaimCreationData> {
@@ -22,7 +23,16 @@ export class ClaimDBUtil extends BaseDBUtil<ClaimEntity, IClaimCreationData> {
 
     const repo = entityManager?.getRepository(ClaimEntity) ?? this.repo;
 
-    const claim = repo.create(creationData);
+    const claim = repo.create({
+      userId: creationData.userId,
+      claimName: creationData.claimName,
+      month: creationData.month,
+      year: creationData.year,
+      totalAmount: creationData.totalAmount,
+      categoryEntity: {
+        uuid: creationData.categoryId,
+      } as Partial<ClaimCategoryEntity>,
+    });
     const createdClaim = await repo.save(claim);
 
     return createdClaim;

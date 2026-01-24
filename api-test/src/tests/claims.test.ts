@@ -3,11 +3,7 @@
 
 import axiosInstance from '../config/axios';
 import type { AxiosError } from 'axios';
-import {
-  ClaimCategory,
-  IClaimCreateRequest,
-  IClaimUpdateRequest,
-} from '@project/types';
+import { IClaimCreateRequest, IClaimUpdateRequest } from '@project/types';
 import { getAuthHeaders } from '../utils/test-auth.util';
 
 /**
@@ -61,7 +57,7 @@ describe('Monthly Limit Validation', () => {
     it('should enforce sequential claim limits', async () => {
       // First claim: Telco $100 (should succeed)
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 1',
         month: 10,
         year: 2025,
@@ -77,7 +73,7 @@ describe('Monthly Limit Validation', () => {
 
       // Second claim: Telco $60 same month (should fail - total $160 > $150 limit)
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 2',
         month: 10,
         year: 2025,
@@ -107,7 +103,7 @@ describe('Monthly Limit Validation', () => {
     it('should treat different categories independently', async () => {
       // Telco at limit: $150
       const telcoClaim: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill',
         month: 10,
         year: 2025,
@@ -123,7 +119,7 @@ describe('Monthly Limit Validation', () => {
 
       // Fitness at limit: $50 (should succeed - different category)
       const fitnessClaim: IClaimCreateRequest = {
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         claimName: 'Gym membership',
         month: 10,
         year: 2025,
@@ -147,7 +143,7 @@ describe('Monthly Limit Validation', () => {
     it('should treat different months independently', async () => {
       // September Telco: $150
       const septemberClaim: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill September',
         month: 9,
         year: 2025,
@@ -167,7 +163,7 @@ describe('Monthly Limit Validation', () => {
 
       // October Telco: $150 (should succeed - different month)
       const octoberClaim: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill October',
         month: 10,
         year: 2025,
@@ -191,7 +187,7 @@ describe('Monthly Limit Validation', () => {
     it('should revalidate on update', async () => {
       // Create first claim: Telco $80
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 1',
         month: 10,
         year: 2025,
@@ -206,7 +202,7 @@ describe('Monthly Limit Validation', () => {
 
       // Create second claim: Telco $60
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 2',
         month: 10,
         year: 2025,
@@ -247,7 +243,7 @@ describe('Monthly Limit Validation', () => {
     it('should exclude deleted claims from totals', async () => {
       // Create first claim: Telco $100
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 1',
         month: 10,
         year: 2025,
@@ -270,7 +266,7 @@ describe('Monthly Limit Validation', () => {
 
       // Create new claim: Telco $150 (should succeed - deleted claim doesn't count)
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         claimName: 'Phone bill 2',
         month: 10,
         year: 2025,
@@ -290,7 +286,7 @@ describe('Monthly Limit Validation', () => {
     it('should revalidate on category change', async () => {
       // Create Dental claim: $200 (unlimited category)
       const dentalClaim: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment',
         month: 10,
         year: 2025,
@@ -306,7 +302,7 @@ describe('Monthly Limit Validation', () => {
 
       // Update category to Fitness with same amount $200 (exceeds $50 Fitness limit)
       const updateToFitness: IClaimUpdateRequest = {
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
       };
 
       try {
@@ -384,7 +380,7 @@ describe('Yearly Limit Validation', () => {
 
       for (const month of months) {
         const dentalClaim: IClaimCreateRequest = {
-          category: ClaimCategory.DENTAL,
+          category: 'dental',
           claimName: `Dental treatment month ${month}`,
           month,
           year: 2025,
@@ -402,7 +398,7 @@ describe('Yearly Limit Validation', () => {
       // Now try to add another dental claim for month 4 ($50)
       // This should fail as total would be $350 > $300 yearly limit
       const month4Claim: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment month 4',
         month: 4,
         year: 2025,
@@ -434,7 +430,7 @@ describe('Yearly Limit Validation', () => {
     it('should allow claims up to the exact yearly limit', async () => {
       // Create dental claims totaling exactly $300
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 1',
         month: 1,
         year: 2025,
@@ -448,7 +444,7 @@ describe('Yearly Limit Validation', () => {
       expect(response1.status).toBe(201);
 
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 2',
         month: 2,
         year: 2025,
@@ -468,7 +464,7 @@ describe('Yearly Limit Validation', () => {
     it('should revalidate yearly limits on update', async () => {
       // Create dental claims across 2 months: $150 + $100 = $250
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 1',
         month: 1,
         year: 2025,
@@ -482,7 +478,7 @@ describe('Yearly Limit Validation', () => {
       expect(response1.status).toBe(201);
 
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 2',
         month: 2,
         year: 2025,
@@ -523,7 +519,7 @@ describe('Yearly Limit Validation', () => {
     it('should exclude deleted claims from yearly totals', async () => {
       // Create dental claim: $200
       const claim1: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 1',
         month: 1,
         year: 2025,
@@ -547,7 +543,7 @@ describe('Yearly Limit Validation', () => {
       // Create new dental claim: $300 in month 2
       // Should succeed - deleted claim doesn't count towards yearly total
       const claim2: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 2',
         month: 2,
         year: 2025,
@@ -567,7 +563,7 @@ describe('Yearly Limit Validation', () => {
     it('should treat different years independently for yearly limits', async () => {
       // Create dental claim for 2024: $300 (at limit for 2024)
       const claim2024: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 2024',
         month: 12,
         year: 2024,
@@ -583,7 +579,7 @@ describe('Yearly Limit Validation', () => {
       // Create dental claim for 2025: $300
       // Should succeed - different year, independent limit
       const claim2025: IClaimCreateRequest = {
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
         claimName: 'Dental treatment 2025',
         month: 1,
         year: 2025,

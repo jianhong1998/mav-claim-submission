@@ -15,25 +15,13 @@ import {
 import { UserEntity } from '../../user/entities/user.entity';
 import { AttachmentEntity } from './attachment.entity';
 import { ClaimStatus } from '../enums/claim-status.enum';
-import { ClaimCategory } from '../enums/claim-category.enum';
 import { ClaimCategoryEntity } from 'src/modules/claim-category/entities/claim-category.entity';
 
 @Entity('claims')
 @Index(['userId'])
 @Index(['status'])
-@Index(['category'])
 @Index(['month', 'year'])
 @Index(['submissionDate'])
-@Index(
-  'idx_claims_user_category_month_year',
-  ['userId', 'category', 'month', 'year'],
-  {
-    where: '"deletedAt" IS NULL',
-  },
-)
-@Index('idx_claims_user_category_year', ['userId', 'category', 'year'], {
-  where: '"deletedAt" IS NULL',
-})
 @Check(`"totalAmount" > 0`)
 @Check(`"month" >= 1 AND "month" <= 12`)
 @Check(`"year" >= 2020 AND "year" <= 2100`)
@@ -44,14 +32,7 @@ export class ClaimEntity {
   @Column({ type: 'uuid', nullable: false })
   userId: string;
 
-  @Column({
-    type: 'enum',
-    enum: ClaimCategory,
-    nullable: false,
-  })
-  category: ClaimCategory;
-
-  @ManyToOne(() => ClaimCategoryEntity, (category) => category.uuid, {
+  @ManyToOne(() => ClaimCategoryEntity, {
     nullable: false,
   })
   @JoinColumn({

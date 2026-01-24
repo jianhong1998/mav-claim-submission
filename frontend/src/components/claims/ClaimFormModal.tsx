@@ -17,12 +17,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { ClaimCategory, IClaimMetadata } from '@project/types';
+import { IClaimMetadata } from '@project/types';
 import { DollarSign } from 'lucide-react';
 import { CategorySelect } from './category-select';
 import { MonthYearPicker } from './month-year-picker';
 import { FormActions } from './form-actions';
 import { useMultiClaimForm } from '@/hooks/claims/useMultiClaimForm';
+import { useCategoriesForSelection } from '@/hooks/categories/useCategories';
 
 interface ClaimFormModalProps {
   isOpen: boolean;
@@ -44,6 +45,10 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
   existingDraftClaims = [],
   initialValues,
 }) => {
+  // Fetch categories for selection
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useCategoriesForSelection();
+
   const { form, isCreating, handleSubmit } = useMultiClaimForm({
     onClaimCreated: (claim) => {
       onClaimCreated?.(claim);
@@ -51,32 +56,36 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
     },
     existingDraftClaims,
     claimId: initialValues?.id,
+    categories,
   });
 
   // Determine if we're in edit mode
   const isEditMode = !!initialValues?.id;
 
+  // Get default category code (first category or empty string)
+  const defaultCategory = categories.length > 0 ? categories[0].code : '';
+
   // Pre-fill form when initialValues are provided (edit mode)
   useEffect(() => {
-    if (initialValues && isOpen) {
+    if (initialValues && isOpen && defaultCategory) {
       form.reset({
-        category: initialValues.category || ClaimCategory.TELCO,
+        category: initialValues.category || defaultCategory,
         claimName: initialValues.claimName || '',
         month: initialValues.month || new Date().getMonth() + 1,
         year: initialValues.year || new Date().getFullYear(),
         totalAmount: initialValues.totalAmount || 0,
       });
-    } else if (isOpen && !isEditMode) {
+    } else if (isOpen && !isEditMode && defaultCategory) {
       // Reset to default values for create mode
       form.reset({
-        category: ClaimCategory.TELCO,
+        category: defaultCategory,
         claimName: '',
         month: new Date().getMonth() + 1,
         year: new Date().getFullYear(),
         totalAmount: 0,
       });
     }
-  }, [initialValues, isOpen, form, isEditMode]);
+  }, [initialValues, isOpen, form, isEditMode, defaultCategory]);
 
   return (
     <Dialog
@@ -110,7 +119,8 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
                   <CategorySelect
                     value={field.value}
                     onChange={field.onChange}
-                    disabled={isCreating}
+                    categories={categories}
+                    disabled={isCreating || categoriesLoading}
                   />
                 </FormItem>
               )}
@@ -122,17 +132,16 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
               name="claimName"
               rules={{
                 required:
-                  form.watch('category') === ClaimCategory.OTHERS
+                  form.watch('category') === 'others'
                     ? 'Please enter a claim name for Others category'
                     : false,
               }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {form.watch('category') !== ClaimCategory.OTHERS &&
-                      '(Optional) '}
+                    {form.watch('category') !== 'others' && '(Optional) '}
                     Claim Name
-                    {form.watch('category') === ClaimCategory.OTHERS && (
+                    {form.watch('category') === 'others' && (
                       <span className="text-destructive">*</span>
                     )}
                   </FormLabel>

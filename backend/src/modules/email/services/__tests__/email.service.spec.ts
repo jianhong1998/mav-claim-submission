@@ -15,7 +15,6 @@ import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
 import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
 import { IClaimEmailRequest, IEmailSendResponse } from '@project/types';
 
@@ -106,7 +105,7 @@ describe('EmailService', () => {
     id: 'claim-123',
     userId: 'user-123',
     user: mockUser,
-    category: ClaimCategory.TELCO,
+    category: 'telco',
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,
@@ -232,7 +231,7 @@ describe('EmailService', () => {
       expect(mockEmailTemplateService.generateClaimEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'claim-123',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           claimName: 'Monthly Phone Bill',
         }),
         mockUser,
@@ -246,7 +245,7 @@ describe('EmailService', () => {
       expect(mockEmailTemplateService.generateSubject).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'claim-123',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           claimName: 'Monthly Phone Bill',
         }),
       );
@@ -754,7 +753,7 @@ describe('EmailService', () => {
       expect(mockEmailTemplateService.generateClaimEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'claim-123',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           claimName: 'Monthly Phone Bill',
         }),
         expect.objectContaining({
@@ -812,7 +811,7 @@ describe('EmailService', () => {
       expect(mockEmailTemplateService.generateClaimEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'claim-123',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           claimName: 'Monthly Phone Bill',
         }),
         mockUser,
@@ -850,7 +849,7 @@ describe('EmailService', () => {
       expect(mockEmailTemplateService.generateClaimEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'claim-123',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           claimName: 'Monthly Phone Bill',
         }),
         mockUser,

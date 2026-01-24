@@ -244,7 +244,7 @@ export class AttachmentService {
       const claimDataForFolderNaming: ClaimDataForFolderNaming = {
         id: claim.id,
         claimName: claim.claimName,
-        category: claim.category,
+        category: claim.categoryEntity.code,
         month: claim.month,
         year: claim.year,
         createdAt: claim.createdAt,

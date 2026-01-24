@@ -10,7 +10,6 @@ import { GmailClient } from '../gmail-client.service';
 import { EmailTemplateService } from '../email-template.service';
 import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
 import { IEmailSendResponse } from '@project/types';
 
@@ -41,7 +40,7 @@ describe('EmailService Integration Tests', () => {
       email: 'test@mavericks-consulting.com',
       name: 'John Doe',
     },
-    category: ClaimCategory.TELCO,
+    category: 'telco',
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,

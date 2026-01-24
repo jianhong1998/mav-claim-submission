@@ -20,6 +20,7 @@ import { getCategoryDisplayName } from '@/lib/claim-utils';
 import { formatAmount, formatMonthYear } from '@/lib/format-utils';
 import { ClaimStatusButtons } from './ClaimStatusButtons';
 import { FileText, Calendar, DollarSign } from 'lucide-react';
+import { useCategoriesForDisplay } from '@/hooks/categories/useCategories';
 
 export interface ClaimCardProps {
   /**
@@ -44,8 +45,11 @@ export interface ClaimCardProps {
  */
 const ClaimCard = React.memo<ClaimCardProps>(
   ({ claim, onStatusChange, className }) => {
+    const { data: categories = [] } = useCategoriesForDisplay();
+
     const claimTitle =
-      claim.claimName || `${getCategoryDisplayName(claim.category)} Claim`;
+      claim.claimName ||
+      `${getCategoryDisplayName(claim.category, categories)} Claim`;
     const claimDate = formatMonthYear(claim.month, claim.year);
 
     return (
@@ -125,9 +129,9 @@ const ClaimCard = React.memo<ClaimCardProps>(
             <footer className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
                 <span
-                  aria-label={`Category: ${getCategoryDisplayName(claim.category)}`}
+                  aria-label={`Category: ${getCategoryDisplayName(claim.category, categories)}`}
                 >
-                  Category: {getCategoryDisplayName(claim.category)}
+                  Category: {getCategoryDisplayName(claim.category, categories)}
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">

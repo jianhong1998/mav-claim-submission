@@ -28,7 +28,7 @@ export class ClaimCategoryEntity {
   /**
    * Category limit. `null` for unlimited.
    */
-  @OneToOne(() => ClaimCategoryLimitEntity, {
+  @OneToOne(() => ClaimCategoryLimitEntity, (limit) => limit.category, {
     nullable: true,
     eager: true,
   })

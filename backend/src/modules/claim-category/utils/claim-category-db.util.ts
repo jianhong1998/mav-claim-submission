@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, FindOptionsWhere, Repository } from 'typeorm';
 import { ClaimCategoryEntity } from '../entities/claim-category.entity';
 import { BaseDBUtil } from 'src/modules/common/base-classes/base-db-util';
 import { IClaimCategoryCreationParams } from '../types/claim-category-creation.type';
@@ -9,7 +10,10 @@ export class ClaimCategoryDBUtil extends BaseDBUtil<
   ClaimCategoryEntity,
   IClaimCategoryCreationParams
 > {
-  public constructor(protected readonly repo: Repository<ClaimCategoryEntity>) {
+  public constructor(
+    @InjectRepository(ClaimCategoryEntity)
+    protected readonly repo: Repository<ClaimCategoryEntity>,
+  ) {
     super(ClaimCategoryEntity, repo);
   }
 
@@ -31,5 +35,19 @@ export class ClaimCategoryDBUtil extends BaseDBUtil<
     });
 
     return await repo.save(category);
+  }
+
+  public async getAllWithDeleted(params?: {
+    criteria?: FindOptionsWhere<ClaimCategoryEntity>;
+    entityManager?: EntityManager;
+  }): Promise<ClaimCategoryEntity[]> {
+    const repo =
+      params?.entityManager?.getRepository(ClaimCategoryEntity) ?? this.repo;
+
+    return await repo.find({
+      where: params?.criteria,
+      withDeleted: true,
+      transaction: true,
+    });
   }
 }

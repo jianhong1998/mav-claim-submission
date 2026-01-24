@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerGuard } from '@nestjs/throttler';
@@ -43,4 +43,5 @@ import { CommonModule } from '../common/common.module';
     TestModeThrottlerGuard,
   ],
 })
+@Global()
 export class AuthModule {}
