@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { createElement } from 'react';
+import { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import {
   useCategories,
   useCategoriesForSelection,
@@ -44,6 +45,19 @@ const mockCategories: IClaimCategory[] = [
 const mockCategoriesResponse: IClaimCategoryListResponse = {
   success: true,
   categories: mockCategories,
+};
+
+// Helper to create AxiosError
+const createAxiosError = (status: number): AxiosError => {
+  const error = new AxiosError('Request failed');
+  error.response = {
+    status,
+    data: null,
+    statusText: 'Error',
+    headers: {},
+    config: {} as InternalAxiosRequestConfig,
+  };
+  return error;
 };
 
 // Test wrapper with QueryClient
@@ -179,58 +193,71 @@ describe('useCategories Hook Tests', () => {
     });
 
     it('should set errorMessage for 401 error', async () => {
-      mockGet.mockRejectedValue({ response: { status: 401 } });
+      mockGet.mockRejectedValue(createAxiosError(401));
 
       const { result } = renderHook(() => useCategories(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.errorMessage).toBe(
-          'Authentication required to view categories.',
-        );
+        expect(result.current.isError).toBe(true);
       });
+
+      expect(result.current.errorMessage).toBe(
+        'Authentication required to view categories.',
+      );
     });
 
     it('should set errorMessage for 403 error', async () => {
-      mockGet.mockRejectedValue({ response: { status: 403 } });
+      mockGet.mockRejectedValue(createAxiosError(403));
 
       const { result } = renderHook(() => useCategories(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.errorMessage).toBe(
-          'You do not have permission to view categories.',
-        );
+        expect(result.current.isError).toBe(true);
       });
+
+      expect(result.current.errorMessage).toBe(
+        'You do not have permission to view categories.',
+      );
     });
 
     it('should set errorMessage for 404 error', async () => {
-      mockGet.mockRejectedValue({ response: { status: 404 } });
+      mockGet.mockRejectedValue(createAxiosError(404));
 
       const { result } = renderHook(() => useCategories(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.errorMessage).toBe('Categories not found.');
+        expect(result.current.isError).toBe(true);
       });
+
+      expect(result.current.errorMessage).toBe('Categories not found.');
     });
 
     it('should set generic errorMessage for other errors', async () => {
-      mockGet.mockRejectedValue({ response: { status: 500 } });
+      mockGet.mockRejectedValue(createAxiosError(500));
 
       const { result } = renderHook(() => useCategories(), {
         wrapper: createWrapper(),
       });
 
-      await waitFor(() => {
-        expect(result.current.errorMessage).toBe(
-          'Failed to load categories. Please try again.',
-        );
-      });
-    });
+      // 500 errors are retried, so we need to wait longer for all retries to complete
+      // Retry delays: 1000ms, 2000ms, 4000ms = ~7 seconds total
+      await waitFor(
+        () => {
+          expect(result.current.isError).toBe(true);
+        },
+        { timeout: 10000 },
+      );
+
+      expect(result.current.errorMessage).toBe(
+        'Failed to load categories. Please try again.',
+      );
+    }, 15000); // 15 second test timeout to allow for retries
   });
 
   describe('useCategoriesForSelection', () => {

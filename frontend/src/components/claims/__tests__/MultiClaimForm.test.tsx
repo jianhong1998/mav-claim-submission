@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClaimFormModal } from '../ClaimFormModal';
-import { ClaimCategory, ClaimStatus, IClaimMetadata } from '@project/types';
+import { ClaimStatus, IClaimMetadata, IClaimCategory } from '@project/types';
 
 // Mock all dependencies
 vi.mock('sonner', () => ({
@@ -30,6 +30,41 @@ vi.mock('lucide-react', () => ({
   X: () => <span data-testid="X" />,
 }));
 
+// Mock categories - defined before mocking to be accessible
+const mockCategoriesData: IClaimCategory[] = [
+  {
+    uuid: '1',
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly', amount: 150 },
+  },
+  {
+    uuid: '2',
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly', amount: 50 },
+  },
+  {
+    uuid: '3',
+    code: 'dental',
+    name: 'Dental Care',
+    limit: { type: 'yearly', amount: 300 },
+  },
+];
+
+vi.mock('@/hooks/categories/useCategories', () => ({
+  useCategoriesForDisplay: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
+  })),
+  useCategoriesForSelection: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
+  })),
+}));
+
 const createTestWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -47,11 +82,11 @@ const createTestWrapper = () => {
         gcTime: 0,
       },
     },
-    logger: {
-      log: () => {},
-      warn: () => {},
-      error: () => {},
-    },
+    // logger: {
+    //   log: () => {},
+    //   warn: () => {},
+    //   error: () => {},
+    // },
   });
 
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -67,7 +102,7 @@ const createMockClaim = (
   id: 'claim-1',
   userId: 'user-1',
   submissionDate: new Date().toISOString(),
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -179,7 +214,7 @@ describe('ClaimFormModal', () => {
       const claim = createMockClaim({
         id: 'claim-123',
         claimName: 'Test Claim',
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         month: 5,
         year: 2024,
         totalAmount: 250.0,
@@ -204,7 +239,7 @@ describe('ClaimFormModal', () => {
       const claim = createMockClaim({
         id: 'claim-123',
         claimName: 'Gym Membership',
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         month: 5,
         year: 2024,
         totalAmount: 250.0,
@@ -240,7 +275,7 @@ describe('ClaimFormModal', () => {
       const claim = createMockClaim({
         id: 'claim-123',
         claimName: 'Test Claim',
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         totalAmount: 250.0,
       });
 
@@ -283,7 +318,7 @@ describe('ClaimFormModal', () => {
     it('should handle edit mode with partial initialValues', async () => {
       const partialClaim = {
         id: 'claim-123',
-        category: ClaimCategory.DENTAL,
+        category: 'dental',
       };
 
       render(

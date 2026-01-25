@@ -5,7 +5,6 @@ import React from 'react';
 import { useMultiClaim, MultiClaimPhase } from '../useMultiClaim';
 import { apiClient } from '@/lib/api-client';
 import {
-  ClaimCategory,
   ClaimStatus,
   IClaimMetadata,
   IClaimCreateRequest,
@@ -66,7 +65,7 @@ const createMockClaim = (
   userId: '',
   submissionDate: new Date().toISOString(),
   // employeeEmail: 'test@mavericks-consulting.com',
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -207,7 +206,7 @@ describe('useMultiClaim', () => {
       mockApiClient.get.mockResolvedValue(mockResponse);
 
       const newClaimData: IClaimCreateRequest = {
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         month: 4,
         year: 2024,
         totalAmount: 80,
@@ -216,7 +215,7 @@ describe('useMultiClaim', () => {
 
       const newClaim = createMockClaim({
         id: 'claim-2',
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         month: 4,
         totalAmount: 80,
         claimName: 'Gym Membership',
@@ -253,7 +252,7 @@ describe('useMultiClaim', () => {
       mockApiClient.get.mockResolvedValue(mockResponse);
 
       const newClaimData: IClaimCreateRequest = {
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         month: 3,
         year: 2024,
         totalAmount: 100,
@@ -681,7 +680,7 @@ describe('useMultiClaim', () => {
 
       try {
         await result.current.createClaim({
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           month: 3,
           year: 2024,
           totalAmount: 100,
@@ -755,7 +754,7 @@ describe('useMultiClaim', () => {
 
       await act(async () => {
         await result.current.createClaim({
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           month: 3,
           year: 2024,
           totalAmount: 100,

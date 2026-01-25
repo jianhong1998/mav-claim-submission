@@ -7,11 +7,11 @@ import { toast } from 'sonner';
 import { ClaimReviewComponent } from '../ClaimReviewComponent';
 import { apiClient } from '@/lib/api-client';
 import {
-  ClaimCategory,
   ClaimStatus,
   IClaimMetadata,
   IClaimListResponse,
   IClaimResponse,
+  IClaimCategory,
 } from '@project/types';
 
 // Mock dependencies
@@ -89,6 +89,35 @@ vi.mock('lucide-react', () => ({
   Send: () => <span data-testid="Send" />,
 }));
 
+// Mock categories - defined before mocking to be accessible
+const mockCategoriesData: IClaimCategory[] = [
+  {
+    uuid: '1',
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly', amount: 150 },
+  },
+  {
+    uuid: '2',
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly', amount: 50 },
+  },
+];
+
+vi.mock('@/hooks/categories/useCategories', () => ({
+  useCategoriesForDisplay: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
+  })),
+  useCategoriesForSelection: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
+  })),
+}));
+
 const mockApiClient = {
   get: apiClient.get as ReturnType<typeof vi.fn>,
   put: apiClient.put as ReturnType<typeof vi.fn>,
@@ -131,7 +160,7 @@ const createMockClaim = (
 ): IClaimMetadata => ({
   id: 'claim-1',
   userId: 'user-123',
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -301,7 +330,7 @@ describe('ClaimReviewComponent', () => {
     it('should display individual claim details correctly', async () => {
       const mockClaims = [
         createMockClaim({
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           month: 3,
           year: 2024,
           totalAmount: 100.5,
@@ -313,7 +342,7 @@ describe('ClaimReviewComponent', () => {
         }),
         createMockClaim({
           id: 'claim-2',
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
           month: 2,
           year: 2024,
           totalAmount: 75.0,
@@ -909,12 +938,12 @@ describe('ClaimReviewComponent', () => {
       const mockClaims = [
         createMockClaim({
           claimName: 'Custom Name',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
         }),
         createMockClaim({
           id: 'claim-2',
           claimName: null,
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
         }),
       ];
       const response = createMockResponse(mockClaims);

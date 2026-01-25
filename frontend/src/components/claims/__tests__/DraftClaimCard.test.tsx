@@ -2,7 +2,14 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DraftClaimCard } from '../draft-claim-card';
-import { ClaimCategory, ClaimStatus, IClaimMetadata } from '@project/types';
+import {
+  ClaimStatus,
+  IClaimMetadata,
+  IClaimCategory,
+  IAttachmentMetadata,
+  AttachmentStatus,
+  AttachmentMimeType,
+} from '@project/types';
 
 // Mock dependencies
 vi.mock('@/lib/utils', () => ({
@@ -38,13 +45,46 @@ vi.mock('@/components/attachments/FileUploadComponent', () => ({
   ),
 }));
 
+const mockCategories: IClaimCategory[] = [
+  {
+    uuid: '1',
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly', amount: 150 },
+  },
+  {
+    uuid: '2',
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly', amount: 50 },
+  },
+];
+
+const createMockAttachment = (
+  overrides: Partial<IAttachmentMetadata> = {},
+): IAttachmentMetadata => ({
+  id: 'att-1',
+  claimId: 'claim-1',
+  originalFilename: 'receipt.pdf',
+  storedFilename: 'receipt.pdf',
+  fileSize: 1024,
+  mimeType: AttachmentMimeType.PDF,
+  driveFileId: 'drive-file-id',
+  driveShareableUrl: 'https://drive.google.com/file/d/xxx',
+  status: AttachmentStatus.UPLOADED,
+  uploadedAt: '2024-03-15T10:00:00Z',
+  createdAt: '2024-03-15T10:00:00Z',
+  updatedAt: '2024-03-15T10:00:00Z',
+  ...overrides,
+});
+
 const createMockClaim = (
   overrides: Partial<IClaimMetadata> = {},
 ): IClaimMetadata => ({
   id: 'claim-1',
   userId: 'user-1',
   submissionDate: new Date().toISOString(),
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -69,7 +109,7 @@ describe('DraftClaimCard', () => {
     it('should render claim information correctly', () => {
       const claim = createMockClaim({
         claimName: 'Mobile Phone Bill',
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         month: 3,
         year: 2024,
         totalAmount: 150.75,
@@ -81,6 +121,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -94,7 +135,7 @@ describe('DraftClaimCard', () => {
     it('should render default claim name when claimName is null', () => {
       const claim = createMockClaim({
         claimName: null,
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
       });
 
       render(
@@ -103,6 +144,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -112,9 +154,15 @@ describe('DraftClaimCard', () => {
     it('should display attachment count when attachments exist', () => {
       const claim = createMockClaim({
         attachments: [
-          { id: 'att-1', fileName: 'receipt1.pdf' },
-          { id: 'att-2', fileName: 'receipt2.pdf' },
-        ] as IClaimMetadata['attachments'],
+          createMockAttachment({
+            id: 'att-1',
+            originalFilename: 'receipt1.pdf',
+          }),
+          createMockAttachment({
+            id: 'att-2',
+            originalFilename: 'receipt2.pdf',
+          }),
+        ],
       });
 
       render(
@@ -123,6 +171,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -132,8 +181,11 @@ describe('DraftClaimCard', () => {
     it('should display singular "file" when one attachment exists', () => {
       const claim = createMockClaim({
         attachments: [
-          { id: 'att-1', fileName: 'receipt.pdf' },
-        ] as IClaimMetadata['attachments'],
+          createMockAttachment({
+            id: 'att-1',
+            originalFilename: 'receipt.pdf',
+          }),
+        ],
       });
 
       render(
@@ -142,6 +194,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -159,6 +212,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -177,6 +231,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -195,6 +250,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           defaultExpanded={true}
         />,
       );
@@ -212,6 +268,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -243,6 +300,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           defaultExpanded={true}
         />,
       );
@@ -263,6 +321,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -282,6 +341,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           isDeleting={true}
         />,
       );
@@ -301,6 +361,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -320,6 +381,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           isDeleting={true}
         />,
       );
@@ -339,6 +401,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           isDeleting={true}
         />,
       );
@@ -355,6 +418,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           isDeleting={true}
         />,
       );
@@ -372,6 +436,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           isDeleting={true}
           defaultExpanded={true}
         />,
@@ -392,6 +457,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
           className="custom-class"
         />,
       );
@@ -411,6 +477,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 
@@ -421,6 +488,7 @@ describe('DraftClaimCard', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onPreview={mockOnPreview}
+          categories={mockCategories}
         />,
       );
 

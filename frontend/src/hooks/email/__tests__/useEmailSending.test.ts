@@ -8,7 +8,6 @@ import {
   IClaimEmailRequest,
   IClaimEmailResponse,
   IClaimMetadata,
-  ClaimCategory,
   ClaimStatus,
 } from '@project/types';
 import { ErrorHandler } from '../../queries/helper/error-handler';
@@ -30,7 +29,7 @@ vi.mock('../../queries/helper/error-handler', () => ({
 const mockClaimMetadata: IClaimMetadata = {
   id: 'claim-123',
   userId: 'user-123',
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   claimName: 'Monthly phone bill',
   month: 1,
   year: 2024,
