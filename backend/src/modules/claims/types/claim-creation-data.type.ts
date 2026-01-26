@@ -1,8 +1,6 @@
-import { ClaimCategoryEntity } from 'src/modules/claim-category/entities/claim-category.entity';
-
 export interface IClaimCreationData {
   userId: string;
-  category: ClaimCategoryEntity;
+  categoryId: string;
   claimName?: string;
   month: number;
   year: number;

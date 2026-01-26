@@ -24,7 +24,7 @@ export class ClaimDBUtil extends BaseDBUtil<ClaimEntity, IClaimCreationData> {
 
     const claim = repo.create({
       userId: creationData.userId,
-      categoryEntity: creationData.category,
+      categoryId: creationData.categoryId,
       claimName: creationData.claimName,
       month: creationData.month,
       year: creationData.year,

@@ -16,7 +16,7 @@ export interface CategorySelectProps {
 
 /**
  * CategorySelect component for selecting claim categories
- * Displays category names with monthly limits (if applicable)
+ * Displays category names with limits (monthly or yearly)
  * Compatible with react-hook-form
  */
 export const CategorySelect = React.memo<CategorySelectProps>(
@@ -43,20 +43,16 @@ export const CategorySelect = React.memo<CategorySelectProps>(
                 category.code,
                 categories,
               );
-              const limit =
-                category.limit?.type === 'monthly'
-                  ? category.limit.amount
-                  : null;
-              const optionText = limit
-                ? `${displayName} (SGD ${limit} limit)`
-                : displayName;
+              const limitText = category.limit
+                ? `(SGD ${category.limit.amount} ${category.limit.type})`
+                : '';
 
               return (
                 <option
                   key={category.uuid}
                   value={category.code}
                 >
-                  {optionText}
+                  {displayName} {limitText}
                 </option>
               );
             })}

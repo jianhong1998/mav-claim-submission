@@ -377,7 +377,7 @@ export class ClaimsController {
 
       const creationData: IClaimCreationData = {
         userId: user.id,
-        category,
+        categoryId: category.uuid,
         claimName: createClaimDto.claimName,
         month: createClaimDto.month,
         year: createClaimDto.year,
@@ -1440,7 +1440,7 @@ export class ClaimsController {
     // Throw exception if limit exceeded
     if (total > limitInDollars) {
       const periodType = limit.type === 'monthly' ? 'monthly' : 'yearly';
-      const errorMessage = `${category.name} ${periodType} limit of $${limitInDollars.toFixed(2)} exceeded. Current: $${existingTotal.toFixed(2)}, Proposed: $${newAmount.toFixed(2)}, Total: $${total.toFixed(2)}`;
+      const errorMessage = `${category.name} ${periodType} limit of SGD ${limitInDollars.toFixed(2)} exceeded. Current: SGD ${existingTotal.toFixed(2)}, Proposed: SGD ${newAmount.toFixed(2)}, Total: SGD ${total.toFixed(2)}`;
       this.logger.warn(
         `${periodType} limit validation failed for user ${userId}: ${errorMessage}`,
       );
