@@ -2,11 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import axiosInstance from '../config/axios';
-import {
-  TEST_USER_DATA,
-  ClaimCategory,
-  IClaimCreateRequest,
-} from '@project/types';
+import { TEST_USER_DATA, IClaimCreateRequest } from '@project/types';
+import { ClaimCategory } from '../constants/category-codes';
 import { getAuthHeaders } from '../utils/test-auth.util';
 
 /**

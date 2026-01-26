@@ -5,10 +5,10 @@ import axiosInstance from '../config/axios';
 import type { AxiosError } from 'axios';
 import {
   TEST_USER_DATA,
-  ClaimCategory,
   IClaimCreateRequest,
   IPreviewEmailResponse,
 } from '@project/types';
+import { ClaimCategory } from '../constants/category-codes';
 import { getAuthHeaders, generateTestJWT } from '../utils/test-auth.util';
 import { v4 as uuidv4 } from 'uuid';
 
