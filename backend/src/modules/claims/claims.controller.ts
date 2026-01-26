@@ -377,7 +377,7 @@ export class ClaimsController {
 
       const creationData: IClaimCreationData = {
         userId: user.id,
-        categoryId: category.uuid,
+        category,
         claimName: createClaimDto.claimName,
         month: createClaimDto.month,
         year: createClaimDto.year,
@@ -575,6 +575,8 @@ export class ClaimsController {
       this.validateClaimBusinessRules(updateClaimDto);
 
       // Lookup category if being updated
+      if (!existingClaim.categoryEntity)
+        throw new Error(`Claim category is not fetched.`);
       let category = existingClaim.categoryEntity;
       if (updateClaimDto.category !== undefined) {
         const newCategory = await this.claimCategoryService.getByCode(

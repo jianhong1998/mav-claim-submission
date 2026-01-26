@@ -234,10 +234,10 @@ export class EmailService {
     attachments?: AttachmentEntity[];
   }> {
     try {
-      // Get claim with user relation
+      // Get claim with user and categoryEntity relations
       const claim = await this.claimDBUtil.getOne({
         criteria: { id: claimId },
-        relation: { user: true },
+        relation: { user: true, categoryEntity: true },
       });
 
       if (!claim) {
@@ -311,6 +311,7 @@ export class EmailService {
       const claim = await this.claimDBUtil.getOne({
         criteria: { id: claimId },
         entityManager,
+        relation: { categoryEntity: true },
       });
 
       if (!claim) {

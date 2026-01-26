@@ -61,8 +61,18 @@ describe('EmailPreviewService', () => {
   const mockClaim: ClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
+    categoryId: 'category-123',
     user: mockUser,
-    category: 'telco',
+    categoryEntity: {
+      uuid: 'category-123' as never,
+      code: 'telco',
+      name: 'Telecommunications',
+      isEnabled: true,
+      limit: null,
+      createdAt: new Date('2025-01-01T00:00:00Z'),
+      updatedAt: new Date('2025-01-01T00:00:00Z'),
+      deletedAt: null as never,
+    },
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,
@@ -374,6 +384,7 @@ describe('EmailPreviewService', () => {
 
       expect(mockClaimDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'claim-123' },
+        relation: { categoryEntity: true },
       });
     });
 

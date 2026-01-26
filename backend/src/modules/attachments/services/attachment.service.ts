@@ -233,6 +233,7 @@ export class AttachmentService {
       // Get claim data for descriptive folder naming
       const claim = await this.claimDBUtil.getOne({
         criteria: { id: claimId },
+        relation: { categoryEntity: true },
       });
 
       if (!claim) {

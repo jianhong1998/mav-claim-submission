@@ -69,6 +69,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { code, isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toBe(mockCategory);
       expect(result?.code).toBe('telco');
@@ -86,6 +87,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { code, isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toBeNull();
     });
@@ -102,6 +104,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { code, isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toBeNull();
     });
@@ -118,6 +121,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getOne).toHaveBeenCalledWith({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         criteria: expect.objectContaining({ isEnabled: true }),
+        relation: { limit: true },
       });
     });
   });
@@ -135,6 +139,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toEqual(enabledCategories);
       expect(result).toHaveLength(1);
@@ -152,6 +157,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: {},
+        relation: { limit: true },
       });
       expect(result).toEqual(allCategories);
       expect(result).toHaveLength(2);
@@ -177,6 +183,7 @@ describe('ClaimCategoryService', () => {
       );
       expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toEqual(allCategoriesIncludingDeleted);
     });
@@ -208,6 +215,7 @@ describe('ClaimCategoryService', () => {
       );
       expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledWith({
         criteria: {},
+        relation: { limit: true },
       });
       expect(result).toEqual(allCategoriesIncludingAll);
       expect(result).toHaveLength(3);
@@ -225,6 +233,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
+        relation: { limit: true },
       });
       expect(result).toEqual(enabledCategories);
     });

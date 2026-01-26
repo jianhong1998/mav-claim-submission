@@ -15,7 +15,7 @@ export class ClaimCategoryLimitEntity {
   @PrimaryGeneratedColumn('uuid')
   uuid: UUID;
 
-  @OneToOne(() => ClaimCategoryEntity, {
+  @OneToOne(() => ClaimCategoryEntity, (category) => category.limit, {
     nullable: false,
   })
   @JoinColumn({

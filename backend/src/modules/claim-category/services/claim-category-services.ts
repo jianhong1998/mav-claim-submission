@@ -18,6 +18,7 @@ export class ClaimCategoryService {
   async getByCode(code: string): Promise<ClaimCategoryEntity | null> {
     return await this.claimCategoryDBUtil.getOne({
       criteria: { code, isEnabled: true },
+      relation: { limit: true },
     });
   }
 
@@ -33,9 +34,15 @@ export class ClaimCategoryService {
     }
 
     if (includeDeleted) {
-      return await this.claimCategoryDBUtil.getAllWithDeleted({ criteria });
+      return await this.claimCategoryDBUtil.getAllWithDeleted({
+        criteria,
+        relation: { limit: true },
+      });
     }
 
-    return await this.claimCategoryDBUtil.getAll({ criteria });
+    return await this.claimCategoryDBUtil.getAll({
+      criteria,
+      relation: { limit: true },
+    });
   }
 }

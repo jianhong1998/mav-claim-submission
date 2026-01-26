@@ -20,8 +20,19 @@ import { ClaimCategoryEntity } from 'src/modules/claim-category/entities/claim-c
 @Entity('claims')
 @Index(['userId'])
 @Index(['status'])
+@Index(['categoryEntity'])
 @Index(['month', 'year'])
 @Index(['submissionDate'])
+@Index(
+  'idx_claims_user_category_month_year',
+  ['userId', 'categoryEntity', 'month', 'year'],
+  {
+    where: '"deletedAt" IS NULL',
+  },
+)
+@Index('idx_claims_user_category_year', ['userId', 'categoryEntity', 'year'], {
+  where: '"deletedAt" IS NULL',
+})
 @Check(`"totalAmount" > 0`)
 @Check(`"month" >= 1 AND "month" <= 12`)
 @Check(`"year" >= 2020 AND "year" <= 2100`)
@@ -32,13 +43,8 @@ export class ClaimEntity {
   @Column({ type: 'uuid', nullable: false })
   userId: string;
 
-  @ManyToOne(() => ClaimCategoryEntity, {
-    nullable: false,
-  })
-  @JoinColumn({
-    name: 'category_id',
-  })
-  categoryEntity: ClaimCategoryEntity;
+  @Column({ type: 'uuid', name: 'category_id', nullable: false })
+  categoryId: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   claimName: string | null;
@@ -72,6 +78,14 @@ export class ClaimEntity {
   })
   attachments?: Relation<AttachmentEntity>[];
 
+  @ManyToOne(() => ClaimCategoryEntity, {
+    nullable: false,
+  })
+  @JoinColumn({
+    name: 'category_id',
+  })
+  categoryEntity: Relation<ClaimCategoryEntity>;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
@@ -79,5 +93,5 @@ export class ClaimEntity {
   updatedAt: Date;
 
   @DeleteDateColumn({ type: 'timestamp with time zone', nullable: true })
-  deletedAt?: Date | null;
+  deletedAt?: Date;
 }

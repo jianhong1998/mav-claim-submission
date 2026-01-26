@@ -62,6 +62,7 @@ export class EmailPreviewService {
     // Step 1: Get claim with validation
     const claim = await this.claimDBUtil.getOne({
       criteria: { id: claimId },
+      relation: { categoryEntity: true },
     });
 
     if (!claim) {

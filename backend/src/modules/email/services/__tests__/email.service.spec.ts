@@ -225,7 +225,7 @@ describe('EmailService', () => {
       // Verify claim validation was called
       expect(mockClaimDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'claim-123' },
-        relation: { user: true },
+        relation: { user: true, categoryEntity: true },
       });
       expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'user-123' },

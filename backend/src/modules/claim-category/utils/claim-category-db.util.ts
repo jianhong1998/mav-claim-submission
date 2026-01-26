@@ -40,6 +40,7 @@ export class ClaimCategoryDBUtil extends BaseDBUtil<
   public async getAllWithDeleted(params?: {
     criteria?: FindOptionsWhere<ClaimCategoryEntity>;
     entityManager?: EntityManager;
+    relation?: Record<string, boolean>;
   }): Promise<ClaimCategoryEntity[]> {
     const repo =
       params?.entityManager?.getRepository(ClaimCategoryEntity) ?? this.repo;
@@ -48,6 +49,7 @@ export class ClaimCategoryDBUtil extends BaseDBUtil<
       where: params?.criteria,
       withDeleted: true,
       transaction: true,
+      relations: params?.relation,
     });
   }
 }
