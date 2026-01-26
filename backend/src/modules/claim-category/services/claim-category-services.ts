@@ -25,24 +25,10 @@ export class ClaimCategoryService {
   async getAllCategories(
     params?: IGetAllCategoriesParams,
   ): Promise<ClaimCategoryEntity[]> {
-    const includeDisabled = params?.includeDisabled ?? false;
-    const includeDeleted = params?.includeDeleted ?? false;
-
-    const criteria: Record<string, unknown> = {};
-    if (!includeDisabled) {
-      criteria.isEnabled = true;
-    }
-
-    if (includeDeleted) {
-      return await this.claimCategoryDBUtil.getAllWithDeleted({
-        criteria,
-        relation: { limit: true },
-      });
-    }
-
-    return await this.claimCategoryDBUtil.getAll({
-      criteria,
+    return this.claimCategoryDBUtil.getAll({
+      criteria: params?.includeDisabled ? {} : { isEnabled: true },
       relation: { limit: true },
+      withDeleted: params?.includeDeleted ?? false,
     });
   }
 }

@@ -9,7 +9,6 @@ describe('ClaimCategoryService', () => {
   let mockClaimCategoryDBUtil: {
     getOne: ReturnType<typeof vi.fn>;
     getAll: ReturnType<typeof vi.fn>;
-    getAllWithDeleted: ReturnType<typeof vi.fn>;
   };
   let mockClaimCategoryLimitDBUtil: object;
 
@@ -44,7 +43,6 @@ describe('ClaimCategoryService', () => {
     mockClaimCategoryDBUtil = {
       getOne: vi.fn(),
       getAll: vi.fn(),
-      getAllWithDeleted: vi.fn(),
     };
 
     mockClaimCategoryLimitDBUtil = {};
@@ -140,6 +138,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
         relation: { limit: true },
+        withDeleted: false,
       });
       expect(result).toEqual(enabledCategories);
       expect(result).toHaveLength(1);
@@ -158,6 +157,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: {},
         relation: { limit: true },
+        withDeleted: false,
       });
       expect(result).toEqual(allCategories);
       expect(result).toHaveLength(2);
@@ -170,7 +170,7 @@ describe('ClaimCategoryService', () => {
         deletedAt: new Date(),
       };
       const allCategoriesIncludingDeleted = [mockCategory, deletedCategory];
-      mockClaimCategoryDBUtil.getAllWithDeleted.mockResolvedValue(
+      mockClaimCategoryDBUtil.getAll.mockResolvedValue(
         allCategoriesIncludingDeleted,
       );
 
@@ -178,12 +178,11 @@ describe('ClaimCategoryService', () => {
       const result = await service.getAllCategories({ includeDeleted: true });
 
       // Assert
-      expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledWith({
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
         relation: { limit: true },
+        withDeleted: true,
       });
       expect(result).toEqual(allCategoriesIncludingDeleted);
     });
@@ -199,7 +198,7 @@ describe('ClaimCategoryService', () => {
         mockDisabledCategory,
         deletedCategory,
       ];
-      mockClaimCategoryDBUtil.getAllWithDeleted.mockResolvedValue(
+      mockClaimCategoryDBUtil.getAll.mockResolvedValue(
         allCategoriesIncludingAll,
       );
 
@@ -210,12 +209,11 @@ describe('ClaimCategoryService', () => {
       });
 
       // Assert
-      expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledWith({
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: {},
         relation: { limit: true },
+        withDeleted: true,
       });
       expect(result).toEqual(allCategoriesIncludingAll);
       expect(result).toHaveLength(3);
@@ -234,6 +232,7 @@ describe('ClaimCategoryService', () => {
       expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
         criteria: { isEnabled: true },
         relation: { limit: true },
+        withDeleted: false,
       });
       expect(result).toEqual(enabledCategories);
     });
@@ -250,11 +249,9 @@ describe('ClaimCategoryService', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('should use getAllWithDeleted when includeDeleted is true, regardless of includeDisabled', async () => {
+    it('should pass withDeleted true when includeDeleted is true, regardless of includeDisabled', async () => {
       // Arrange
-      mockClaimCategoryDBUtil.getAllWithDeleted.mockResolvedValue([
-        mockCategory,
-      ]);
+      mockClaimCategoryDBUtil.getAll.mockResolvedValue([mockCategory]);
 
       // Act
       await service.getAllCategories({
@@ -263,10 +260,12 @@ describe('ClaimCategoryService', () => {
       });
 
       // Assert
-      expect(mockClaimCategoryDBUtil.getAllWithDeleted).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(mockClaimCategoryDBUtil.getAll).not.toHaveBeenCalled();
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledTimes(1);
+      expect(mockClaimCategoryDBUtil.getAll).toHaveBeenCalledWith({
+        criteria: { isEnabled: true },
+        relation: { limit: true },
+        withDeleted: true,
+      });
     });
   });
 });

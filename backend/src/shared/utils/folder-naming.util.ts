@@ -14,22 +14,14 @@ export interface FolderNameGenerationResult {
   errors: string[];
 }
 
-// Valid category codes - category is already a code string from database
-const VALID_CATEGORY_CODES = Object.freeze([
-  'telco',
-  'fitness',
-  'dental',
-  'skill-enhancement',
-  'company-event',
-  'company-lunch',
-  'company-dinner',
-  'others',
-] as const);
-
 const CLAIM_NAME_MAX_LENGTH = 30;
 const TOTAL_PATH_MAX_LENGTH = 200;
 const SANITIZATION_PATTERN = /[!@#$%^&*()+=[\]{}|;':",./<>?\\]/g;
 const MULTIPLE_HYPHENS_PATTERN = /[-\s]+/g;
+
+// Pre-computed regex for folder name validation - eliminates O(n) find operations
+const FOLDER_NAME_PATTERN =
+  /^(\d{4})-(0[1-9]|1[0-2])-(\d{10})-(telco|fitness|dental|skill-enhancement|company-event|company-lunch|company-dinner|others)(?:-(.+))?$/;
 
 export class FolderNamingUtil {
   public static generateFolderName(
@@ -103,8 +95,7 @@ export class FolderNamingUtil {
     const errors: string[] = [];
 
     if (!folderName || typeof folderName !== 'string') {
-      errors.push('Folder name cannot be empty');
-      return { isValid: false, errors };
+      return { isValid: false, errors: ['Folder name cannot be empty'] };
     }
 
     if (folderName.length > TOTAL_PATH_MAX_LENGTH) {
@@ -121,51 +112,20 @@ export class FolderNamingUtil {
       errors.push('Folder name contains invalid characters for file systems');
     }
 
-    const parts = folderName.split('-');
-    if (parts.length < 4) {
+    // Single regex validates entire format: year, month, timestamp, category, optional claim name
+    const match = FOLDER_NAME_PATTERN.exec(folderName);
+    if (!match) {
       errors.push(
         'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
       );
     } else {
-      const year = parts[0];
-      const month = parts[1];
-      const timestamp = parts[2];
-
-      // Category can contain hyphens (e.g., "skill-enhancement", "company-lunch")
-      // Reconstruct from parts[3] onwards and find which valid category it matches
-      const remainingParts = parts.slice(3).join('-');
-
-      // Find which valid category code this folder name uses
-      const matchedCategory = VALID_CATEGORY_CODES.find(
-        (code) =>
-          remainingParts === code || remainingParts.startsWith(`${code}-`),
-      );
-
-      if (
-        !/^\d{4}$/.test(year) ||
-        parseInt(year) < 2020 ||
-        parseInt(year) > 2100
-      ) {
+      const year = parseInt(match[1]);
+      if (year < 2020 || year > 2100) {
         errors.push('Invalid year format or range');
-      }
-
-      if (!/^(0[1-9]|1[0-2])$/.test(month)) {
-        errors.push('Invalid month format');
-      }
-
-      if (!/^\d{10}$/.test(timestamp)) {
-        errors.push('Invalid timestamp format');
-      }
-
-      if (!matchedCategory) {
-        errors.push('Invalid category code');
       }
     }
 
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
   private static truncateClaimName(

@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { categoryQueryKeys } from '../queries/keys/key';
 import { apiClient } from '@/lib/api-client';
@@ -14,32 +13,45 @@ export interface UseCategoriesParams {
 }
 
 /**
+ * Maps error to user-friendly message
+ */
+const getErrorMessage = (error: unknown): string => {
+  const statusCode = ErrorHandler.extractStatusCodeFromError(error);
+
+  switch (statusCode) {
+    case 401:
+      return 'Authentication required to view categories.';
+    case 403:
+      return 'You do not have permission to view categories.';
+    case 404:
+      return 'Categories not found.';
+    default:
+      return 'Failed to load categories. Please try again.';
+  }
+};
+
+/**
  * Base hook for fetching claim categories with optional filtering
  */
 export const useCategories = (params?: UseCategoriesParams) => {
-  // Memoized query key to prevent recreation on every render
-  const queryKey = useMemo(() => categoryQueryKeys.list(params), [params]);
-
-  // Memoized query function
-  const queryFn = useCallback(async (): Promise<IClaimCategory[]> => {
-    const queryParams = new URLSearchParams();
-    if (params?.includeDisabled) {
-      queryParams.append('includeDisabled', 'true');
-    }
-    if (params?.includeDeleted) {
-      queryParams.append('includeDeleted', 'true');
-    }
-
-    const queryString = queryParams.toString();
-    const endpoint = `/claim-categories${queryString ? `?${queryString}` : ''}`;
-
-    const response = await apiClient.get<IClaimCategoryListResponse>(endpoint);
-    return response.categories;
-  }, [params?.includeDisabled, params?.includeDeleted]);
-
   const query = useQuery<IClaimCategory[]>({
-    queryKey,
-    queryFn,
+    queryKey: categoryQueryKeys.list(params),
+    queryFn: async () => {
+      const queryParams = new URLSearchParams();
+      if (params?.includeDisabled) {
+        queryParams.append('includeDisabled', 'true');
+      }
+      if (params?.includeDeleted) {
+        queryParams.append('includeDeleted', 'true');
+      }
+
+      const queryString = queryParams.toString();
+      const endpoint = `/claim-categories${queryString ? `?${queryString}` : ''}`;
+
+      const response =
+        await apiClient.get<IClaimCategoryListResponse>(endpoint);
+      return response.categories;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes - categories don't change frequently
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
@@ -54,31 +66,10 @@ export const useCategories = (params?: UseCategoriesParams) => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Handle errors
-  const errorMessage = useMemo(() => {
-    if (!query.error) return null;
-
-    const statusCode = ErrorHandler.extractStatusCodeFromError(query.error);
-
-    switch (statusCode) {
-      case 401:
-        return 'Authentication required to view categories.';
-      case 403:
-        return 'You do not have permission to view categories.';
-      case 404:
-        return 'Categories not found.';
-      default:
-        return 'Failed to load categories. Please try again.';
-    }
-  }, [query.error]);
-
-  return useMemo(
-    () => ({
-      ...query,
-      errorMessage,
-    }),
-    [query, errorMessage],
-  );
+  return {
+    ...query,
+    errorMessage: query.error ? getErrorMessage(query.error) : null,
+  };
 };
 
 /**

@@ -34,6 +34,39 @@ export interface MultiClaimValidationResult {
 }
 
 /**
+ * Category limit information extracted from category lookup
+ */
+interface CategoryLimit {
+  hasLimit: boolean;
+  amount: number | null;
+}
+
+/**
+ * Single O(1) lookup for category limit information.
+ * Replaces redundant hasMonthlyLimit() + getMonthlyLimit() calls.
+ */
+function getCategoryLimit(
+  category: string,
+  categoryMap: Map<string, IClaimCategory>,
+): CategoryLimit {
+  const cat = categoryMap.get(category);
+  if (!cat || cat.limit?.type !== 'monthly') {
+    return { hasLimit: false, amount: null };
+  }
+  return { hasLimit: true, amount: cat.limit.amount };
+}
+
+/**
+ * Build category lookup map for O(1) access.
+ * Called once per validation cycle instead of O(n) searches per category.
+ */
+function buildCategoryMap(
+  categories: IClaimCategory[],
+): Map<string, IClaimCategory> {
+  return new Map(categories.map((cat) => [cat.code, cat]));
+}
+
+/**
  * Validates a single claim for basic business rules
  */
 export function validateSingleClaim(
@@ -111,6 +144,7 @@ export function validateMonthlyLimits(
   categories: IClaimCategory[] = [],
 ): ClaimValidationResult {
   const errors: ValidationError[] = [];
+  const categoryMap = buildCategoryMap(categories);
 
   // Group claims by category, month, and year
   const claimGroups = new Map<
@@ -141,14 +175,15 @@ export function validateMonthlyLimits(
   // Check monthly limits for limited categories
   claimGroups.forEach((group, key) => {
     const [category, month, year] = key.split('-');
+    const categoryLimit = getCategoryLimit(category, categoryMap);
 
-    const limit = getMonthlyLimit(category, categories);
-
-    if (!limit || group.total <= limit) return;
+    if (!categoryLimit.hasLimit || group.total <= categoryLimit.amount!) {
+      return;
+    }
 
     errors.push({
       field: 'totalAmount',
-      message: `${category.toUpperCase()} monthly limit of $${limit} exceeded ($${group.total.toFixed(2)}) for ${month}/${year}`,
+      message: `${category.toUpperCase()} monthly limit of $${categoryLimit.amount} exceeded ($${group.total.toFixed(2)}) for ${month}/${year}`,
       type: 'limit',
     });
   });
@@ -231,8 +266,8 @@ export function hasMonthlyLimit(
   category: string,
   categories: IClaimCategory[],
 ): boolean {
-  const cat = categories.find((c) => c.code === category);
-  return cat?.limit?.type === 'monthly';
+  const categoryMap = buildCategoryMap(categories);
+  return getCategoryLimit(category, categoryMap).hasLimit;
 }
 
 /**
@@ -242,8 +277,8 @@ export function getMonthlyLimit(
   category: string,
   categories: IClaimCategory[],
 ): number | null {
-  const cat = categories.find((c) => c.code === category);
-  return cat?.limit?.type === 'monthly' ? cat.limit.amount : null;
+  const categoryMap = buildCategoryMap(categories);
+  return getCategoryLimit(category, categoryMap).amount;
 }
 
 /**
@@ -256,11 +291,13 @@ export function calculateRemainingLimit(
   existingClaims: IClaimMetadata[],
   categories: IClaimCategory[],
 ): number | null {
-  if (!hasMonthlyLimit(category, categories)) {
+  const categoryMap = buildCategoryMap(categories);
+  const categoryLimit = getCategoryLimit(category, categoryMap);
+
+  if (!categoryLimit.hasLimit) {
     return null;
   }
 
-  const limit = getMonthlyLimit(category, categories)!;
   const usedAmount = existingClaims
     .filter(
       (claim) =>
@@ -270,7 +307,7 @@ export function calculateRemainingLimit(
     )
     .reduce((sum, claim) => sum + claim.totalAmount, 0);
 
-  return Math.max(0, limit - usedAmount);
+  return Math.max(0, categoryLimit.amount! - usedAmount);
 }
 
 /**

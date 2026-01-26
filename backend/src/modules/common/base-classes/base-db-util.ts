@@ -39,6 +39,7 @@ export abstract class BaseDBUtil<
     entityManager?: EntityManager;
     relation?: FindOptionsRelations<ModelType>;
     criteria?: FindOptionsWhere<ModelType>;
+    withDeleted?: boolean;
   }): Promise<ModelType[]> {
     const repo =
       (options?.entityManager?.getRepository(
@@ -49,6 +50,7 @@ export abstract class BaseDBUtil<
       where: options?.criteria,
       relations: options?.relation,
       transaction: true,
+      withDeleted: options?.withDeleted,
     });
   }
 

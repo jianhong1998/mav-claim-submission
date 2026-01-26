@@ -501,8 +501,20 @@ describe('FolderNamingUtil', () => {
     });
 
     it('should validate year format and range', () => {
-      const invalidYears = ['202', '20244', 'abcd', '2019', '2101'];
-      invalidYears.forEach((year) => {
+      // Format violations (caught by regex)
+      const formatInvalid = ['202', '20244', 'abcd'];
+      formatInvalid.forEach((year) => {
+        const folderName = `${year}-09-1234567890-telco-test`;
+        const result = FolderNamingUtil.validateClaimName(folderName);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
+      });
+
+      // Range violations (valid format but year out of range)
+      const rangeInvalid = ['2019', '2101'];
+      rangeInvalid.forEach((year) => {
         const folderName = `${year}-09-1234567890-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
@@ -516,7 +528,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-${month}-1234567890-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid month format');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
@@ -526,7 +540,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-09-${timestamp}-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid timestamp format');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
@@ -536,7 +552,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-09-1234567890-${category}-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid category code');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
