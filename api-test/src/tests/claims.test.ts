@@ -93,7 +93,7 @@ describe('Monthly Limit Validation', () => {
         const errorData = axiosError.response?.data as any;
         expect(errorData.message).toContain('Telecommunications');
         expect(errorData.message).toContain('monthly limit');
-        expect(errorData.message).toContain('$150.00');
+        expect(errorData.message).toContain('SGD 150.00');
         expect(errorData.message).toContain('Proposed');
       }
     });
@@ -233,7 +233,7 @@ describe('Monthly Limit Validation', () => {
         // Verify error message format
         const errorData = axiosError.response?.data as any;
         expect(errorData.message).toContain('Telecommunications');
-        expect(errorData.message).toContain('$150.00');
+        expect(errorData.message).toContain('SGD 150.00');
         expect(errorData.message).toContain('Proposed');
       }
     });
@@ -319,7 +319,7 @@ describe('Monthly Limit Validation', () => {
         // Verify error message format
         const errorData = axiosError.response?.data as any;
         expect(errorData.message).toContain('Fitness & Wellness');
-        expect(errorData.message).toContain('$50.00');
+        expect(errorData.message).toContain('SGD 50.00');
         expect(errorData.message).toContain('Proposed');
       }
     });
@@ -418,10 +418,10 @@ describe('Yearly Limit Validation', () => {
         const errorData = axiosError.response?.data as any;
         expect(errorData.message).toContain('Dental');
         expect(errorData.message).toContain('yearly limit');
-        expect(errorData.message).toContain('$300.00');
-        expect(errorData.message).toContain('Current: $300.00');
-        expect(errorData.message).toContain('Proposed: $50.00');
-        expect(errorData.message).toContain('Total: $350.00');
+        expect(errorData.message).toContain('SGD 300.00');
+        expect(errorData.message).toContain('Current: SGD 300.00');
+        expect(errorData.message).toContain('Proposed: SGD 50.00');
+        expect(errorData.message).toContain('Total: SGD 350.00');
       }
     });
   });
@@ -510,7 +510,7 @@ describe('Yearly Limit Validation', () => {
         const errorData = axiosError.response?.data as any;
         expect(errorData.message).toContain('Dental');
         expect(errorData.message).toContain('yearly limit');
-        expect(errorData.message).toContain('$300.00');
+        expect(errorData.message).toContain('SGD 300.00');
       }
     });
   });
