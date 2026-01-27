@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Edit,
 } from 'lucide-react';
+import { useCategoriesForDisplay } from '@/hooks/categories/useCategories';
 
 export interface ClaimReviewItemProps {
   /**
@@ -44,6 +45,7 @@ export interface ClaimReviewItemProps {
 
 export const ClaimReviewItem = React.memo<ClaimReviewItemProps>(
   ({ claim, onEdit, isUpdating }) => {
+    const { data: categories = [] } = useCategoriesForDisplay();
     const [showAttachments, setShowAttachments] = useState(false);
     const attachmentCount = claim.attachments?.length || 0;
 
@@ -60,7 +62,7 @@ export const ClaimReviewItem = React.memo<ClaimReviewItemProps>(
             <div className="space-y-1">
               <CardTitle className="text-base">
                 {claim.claimName ||
-                  `${getCategoryDisplayName(claim.category)} Claim`}
+                  `${getCategoryDisplayName(claim.category, categories)} Claim`}
               </CardTitle>
               <CardDescription className="flex items-center gap-4 text-sm">
                 <span className="flex items-center gap-1">
@@ -96,7 +98,9 @@ export const ClaimReviewItem = React.memo<ClaimReviewItemProps>(
 
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div>Category: {getCategoryDisplayName(claim.category)}</div>
+            <div>
+              Category: {getCategoryDisplayName(claim.category, categories)}
+            </div>
             <div>Status: {claim.status}</div>
           </div>
 

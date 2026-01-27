@@ -1,3 +1,7 @@
+/**
+ * Known category codes from database seed data.
+ * Used for testing with type-safe category references.
+ */
 export const ClaimCategory = Object.freeze({
   TELCO: 'telco',
   FITNESS: 'fitness',
@@ -8,4 +12,3 @@ export const ClaimCategory = Object.freeze({
   COMPANY_DINNER: 'company-dinner',
   OTHERS: 'others',
 } as const);
-export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];

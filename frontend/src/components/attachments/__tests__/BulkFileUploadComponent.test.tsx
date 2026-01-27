@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BulkFileUploadComponent } from '../BulkFileUploadComponent';
-import { ClaimCategory, ClaimStatus, IClaimMetadata } from '@project/types';
+import { ClaimStatus, IClaimMetadata } from '@project/types';
 
 // Mock dependencies
 vi.mock('@/lib/utils', () => ({
@@ -26,7 +26,7 @@ const createMockClaim = (
   id: 'claim-1',
   userId: 'user-1',
   submissionDate: new Date().toISOString(),
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,

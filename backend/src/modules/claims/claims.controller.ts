@@ -43,16 +43,13 @@ import { UserEntity } from '../user/entities/user.entity';
 import { ClaimDBUtil } from './utils/claim-db.util';
 import { ClaimEntity } from './entities/claim.entity';
 import {
-  CLAIM_MONTHLY_LIMITS,
-  CLAIM_YEARLY_LIMITS,
-} from './constants/claim-limits.constants';
-import {
   ClaimStatus,
-  ClaimCategory,
   AttachmentMimeType,
   AttachmentStatus,
   IPreviewEmailResponse,
 } from '@project/types';
+import { ClaimCategoryService } from '../claim-category/services/claim-category-services';
+import { ClaimCategoryEntity } from '../claim-category/entities/claim-category.entity';
 import {
   ClaimCreateRequestDto,
   ClaimUpdateRequestDto,
@@ -64,7 +61,7 @@ import { IClaimCreationData } from './types/claim-creation-data.type';
 import { IClaimMetadata, IClaimEmailRequest } from '@project/types';
 import { EmailService } from '../email/services/email.service';
 import { EmailPreviewService } from '../email/services/email-preview.service';
-import { CLAIM_CATEGORY_DISPLAY_MAP } from './constants/claim-display-name.constants';
+import { AmountUtil } from 'src/shared/utils/amount.util';
 
 @ApiTags('Claims')
 @Controller('claims')
@@ -88,6 +85,7 @@ export class ClaimsController {
     private readonly claimDBUtil: ClaimDBUtil,
     private readonly emailService: EmailService,
     private readonly emailPreviewService: EmailPreviewService,
+    private readonly claimCategoryService: ClaimCategoryService,
   ) {}
 
   /**
@@ -130,7 +128,6 @@ export class ClaimsController {
               },
               category: {
                 type: 'string',
-                enum: Object.values(ClaimCategory),
                 example: 'telco',
               },
               claimName: { type: 'string', example: 'Monthly phone bill' },
@@ -202,7 +199,7 @@ export class ClaimsController {
 
       const claims = await this.claimDBUtil.getAll({
         criteria,
-        relation: { attachments: true },
+        relation: { attachments: true, categoryEntity: true },
       });
 
       const claimMetadata: IClaimMetadata[] = claims.map((claim) =>
@@ -278,7 +275,6 @@ export class ClaimsController {
             },
             category: {
               type: 'string',
-              enum: Object.values(ClaimCategory),
               example: 'telco',
             },
             claimName: { type: 'string', example: 'Monthly phone bill' },
@@ -361,26 +357,28 @@ export class ClaimsController {
       // Validate business rules
       this.validateClaimBusinessRules(createClaimDto);
 
-      // Validate monthly limit for category
-      await this.validateMonthlyLimit(
-        user.id,
+      // Lookup and validate category
+      const category = await this.claimCategoryService.getByCode(
         createClaimDto.category,
-        createClaimDto.month,
-        createClaimDto.year,
-        createClaimDto.totalAmount,
       );
+      if (!category) {
+        throw new BadRequestException(
+          `Invalid category: ${createClaimDto.category}`,
+        );
+      }
 
-      // Validate yearly limit for category
-      await this.validateYearlyLimit(
+      // Validate category limit (unified monthly/yearly logic)
+      await this.validateCategoryLimit(
         user.id,
-        createClaimDto.category,
+        category,
+        createClaimDto.month,
         createClaimDto.year,
         createClaimDto.totalAmount,
       );
 
       const creationData: IClaimCreationData = {
         userId: user.id,
-        category: createClaimDto.category,
+        categoryId: category.uuid,
         claimName: createClaimDto.claimName,
         month: createClaimDto.month,
         year: createClaimDto.year,
@@ -392,7 +390,7 @@ export class ClaimsController {
       // Fetch the created claim with relations
       const claimWithRelations = await this.claimDBUtil.getOne({
         criteria: { id: createdClaim.id },
-        relation: { attachments: true },
+        relation: { attachments: true, categoryEntity: true },
       });
 
       if (!claimWithRelations) {
@@ -475,7 +473,6 @@ export class ClaimsController {
             },
             category: {
               type: 'string',
-              enum: Object.values(ClaimCategory),
               example: 'fitness',
             },
             claimName: { type: 'string', example: 'Updated gym membership' },
@@ -565,6 +562,7 @@ export class ClaimsController {
       // Check if claim exists and belongs to user
       const existingClaim = await this.claimDBUtil.getOne({
         criteria: { id, userId: user.id },
+        relation: { categoryEntity: true },
       });
 
       if (!existingClaim) {
@@ -577,20 +575,27 @@ export class ClaimsController {
       // Validate business rules for updates
       this.validateClaimBusinessRules(updateClaimDto);
 
-      // Validate monthly limit for category
-      await this.validateMonthlyLimit(
-        user.id,
-        updateClaimDto.category ?? existingClaim.category,
-        updateClaimDto.month ?? existingClaim.month,
-        updateClaimDto.year ?? existingClaim.year,
-        updateClaimDto.totalAmount ?? Number(existingClaim.totalAmount),
-        existingClaim.id,
-      );
+      // Lookup category if being updated
+      if (!existingClaim.categoryEntity)
+        throw new Error(`Claim category is not fetched.`);
+      let category = existingClaim.categoryEntity;
+      if (updateClaimDto.category !== undefined) {
+        const newCategory = await this.claimCategoryService.getByCode(
+          updateClaimDto.category,
+        );
+        if (!newCategory) {
+          throw new BadRequestException(
+            `Invalid category: ${updateClaimDto.category}`,
+          );
+        }
+        category = newCategory;
+      }
 
-      // Validate yearly limit for category
-      await this.validateYearlyLimit(
+      // Validate category limit
+      await this.validateCategoryLimit(
         user.id,
-        updateClaimDto.category ?? existingClaim.category,
+        category,
+        updateClaimDto.month ?? existingClaim.month,
         updateClaimDto.year ?? existingClaim.year,
         updateClaimDto.totalAmount ?? Number(existingClaim.totalAmount),
         existingClaim.id,
@@ -598,7 +603,7 @@ export class ClaimsController {
 
       // Update claim properties
       if (updateClaimDto.category !== undefined) {
-        existingClaim.category = updateClaimDto.category;
+        existingClaim.categoryEntity = category;
       }
       if (updateClaimDto.claimName !== undefined) {
         existingClaim.claimName = updateClaimDto.claimName;
@@ -624,7 +629,7 @@ export class ClaimsController {
       // Fetch updated claim with relations
       const claimWithRelations = await this.claimDBUtil.getOne({
         criteria: { id: updatedClaim.id },
-        relation: { attachments: true },
+        relation: { attachments: true, categoryEntity: true },
       });
 
       if (!claimWithRelations) {
@@ -818,7 +823,6 @@ export class ClaimsController {
             },
             category: {
               type: 'string',
-              enum: Object.values(ClaimCategory),
               example: 'telco',
             },
             claimName: { type: 'string', example: 'Monthly phone bill' },
@@ -939,7 +943,7 @@ export class ClaimsController {
       // Fetch updated claim with relations
       const claimWithRelations = await this.claimDBUtil.getOne({
         criteria: { id: updatedClaim.id },
-        relation: { attachments: true },
+        relation: { attachments: true, categoryEntity: true },
       });
 
       if (!claimWithRelations) {
@@ -1002,7 +1006,6 @@ export class ClaimsController {
             },
             category: {
               type: 'string',
-              enum: Object.values(ClaimCategory),
               example: 'telco',
             },
             claimName: { type: 'string', example: 'Monthly phone bill' },
@@ -1116,7 +1119,7 @@ export class ClaimsController {
       // Fetch the updated claim with relations
       const claimWithRelations = await this.claimDBUtil.getOne({
         criteria: { id },
-        relation: { attachments: true },
+        relation: { attachments: true, categoryEntity: true },
       });
 
       if (!claimWithRelations) {
@@ -1372,25 +1375,50 @@ export class ClaimsController {
    * @param excludeClaimId - Optional claim ID to exclude from calculation (for updates)
    * @throws UnprocessableEntityException if monthly limit would be exceeded
    */
-  private async validateMonthlyLimit(
+  /**
+   * Unified category limit validation for both monthly and yearly limits
+   * Requirements: 1.1 - Create claim validation, 1.2 - Update claim validation, 3 - Error messages
+   * @param userId - User ID for claim ownership
+   * @param category - ClaimCategoryEntity with limit relation
+   * @param month - Month for the claim
+   * @param year - Year for the claim
+   * @param newAmount - Amount being added/updated
+   * @param excludeClaimId - Optional claim ID to exclude from calculation (for updates)
+   * @throws UnprocessableEntityException if limit would be exceeded
+   */
+  private async validateCategoryLimit(
     userId: string,
-    category: ClaimCategory,
+    category: ClaimCategoryEntity,
     month: number,
     year: number,
     newAmount: number,
     excludeClaimId?: string,
   ): Promise<void> {
-    // Get limit for category, return early if no limit defined
-    const limit = CLAIM_MONTHLY_LIMITS[
-      category as keyof typeof CLAIM_MONTHLY_LIMITS
-    ] as number | undefined;
-    if (limit === undefined) {
+    const limit = category.limit;
+    if (!limit) {
+      // Unlimited category
       return;
     }
 
-    // Fetch existing claims for this user, category, month, and year
+    // Build criteria based on limit type
+    const criteria: {
+      userId: string;
+      categoryEntity: { uuid: string };
+      month?: number;
+      year: number;
+    } = {
+      userId,
+      categoryEntity: { uuid: category.uuid },
+      year,
+    };
+
+    if (limit.type === 'monthly') {
+      criteria.month = month;
+    }
+
+    // Fetch existing claims
     const existingClaims = await this.claimDBUtil.getAll({
-      criteria: { userId, category, month, year },
+      criteria: criteria as Record<string, unknown>,
     });
 
     // Filter out the claim being updated if excludeClaimId provided
@@ -1398,7 +1426,7 @@ export class ClaimsController {
       ? existingClaims.filter((c) => c.id !== excludeClaimId)
       : existingClaims;
 
-    // Sum existing claim amounts (convert to number in case DB returns string)
+    // Sum existing claim amounts
     const existingTotal = relevantClaims.reduce(
       (sum, claim) => sum + Number(claim.totalAmount),
       0,
@@ -1407,67 +1435,15 @@ export class ClaimsController {
     // Calculate total with new amount
     const total = existingTotal + newAmount;
 
-    // Throw exception if limit exceeded
-    // TypeScript knows limit is number here due to early return above
-    if (total > limit) {
-      const errorMessage = `${CLAIM_CATEGORY_DISPLAY_MAP.get(category)} monthly limit of $${limit.toFixed(2)} exceeded. Current: $${existingTotal.toFixed(2)}, Proposed: $${newAmount.toFixed(2)}, Total: $${total.toFixed(2)}`;
-      this.logger.warn(
-        `Monthly limit validation failed for user ${userId}: ${errorMessage}`,
-      );
-      throw new UnprocessableEntityException(errorMessage);
-    }
-  }
-
-  /**
-   * Validate yearly claim limit for specified category
-   * Requirements: 1.1 - Create claim validation, 1.2 - Update claim validation, 3 - Error messages
-   * @param userId - User ID for claim ownership
-   * @param category - Claim category to validate
-   * @param year - Year for the claim
-   * @param newAmount - Amount being added/updated
-   * @param excludeClaimId - Optional claim ID to exclude from calculation (for updates)
-   * @throws UnprocessableEntityException if yearly limit would be exceeded
-   */
-  private async validateYearlyLimit(
-    userId: string,
-    category: ClaimCategory,
-    year: number,
-    newAmount: number,
-    excludeClaimId?: string,
-  ): Promise<void> {
-    // Get limit for category, return early if no limit defined
-    const limit = CLAIM_YEARLY_LIMITS[
-      category as keyof typeof CLAIM_YEARLY_LIMITS
-    ] as number | undefined;
-    if (limit === undefined) {
-      return;
-    }
-
-    // Fetch existing claims for this user, category, and year
-    const existingClaims = await this.claimDBUtil.getAll({
-      criteria: { userId, category, year },
-    });
-
-    // Filter out the claim being updated if excludeClaimId provided
-    const relevantClaims = excludeClaimId
-      ? existingClaims.filter((c) => c.id !== excludeClaimId)
-      : existingClaims;
-
-    // Sum existing claim amounts (convert to number in case DB returns string)
-    const existingTotal = relevantClaims.reduce(
-      (sum, claim) => sum + Number(claim.totalAmount),
-      0,
-    );
-
-    // Calculate total with new amount
-    const total = existingTotal + newAmount;
+    // Convert cents to dollars for limit comparison
+    const limitInDollars = AmountUtil.convertCentToDollar(limit.amount);
 
     // Throw exception if limit exceeded
-    // TypeScript knows limit is number here due to early return above
-    if (total > limit) {
-      const errorMessage = `${CLAIM_CATEGORY_DISPLAY_MAP.get(category)} yearly limit of $${limit.toFixed(2)} exceeded. Current: $${existingTotal.toFixed(2)}, Proposed: $${newAmount.toFixed(2)}, Total: $${total.toFixed(2)}`;
+    if (total > limitInDollars) {
+      const periodType = limit.type === 'monthly' ? 'monthly' : 'yearly';
+      const errorMessage = `${category.name} ${periodType} limit of SGD ${limitInDollars.toFixed(2)} exceeded. Current: SGD ${existingTotal.toFixed(2)}, Proposed: SGD ${newAmount.toFixed(2)}, Total: SGD ${total.toFixed(2)}`;
       this.logger.warn(
-        `Yearly limit validation failed for user ${userId}: ${errorMessage}`,
+        `${periodType} limit validation failed for user ${userId}: ${errorMessage}`,
       );
       throw new UnprocessableEntityException(errorMessage);
     }
@@ -1570,7 +1546,7 @@ export class ClaimsController {
     return {
       id: claim.id,
       userId: claim.userId,
-      category: claim.category,
+      category: claim.categoryEntity.code,
       claimName: claim.claimName,
       month: claim.month,
       year: claim.year,

@@ -6,10 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClaimsListComponent } from '../ClaimsListComponent';
 import { apiClient } from '@/lib/api-client';
 import {
-  ClaimCategory,
   ClaimStatus,
   IClaimMetadata,
   IClaimListResponse,
+  IClaimCategory,
   AttachmentMimeType,
   AttachmentStatus,
   IAttachmentMetadata,
@@ -24,6 +24,44 @@ vi.mock('@/lib/api-client', () => ({
 
 vi.mock('@/lib/utils', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}));
+
+// Mock categories hook
+const mockCategoriesData: IClaimCategory[] = [
+  {
+    uuid: '1',
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly', amount: 150 },
+  },
+  {
+    uuid: '2',
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly', amount: 50 },
+  },
+  {
+    uuid: '3',
+    code: 'dental',
+    name: 'Dental Care',
+    limit: { type: 'yearly', amount: 300 },
+  },
+  { uuid: '4', code: 'company-event', name: 'Company Event', limit: null },
+  {
+    uuid: '5',
+    code: 'skill-enhancement',
+    name: 'Skill Enhancement',
+    limit: null,
+  },
+  { uuid: '6', code: 'others', name: 'Others', limit: null },
+];
+
+vi.mock('@/hooks/categories/useCategories', () => ({
+  useCategoriesForDisplay: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
+  })),
 }));
 
 // Mock Lucide React icons
@@ -129,12 +167,17 @@ const createTestWrapper = (retryEnabled = false) => {
   return TestWrapper;
 };
 
+// const mockCategories: IClaimCategory[] = [
+//   { uuid: '1', code: 'telco', name: 'Telecommunications', limit: { type: 'monthly', amount: 150 } },
+//   { uuid: '2', code: 'fitness', name: 'Fitness & Wellness', limit: { type: 'monthly', amount: 50 } },
+// ];
+
 const createMockClaim = (
   overrides: Partial<IClaimMetadata> = {},
 ): IClaimMetadata => ({
   id: 'claim-1',
   userId: 'user-123',
-  category: ClaimCategory.TELCO,
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -306,7 +349,7 @@ describe('ClaimsListComponent', () => {
       const mockClaims = [
         createMockClaim({
           id: 'claim-1',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           month: 3,
           year: 2024,
           totalAmount: 100.5,
@@ -316,7 +359,7 @@ describe('ClaimsListComponent', () => {
         }),
         createMockClaim({
           id: 'claim-2',
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
           month: 2,
           year: 2024,
           totalAmount: 75.0,
@@ -436,18 +479,18 @@ describe('ClaimsListComponent', () => {
 
     it('should display category display names correctly', async () => {
       const mockClaims = [
-        createMockClaim({ id: 'claim-1', category: ClaimCategory.TELCO }),
-        createMockClaim({ id: 'claim-2', category: ClaimCategory.FITNESS }),
-        createMockClaim({ id: 'claim-3', category: ClaimCategory.DENTAL }),
+        createMockClaim({ id: 'claim-1', category: 'telco' }),
+        createMockClaim({ id: 'claim-2', category: 'fitness' }),
+        createMockClaim({ id: 'claim-3', category: 'dental' }),
         createMockClaim({
           id: 'claim-4',
-          category: ClaimCategory.COMPANY_EVENT,
+          category: 'company-event',
         }),
         createMockClaim({
           id: 'claim-5',
-          category: ClaimCategory.SKILL_ENHANCEMENT,
+          category: 'skill-enhancement',
         }),
-        createMockClaim({ id: 'claim-6', category: ClaimCategory.OTHERS }),
+        createMockClaim({ id: 'claim-6', category: 'others' }),
       ];
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
@@ -649,7 +692,7 @@ describe('ClaimsListComponent', () => {
         totalAmount: 150.75,
         month: 6,
         year: 2024,
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         status: ClaimStatus.PAID,
         attachments: [
           createMockAttachment({
@@ -772,7 +815,7 @@ describe('ClaimsListComponent', () => {
       const malformedClaim = {
         id: 'bad-claim',
         userId: 'user-1',
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         month: 3,
         year: 2024,
         totalAmount: 100,

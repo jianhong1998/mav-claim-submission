@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { IClaimMetadata } from '@project/types';
+import type { IClaimMetadata, IClaimCategory } from '@project/types';
 import {
   Edit,
   Trash2,
@@ -30,6 +30,7 @@ export interface DraftClaimCardProps {
   onEdit: (claim: IClaimMetadata) => void;
   onDelete: (claim: IClaimMetadata) => void;
   onPreview: (claim: IClaimMetadata) => void;
+  categories: IClaimCategory[];
   isDeleting?: boolean;
   defaultExpanded?: boolean;
   className?: string;
@@ -46,6 +47,7 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
     onEdit,
     onDelete,
     onPreview,
+    categories,
     isDeleting = false,
     defaultExpanded = false,
     className,
@@ -69,7 +71,8 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div className="space-y-1 min-w-0 flex-1">
               <CardTitle className="text-base truncate">
-                {claim.claimName || `${getCategoryDisplayName(claim.category)}`}
+                {claim.claimName ||
+                  `${getCategoryDisplayName(claim.category, categories)}`}
               </CardTitle>
               {/* Mobile: Stack details vertically, Desktop: Horizontal */}
               <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm">
@@ -155,7 +158,7 @@ export const DraftClaimCard = React.memo<DraftClaimCardProps>(
         <CardContent className="pt-0">
           <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">
-              Category: {getCategoryDisplayName(claim.category)}
+              Category: {getCategoryDisplayName(claim.category, categories)}
             </div>
             <div className="text-xs text-muted-foreground">
               Created{' '}

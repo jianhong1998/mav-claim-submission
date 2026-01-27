@@ -6,7 +6,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ClaimDBUtil } from './claim-db.util';
 import { ClaimEntity } from '../entities/claim.entity';
 import { IClaimCreationData } from '../types/claim-creation-data.type';
-import { ClaimCategory } from '../enums/claim-category.enum';
 
 describe('ClaimDBUtil', () => {
   let claimDBUtil: ClaimDBUtil;
@@ -15,9 +14,11 @@ describe('ClaimDBUtil', () => {
     save: ReturnType<typeof vi.fn>;
   };
 
+  const mockCategoryId = 'category-uuid-123';
+
   const mockClaimCreationData: IClaimCreationData = {
     userId: 'user-123',
-    category: ClaimCategory.TELCO,
+    categoryId: mockCategoryId,
     claimName: 'Test Claim',
     month: 3,
     year: 2024,
@@ -27,7 +28,11 @@ describe('ClaimDBUtil', () => {
   const mockCreatedClaim: ClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
-    category: ClaimCategory.TELCO,
+    categoryEntity: {
+      uuid: mockCategoryId,
+      code: 'telco',
+      name: 'Telco',
+    } as never,
     claimName: 'Test Claim',
     month: 3,
     year: 2024,
@@ -38,6 +43,7 @@ describe('ClaimDBUtil', () => {
     attachments: [],
     createdAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
   };
 
   beforeEach(async () => {
@@ -68,7 +74,14 @@ describe('ClaimDBUtil', () => {
         creationData: mockClaimCreationData,
       });
 
-      expect(mockRepository.create).toHaveBeenCalledWith(mockClaimCreationData);
+      expect(mockRepository.create).toHaveBeenCalledWith({
+        userId: mockClaimCreationData.userId,
+        claimName: mockClaimCreationData.claimName,
+        month: mockClaimCreationData.month,
+        year: mockClaimCreationData.year,
+        totalAmount: mockClaimCreationData.totalAmount,
+        categoryId: mockCategoryId,
+      });
       expect(mockRepository.save).toHaveBeenCalledWith(mockCreatedClaim);
       expect(result).toEqual(mockCreatedClaim);
     });
@@ -87,7 +100,14 @@ describe('ClaimDBUtil', () => {
       });
 
       expect(mockEntityManager.getRepository).toHaveBeenCalledWith(ClaimEntity);
-      expect(mockRepository.create).toHaveBeenCalledWith(mockClaimCreationData);
+      expect(mockRepository.create).toHaveBeenCalledWith({
+        userId: mockClaimCreationData.userId,
+        claimName: mockClaimCreationData.claimName,
+        month: mockClaimCreationData.month,
+        year: mockClaimCreationData.year,
+        totalAmount: mockClaimCreationData.totalAmount,
+        categoryId: mockCategoryId,
+      });
       expect(mockRepository.save).toHaveBeenCalledWith(mockCreatedClaim);
       expect(result).toEqual(mockCreatedClaim);
     });

@@ -1,8 +1,6 @@
-import { ClaimCategory } from '../enums/claim-category.enum';
-
 export interface IClaimCreationData {
   userId: string;
-  category: ClaimCategory;
+  categoryId: string;
   claimName?: string;
   month: number;
   year: number;

@@ -9,6 +9,7 @@ import { DriveModule } from '../drive/drive.module';
 import { ClaimsModule } from '../claims/claims.module';
 import { AttachmentModule } from '../attachments/attachment.module';
 import { InternalModule } from '../internal/internal.module';
+import { ClaimCategoryModule } from '../claim-category/claim-category.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { InternalModule } from '../internal/internal.module';
     EmailModule,
     DriveModule,
     ClaimsModule,
+    ClaimCategoryModule,
     AttachmentModule,
     InternalModule,
   ],

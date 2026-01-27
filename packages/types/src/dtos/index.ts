@@ -6,3 +6,4 @@ export * from './drive-request.dto';
 export * from './drive-response.dto';
 export * from './attachment.dto';
 export * from './claim.dto';
+export * from './claim-category.dto';

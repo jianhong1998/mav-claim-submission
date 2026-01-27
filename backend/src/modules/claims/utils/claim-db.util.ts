@@ -22,7 +22,15 @@ export class ClaimDBUtil extends BaseDBUtil<ClaimEntity, IClaimCreationData> {
 
     const repo = entityManager?.getRepository(ClaimEntity) ?? this.repo;
 
-    const claim = repo.create(creationData);
+    const claim = repo.create({
+      userId: creationData.userId,
+      categoryId: creationData.categoryId,
+      claimName: creationData.claimName,
+      month: creationData.month,
+      year: creationData.year,
+      totalAmount: creationData.totalAmount,
+    });
+
     const createdClaim = await repo.save(claim);
 
     return createdClaim;

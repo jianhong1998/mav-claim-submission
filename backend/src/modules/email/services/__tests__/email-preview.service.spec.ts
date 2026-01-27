@@ -15,7 +15,6 @@ import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity'
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { UserEmailPreferenceEntity } from 'src/modules/user/entities/user-email-preference.entity';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
 import { Repository } from 'typeorm';
 
@@ -62,8 +61,18 @@ describe('EmailPreviewService', () => {
   const mockClaim: ClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
+    categoryId: 'category-123',
     user: mockUser,
-    category: ClaimCategory.TELCO,
+    categoryEntity: {
+      uuid: 'category-123' as never,
+      code: 'telco',
+      name: 'Telecommunications',
+      isEnabled: true,
+      limit: null,
+      createdAt: new Date('2025-01-01T00:00:00Z'),
+      updatedAt: new Date('2025-01-01T00:00:00Z'),
+      deletedAt: null as never,
+    },
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,
@@ -375,6 +384,7 @@ describe('EmailPreviewService', () => {
 
       expect(mockClaimDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'claim-123' },
+        relation: { categoryEntity: true },
       });
     });
 
@@ -553,11 +563,11 @@ describe('EmailPreviewService', () => {
 
     it('should handle various claim categories', async () => {
       const categories = [
-        ClaimCategory.FITNESS,
-        ClaimCategory.DENTAL,
-        ClaimCategory.COMPANY_EVENT,
-        ClaimCategory.COMPANY_LUNCH,
-        ClaimCategory.OTHERS,
+        'fitness',
+        'dental',
+        'company-event',
+        'company-lunch',
+        'others',
       ];
 
       for (const category of categories) {

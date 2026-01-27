@@ -4,65 +4,88 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ClaimCategory, ClaimStatus } from '@project/types';
+import { ClaimStatus } from '@project/types';
 import {
   getCategoryDisplayName,
   getClaimStatusConfig,
   validateMonthlyLimit,
-  MONTHLY_LIMITS,
 } from '../claim-utils';
 import { FileText, Send, CheckCircle, XCircle } from 'lucide-react';
 
+// Mock categories data for testing
+const mockCategories = [
+  {
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly' as const, amount: 150 },
+  },
+  {
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly' as const, amount: 50 },
+  },
+  { code: 'dental', name: 'Dental Care', limit: null },
+  { code: 'skill-enhancement', name: 'Skill Enhancement', limit: null },
+  { code: 'company-event', name: 'Company Event', limit: null },
+  { code: 'company-lunch', name: 'Company Lunch', limit: null },
+  { code: 'company-dinner', name: 'Company Dinner', limit: null },
+  { code: 'others', name: 'Others', limit: null },
+];
+
 describe('claim-utils', () => {
   describe('getCategoryDisplayName', () => {
-    it('should return correct display name for TELCO category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.TELCO)).toBe(
+    it('should return correct display name for telco category', () => {
+      expect(getCategoryDisplayName('telco', mockCategories)).toBe(
         'Telecommunications',
       );
     });
 
-    it('should return correct display name for FITNESS category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.FITNESS)).toBe(
+    it('should return correct display name for fitness category', () => {
+      expect(getCategoryDisplayName('fitness', mockCategories)).toBe(
         'Fitness & Wellness',
       );
     });
 
-    it('should return correct display name for DENTAL category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.DENTAL)).toBe('Dental Care');
+    it('should return correct display name for dental category', () => {
+      expect(getCategoryDisplayName('dental', mockCategories)).toBe(
+        'Dental Care',
+      );
     });
 
-    it('should return correct display name for SKILL_ENHANCEMENT category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.SKILL_ENHANCEMENT)).toBe(
+    it('should return correct display name for skill-enhancement category', () => {
+      expect(getCategoryDisplayName('skill-enhancement', mockCategories)).toBe(
         'Skill Enhancement',
       );
     });
 
-    it('should return correct display name for COMPANY_EVENT category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.COMPANY_EVENT)).toBe(
+    it('should return correct display name for company-event category', () => {
+      expect(getCategoryDisplayName('company-event', mockCategories)).toBe(
         'Company Event',
       );
     });
 
-    it('should return correct display name for COMPANY_LUNCH category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.COMPANY_LUNCH)).toBe(
+    it('should return correct display name for company-lunch category', () => {
+      expect(getCategoryDisplayName('company-lunch', mockCategories)).toBe(
         'Company Lunch',
       );
     });
 
-    it('should return correct display name for COMPANY_DINNER category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.COMPANY_DINNER)).toBe(
+    it('should return correct display name for company-dinner category', () => {
+      expect(getCategoryDisplayName('company-dinner', mockCategories)).toBe(
         'Company Dinner',
       );
     });
 
-    it('should return correct display name for OTHERS category', () => {
-      expect(getCategoryDisplayName(ClaimCategory.OTHERS)).toBe('Others');
+    it('should return correct display name for others category', () => {
+      expect(getCategoryDisplayName('others', mockCategories)).toBe('Others');
     });
 
-    it('should return original category for unknown category', () => {
-      expect(getCategoryDisplayName('unknown' as ClaimCategory)).toBe(
-        'unknown',
-      );
+    it('should return original category code for unknown category', () => {
+      expect(getCategoryDisplayName('unknown', mockCategories)).toBe('unknown');
+    });
+
+    it('should handle empty categories array', () => {
+      expect(getCategoryDisplayName('telco', [])).toBe('telco');
     });
   });
 
@@ -113,58 +136,24 @@ describe('claim-utils', () => {
     });
   });
 
-  describe('MONTHLY_LIMITS', () => {
-    it('should have correct limit for TELCO category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.TELCO]).toBe(150);
-    });
-
-    it('should have correct limit for FITNESS category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.FITNESS]).toBe(50);
-    });
-
-    it('should have no limit for DENTAL category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.DENTAL]).toBeNull();
-    });
-
-    it('should have no limit for SKILL_ENHANCEMENT category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.SKILL_ENHANCEMENT]).toBeNull();
-    });
-
-    it('should have no limit for COMPANY_EVENT category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.COMPANY_EVENT]).toBeNull();
-    });
-
-    it('should have no limit for COMPANY_LUNCH category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.COMPANY_LUNCH]).toBeNull();
-    });
-
-    it('should have no limit for COMPANY_DINNER category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.COMPANY_DINNER]).toBeNull();
-    });
-
-    it('should have no limit for OTHERS category', () => {
-      expect(MONTHLY_LIMITS[ClaimCategory.OTHERS]).toBeNull();
-    });
-  });
-
   describe('validateMonthlyLimit', () => {
-    describe('TELCO category (150 SGD limit)', () => {
+    describe('telco category (150 SGD limit)', () => {
       it('should validate when amount is within limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 100);
+        const result = validateMonthlyLimit('telco', 100, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(150);
         expect(result.message).toBeUndefined();
       });
 
       it('should validate when amount exactly equals limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 150);
+        const result = validateMonthlyLimit('telco', 150, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(150);
         expect(result.message).toBeUndefined();
       });
 
       it('should fail validation when amount exceeds limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 200);
+        const result = validateMonthlyLimit('telco', 200, 0, mockCategories);
         expect(result.isValid).toBe(false);
         expect(result.limit).toBe(150);
         expect(result.message).toContain('exceeds monthly limit');
@@ -173,89 +162,106 @@ describe('claim-utils', () => {
       });
 
       it('should validate when amount with existing total is within limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 50, 80);
+        const result = validateMonthlyLimit('telco', 50, 80, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(150);
       });
 
       it('should fail validation when amount with existing total exceeds limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 100, 80);
+        const result = validateMonthlyLimit('telco', 100, 80, mockCategories);
         expect(result.isValid).toBe(false);
         expect(result.limit).toBe(150);
         expect(result.message).toContain('SGD 180.00');
       });
     });
 
-    describe('FITNESS category (50 SGD limit)', () => {
+    describe('fitness category (50 SGD limit)', () => {
       it('should validate when amount is within limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.FITNESS, 30);
+        const result = validateMonthlyLimit('fitness', 30, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(50);
       });
 
       it('should validate when amount exactly equals limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.FITNESS, 50);
+        const result = validateMonthlyLimit('fitness', 50, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(50);
       });
 
       it('should fail validation when amount exceeds limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.FITNESS, 60);
+        const result = validateMonthlyLimit('fitness', 60, 0, mockCategories);
         expect(result.isValid).toBe(false);
         expect(result.limit).toBe(50);
         expect(result.message).toContain('exceeds monthly limit');
       });
 
       it('should validate when amount with existing total is within limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.FITNESS, 20, 25);
+        const result = validateMonthlyLimit('fitness', 20, 25, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(50);
       });
 
       it('should fail validation when amount with existing total exceeds limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.FITNESS, 30, 25);
+        const result = validateMonthlyLimit('fitness', 30, 25, mockCategories);
         expect(result.isValid).toBe(false);
         expect(result.limit).toBe(50);
       });
     });
 
     describe('Categories without limits', () => {
-      it('should always validate DENTAL category regardless of amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.DENTAL, 10000);
+      it('should always validate dental category regardless of amount', () => {
+        const result = validateMonthlyLimit('dental', 10000, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
         expect(result.message).toBeUndefined();
       });
 
-      it('should always validate SKILL_ENHANCEMENT category regardless of amount', () => {
+      it('should always validate skill-enhancement category regardless of amount', () => {
         const result = validateMonthlyLimit(
-          ClaimCategory.SKILL_ENHANCEMENT,
+          'skill-enhancement',
           5000,
+          0,
+          mockCategories,
         );
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
       });
 
-      it('should always validate COMPANY_EVENT category regardless of amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.COMPANY_EVENT, 2000);
+      it('should always validate company-event category regardless of amount', () => {
+        const result = validateMonthlyLimit(
+          'company-event',
+          2000,
+          0,
+          mockCategories,
+        );
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
       });
 
-      it('should always validate COMPANY_LUNCH category regardless of amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.COMPANY_LUNCH, 500);
+      it('should always validate company-lunch category regardless of amount', () => {
+        const result = validateMonthlyLimit(
+          'company-lunch',
+          500,
+          0,
+          mockCategories,
+        );
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
       });
 
-      it('should always validate COMPANY_DINNER category regardless of amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.COMPANY_DINNER, 1000);
+      it('should always validate company-dinner category regardless of amount', () => {
+        const result = validateMonthlyLimit(
+          'company-dinner',
+          1000,
+          0,
+          mockCategories,
+        );
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
       });
 
-      it('should always validate OTHERS category regardless of amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.OTHERS, 99999);
+      it('should always validate others category regardless of amount', () => {
+        const result = validateMonthlyLimit('others', 99999, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBeNull();
       });
@@ -263,21 +269,33 @@ describe('claim-utils', () => {
 
     describe('Edge cases', () => {
       it('should handle zero amount', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 0);
+        const result = validateMonthlyLimit('telco', 0, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(150);
       });
 
       it('should handle decimal amounts', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 149.99);
+        const result = validateMonthlyLimit('telco', 149.99, 0, mockCategories);
         expect(result.isValid).toBe(true);
         expect(result.limit).toBe(150);
       });
 
       it('should handle decimal amounts that exceed limit', () => {
-        const result = validateMonthlyLimit(ClaimCategory.TELCO, 150.01);
+        const result = validateMonthlyLimit('telco', 150.01, 0, mockCategories);
         expect(result.isValid).toBe(false);
         expect(result.limit).toBe(150);
+      });
+
+      it('should handle unknown category code', () => {
+        const result = validateMonthlyLimit('unknown', 100, 0, mockCategories);
+        expect(result.isValid).toBe(true);
+        expect(result.limit).toBeNull();
+      });
+
+      it('should handle empty categories array', () => {
+        const result = validateMonthlyLimit('telco', 100, 0, []);
+        expect(result.isValid).toBe(true);
+        expect(result.limit).toBeNull();
       });
     });
   });

@@ -7,7 +7,6 @@ import { AttachmentEntity } from 'src/modules/claims/entities/attachment.entity'
 import { ClaimEntity } from 'src/modules/claims/entities/claim.entity';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
 import { AttachmentMimeType } from '@project/types';
 
@@ -58,7 +57,7 @@ describe('AttachmentService', () => {
     id: 'claim-123',
     userId: 'user-123',
     user: mockUser,
-    category: ClaimCategory.TELCO,
+    category: 'telco',
     year: 2024,
     month: 12,
     totalAmount: 100.5,

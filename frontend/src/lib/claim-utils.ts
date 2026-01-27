@@ -3,22 +3,8 @@
  * Centralized claim formatting, validation, and display logic
  */
 
-import { ClaimCategory, ClaimStatus } from '@project/types';
+import { ClaimStatus } from '@project/types';
 import { FileText, Send, CheckCircle, XCircle, LucideIcon } from 'lucide-react';
-
-/**
- * Monthly claim limits by category (in SGD)
- */
-export const MONTHLY_LIMITS = Object.freeze({
-  [ClaimCategory.TELCO]: 150,
-  [ClaimCategory.FITNESS]: 50,
-  [ClaimCategory.DENTAL]: null,
-  [ClaimCategory.SKILL_ENHANCEMENT]: null,
-  [ClaimCategory.COMPANY_EVENT]: null,
-  [ClaimCategory.COMPANY_LUNCH]: null,
-  [ClaimCategory.COMPANY_DINNER]: null,
-  [ClaimCategory.OTHERS]: null,
-} as const);
 
 /**
  * Status configuration structure
@@ -35,18 +21,12 @@ export interface StatusConfig {
  * Gets category display name for UI
  * Converts internal category codes to user-friendly display names
  */
-export const getCategoryDisplayName = (category: ClaimCategory): string => {
-  const categoryNames = {
-    [ClaimCategory.TELCO]: 'Telecommunications',
-    [ClaimCategory.FITNESS]: 'Fitness & Wellness',
-    [ClaimCategory.DENTAL]: 'Dental Care',
-    [ClaimCategory.SKILL_ENHANCEMENT]: 'Skill Enhancement',
-    [ClaimCategory.COMPANY_EVENT]: 'Company Event',
-    [ClaimCategory.COMPANY_LUNCH]: 'Company Lunch',
-    [ClaimCategory.COMPANY_DINNER]: 'Company Dinner',
-    [ClaimCategory.OTHERS]: 'Others',
-  };
-  return categoryNames[category] || category;
+export const getCategoryDisplayName = (
+  categoryCode: string,
+  categories: Array<{ code: string; name: string }>,
+): string => {
+  const category = categories.find((cat) => cat.code === categoryCode);
+  return category?.name || categoryCode;
 };
 
 /**
@@ -109,19 +89,25 @@ export interface MonthlyLimitValidation {
 
 /**
  * Validates if claim amount is within monthly category limit
- * Only enforces limits for Telco (SGD 150) and Fitness (SGD 50)
  *
- * @param category - Claim category
+ * @param categoryCode - Claim category code
  * @param amount - Total claim amount
  * @param existingTotal - Optional total of existing claims in the same month/year
+ * @param categories - Array of category definitions with limits
  * @returns Validation result with status and limit information
  */
 export const validateMonthlyLimit = (
-  category: ClaimCategory,
+  categoryCode: string,
   amount: number,
   existingTotal = 0,
+  categories: Array<{
+    code: string;
+    limit: { type: 'monthly' | 'yearly'; amount: number } | null;
+  }>,
 ): MonthlyLimitValidation => {
-  const limit = MONTHLY_LIMITS[category];
+  const category = categories.find((cat) => cat.code === categoryCode);
+  const limit =
+    category?.limit?.type === 'monthly' ? category.limit.amount : null;
 
   // No limit for categories without restrictions
   if (limit === null) {

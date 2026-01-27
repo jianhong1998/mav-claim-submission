@@ -7,10 +7,13 @@ import { toast } from 'sonner';
 import { DraftClaimsList } from '../DraftClaimsList';
 import { apiClient } from '@/lib/api-client';
 import {
-  ClaimCategory,
   ClaimStatus,
   IClaimMetadata,
   IClaimListResponse,
+  IClaimCategory,
+  IAttachmentMetadata,
+  AttachmentStatus,
+  AttachmentMimeType,
 } from '@project/types';
 
 // Mock dependencies
@@ -38,6 +41,44 @@ vi.mock('@/hooks/use-confirmation', () => ({
   useConfirmation: vi.fn(() => ({
     confirm: mockConfirmFn,
     isOpen: false,
+  })),
+}));
+
+// Mock categories hook
+const mockCategoriesData: IClaimCategory[] = [
+  {
+    uuid: '1',
+    code: 'telco',
+    name: 'Telecommunications',
+    limit: { type: 'monthly' as const, amount: 150 },
+  },
+  {
+    uuid: '2',
+    code: 'fitness',
+    name: 'Fitness & Wellness',
+    limit: { type: 'monthly' as const, amount: 50 },
+  },
+  {
+    uuid: '3',
+    code: 'dental',
+    name: 'Dental Care',
+    limit: { type: 'yearly' as const, amount: 300 },
+  },
+  { uuid: '4', code: 'company-event', name: 'Company Event', limit: null },
+  {
+    uuid: '5',
+    code: 'skill-enhancement',
+    name: 'Skill Enhancement',
+    limit: null,
+  },
+  { uuid: '6', code: 'others', name: 'Others', limit: null },
+];
+
+vi.mock('@/hooks/categories/useCategories', () => ({
+  useCategoriesForDisplay: vi.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    error: null,
   })),
 }));
 
@@ -85,12 +126,31 @@ const createTestWrapper = () => {
   return TestWrapper;
 };
 
+const createMockAttachment = (
+  overrides: Partial<IAttachmentMetadata> = {},
+): IAttachmentMetadata => ({
+  id: 'att-1',
+  claimId: 'claim-1',
+  originalFilename: 'receipt.pdf',
+  storedFilename: 'receipt.pdf',
+  fileSize: 1024,
+  mimeType: AttachmentMimeType.PDF,
+  driveFileId: 'drive-file-id',
+  driveShareableUrl: 'https://drive.google.com/file/d/xxx',
+  status: AttachmentStatus.UPLOADED,
+  uploadedAt: '2024-03-15T10:00:00Z',
+  createdAt: '2024-03-15T10:00:00Z',
+  updatedAt: '2024-03-15T10:00:00Z',
+  ...overrides,
+});
+
 const createMockClaim = (
   overrides: Partial<IClaimMetadata> = {},
 ): IClaimMetadata => ({
   id: 'claim-1',
-  employeeEmail: 'test@mavericks-consulting.com',
-  category: ClaimCategory.TELCO,
+  submissionDate: '',
+  userId: '',
+  category: 'telco',
   month: 3,
   year: 2024,
   totalAmount: 100.5,
@@ -107,7 +167,7 @@ const createMockResponse = (
 ): IClaimListResponse => ({
   claims,
   total: claims.length,
-  status: 'success',
+  success: true,
 });
 
 describe('DraftClaimsList', () => {
@@ -175,7 +235,7 @@ describe('DraftClaimsList', () => {
       const mockClaims = [
         createMockClaim({
           id: 'claim-1',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
           month: 3,
           year: 2024,
           totalAmount: 100.5,
@@ -183,7 +243,7 @@ describe('DraftClaimsList', () => {
         }),
         createMockClaim({
           id: 'claim-2',
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
           month: 2,
           year: 2024,
           totalAmount: 75.0,
@@ -208,14 +268,14 @@ describe('DraftClaimsList', () => {
 
     it('should display category display names correctly', async () => {
       const mockClaims = [
-        createMockClaim({ id: 'claim-1', category: ClaimCategory.TELCO }),
-        createMockClaim({ id: 'claim-2', category: ClaimCategory.FITNESS }),
-        createMockClaim({ id: 'claim-3', category: ClaimCategory.DENTAL }),
+        createMockClaim({ id: 'claim-1', category: 'telco' }),
+        createMockClaim({ id: 'claim-2', category: 'fitness' }),
+        createMockClaim({ id: 'claim-3', category: 'dental' }),
         createMockClaim({
           id: 'claim-4',
-          category: ClaimCategory.COMPANY_EVENT,
+          category: 'company-event',
         }),
-        createMockClaim({ id: 'claim-5', category: ClaimCategory.OTHERS }),
+        createMockClaim({ id: 'claim-5', category: 'others' }),
       ];
       const response = createMockResponse(mockClaims);
       mockApiClient.get.mockResolvedValue(response);
@@ -240,15 +300,27 @@ describe('DraftClaimsList', () => {
         createMockClaim({
           id: 'claim-1',
           attachments: [
-            { id: 'att-1', fileName: 'receipt1.pdf' },
-            { id: 'att-2', fileName: 'receipt2.pdf' },
-          ] as IClaimMetadata['attachments'],
+            createMockAttachment({
+              id: 'att-1',
+              originalFilename: 'receipt1.pdf',
+              claimId: 'claim-1',
+            }),
+            createMockAttachment({
+              id: 'att-2',
+              originalFilename: 'receipt2.pdf',
+              claimId: 'claim-1',
+            }),
+          ],
         }),
         createMockClaim({
           id: 'claim-2',
           attachments: [
-            { id: 'att-3', fileName: 'receipt3.pdf' },
-          ] as IClaimMetadata['attachments'],
+            createMockAttachment({
+              id: 'att-3',
+              originalFilename: 'receipt3.pdf',
+              claimId: 'claim-2',
+            }),
+          ],
         }),
       ];
       const response = createMockResponse(mockClaims);
@@ -328,7 +400,7 @@ describe('DraftClaimsList', () => {
     it('should show confirmation dialog when delete button is clicked', async () => {
       const mockClaim = createMockClaim({
         claimName: 'Test Claim',
-        category: ClaimCategory.TELCO,
+        category: 'telco',
         month: 3,
         year: 2024,
       });
@@ -355,8 +427,11 @@ describe('DraftClaimsList', () => {
     it('should show attachment warning in confirmation dialog when claim has attachments', async () => {
       const mockClaim = createMockClaim({
         attachments: [
-          { id: 'att-1', fileName: 'receipt.pdf' },
-        ] as IClaimMetadata['attachments'],
+          createMockAttachment({
+            id: 'att-1',
+            originalFilename: 'receipt.pdf',
+          }),
+        ],
       });
       const response = createMockResponse([mockClaim]);
       mockApiClient.get.mockResolvedValue(response);

@@ -1,17 +1,5 @@
 import { IAttachmentMetadata } from './attachment.dto';
 
-export const ClaimCategory = Object.freeze({
-  TELCO: 'telco',
-  FITNESS: 'fitness',
-  DENTAL: 'dental',
-  SKILL_ENHANCEMENT: 'skill-enhancement',
-  COMPANY_EVENT: 'company-event',
-  COMPANY_LUNCH: 'company-lunch',
-  COMPANY_DINNER: 'company-dinner',
-  OTHERS: 'others',
-} as const);
-export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
-
 export const ClaimStatus = Object.freeze({
   DRAFT: 'draft',
   SENT: 'sent',
@@ -23,7 +11,7 @@ export type ClaimStatus = (typeof ClaimStatus)[keyof typeof ClaimStatus];
 export type IClaimMetadata = {
   id: string;
   userId: string;
-  category: ClaimCategory;
+  category: string;
   claimName: string | null;
   month: number;
   year: number;
@@ -36,7 +24,7 @@ export type IClaimMetadata = {
 };
 
 export type IClaimCreateRequest = {
-  category: ClaimCategory;
+  category: string;
   claimName?: string;
   month: number;
   year: number;

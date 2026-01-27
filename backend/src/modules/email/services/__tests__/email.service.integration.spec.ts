@@ -10,7 +10,6 @@ import { GmailClient } from '../gmail-client.service';
 import { EmailTemplateService } from '../email-template.service';
 import { EnvironmentVariableUtil } from 'src/modules/common/utils/environment-variable.util';
 import { ClaimStatus } from 'src/modules/claims/enums/claim-status.enum';
-import { ClaimCategory } from 'src/modules/claims/enums/claim-category.enum';
 import { AttachmentStatus } from 'src/modules/claims/enums/attachment-status.enum';
 import { IEmailSendResponse } from '@project/types';
 
@@ -41,7 +40,13 @@ describe('EmailService Integration Tests', () => {
       email: 'test@mavericks-consulting.com',
       name: 'John Doe',
     },
-    category: ClaimCategory.TELCO,
+    categoryEntity: {
+      uuid: 'category-uuid-telco',
+      code: 'telco',
+      name: 'Telecommunications',
+      isEnabled: true,
+      limit: null,
+    },
     claimName: 'Monthly Phone Bill',
     month: 9,
     year: 2025,
@@ -50,6 +55,7 @@ describe('EmailService Integration Tests', () => {
     submissionDate: null,
     createdAt: new Date('2025-09-01T00:00:00Z'),
     updatedAt: new Date('2025-09-01T00:00:00Z'),
+    deletedAt: null,
   });
 
   const createMockUser = () => ({
@@ -197,7 +203,7 @@ describe('EmailService Integration Tests', () => {
       // Verify service coordination
       expect(mockClaimDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'claim-123' },
-        relation: { user: true },
+        relation: { user: true, categoryEntity: true },
       });
       expect(mockUserDBUtil.getOne).toHaveBeenCalledWith({
         criteria: { id: 'user-123' },

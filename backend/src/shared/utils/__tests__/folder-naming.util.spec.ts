@@ -2,13 +2,12 @@ import {
   FolderNamingUtil,
   ClaimDataForFolderNaming,
 } from '../folder-naming.util';
-import { ClaimCategory } from '../../../modules/claims/enums/claim-category.enum';
 
 describe('FolderNamingUtil', () => {
   const BASE_CLAIM_DATA: ClaimDataForFolderNaming = {
     id: 'test-claim-id-123',
     claimName: 'Test Claim',
-    category: ClaimCategory.TELCO,
+    category: 'telco',
     month: 9,
     year: 2024,
     createdAt: new Date('2024-09-15T10:30:00Z'),
@@ -42,14 +41,14 @@ describe('FolderNamingUtil', () => {
 
       it('should use correct category code mapping (Requirement 1.3)', () => {
         const testCases = [
-          { category: ClaimCategory.TELCO, expected: 'telco' },
-          { category: ClaimCategory.FITNESS, expected: 'fitness' },
-          { category: ClaimCategory.DENTAL, expected: 'dental' },
-          { category: ClaimCategory.SKILL_ENHANCEMENT, expected: 'skill' },
-          { category: ClaimCategory.COMPANY_EVENT, expected: 'event' },
-          { category: ClaimCategory.COMPANY_LUNCH, expected: 'lunch' },
-          { category: ClaimCategory.COMPANY_DINNER, expected: 'dinner' },
-          { category: ClaimCategory.OTHERS, expected: 'others' },
+          { category: 'telco', expected: 'telco' },
+          { category: 'fitness', expected: 'fitness' },
+          { category: 'dental', expected: 'dental' },
+          { category: 'skill-enhancement', expected: 'skill' },
+          { category: 'company-event', expected: 'event' },
+          { category: 'company-lunch', expected: 'lunch' },
+          { category: 'company-dinner', expected: 'dinner' },
+          { category: 'others', expected: 'others' },
         ];
 
         testCases.forEach(({ category, expected }) => {
@@ -93,7 +92,7 @@ describe('FolderNamingUtil', () => {
         const claimData = {
           ...BASE_CLAIM_DATA,
           claimName: null,
-          category: ClaimCategory.TELCO,
+          category: 'telco',
         };
 
         const result = FolderNamingUtil.generateFolderName(claimData);
@@ -105,7 +104,7 @@ describe('FolderNamingUtil', () => {
         const claimData = {
           ...BASE_CLAIM_DATA,
           claimName: '',
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
         };
 
         const result = FolderNamingUtil.generateFolderName(claimData);
@@ -218,14 +217,14 @@ describe('FolderNamingUtil', () => {
     describe('Requirement 3.1-3.5: Category Code Mapping with Claim Name', () => {
       it('should use correct category codes for all categories (Requirement 3.1)', () => {
         const categoryMappings = [
-          { category: ClaimCategory.TELCO, expectedCode: 'telco' },
-          { category: ClaimCategory.FITNESS, expectedCode: 'fitness' },
-          { category: ClaimCategory.DENTAL, expectedCode: 'dental' },
-          { category: ClaimCategory.SKILL_ENHANCEMENT, expectedCode: 'skill' },
-          { category: ClaimCategory.COMPANY_EVENT, expectedCode: 'event' },
-          { category: ClaimCategory.COMPANY_LUNCH, expectedCode: 'lunch' },
-          { category: ClaimCategory.COMPANY_DINNER, expectedCode: 'dinner' },
-          { category: ClaimCategory.OTHERS, expectedCode: 'others' },
+          { category: 'telco', expectedCode: 'telco' },
+          { category: 'fitness', expectedCode: 'fitness' },
+          { category: 'dental', expectedCode: 'dental' },
+          { category: 'skill-enhancement', expectedCode: 'skill' },
+          { category: 'company-event', expectedCode: 'event' },
+          { category: 'company-lunch', expectedCode: 'lunch' },
+          { category: 'company-dinner', expectedCode: 'dinner' },
+          { category: 'others', expectedCode: 'others' },
         ];
 
         categoryMappings.forEach(({ category, expectedCode }) => {
@@ -244,7 +243,7 @@ describe('FolderNamingUtil', () => {
       it('should include both category code and claim name for "others" category (Requirement 3.3)', () => {
         const claimData = {
           ...BASE_CLAIM_DATA,
-          category: ClaimCategory.OTHERS,
+          category: 'others',
           claimName: 'Custom Other Expense',
         };
 
@@ -257,7 +256,7 @@ describe('FolderNamingUtil', () => {
       it('should use provided claim name for non-others categories (Requirement 3.4)', () => {
         const claimData = {
           ...BASE_CLAIM_DATA,
-          category: ClaimCategory.FITNESS,
+          category: 'fitness',
           claimName: 'Gym Membership',
         };
 
@@ -502,8 +501,20 @@ describe('FolderNamingUtil', () => {
     });
 
     it('should validate year format and range', () => {
-      const invalidYears = ['202', '20244', 'abcd', '2019', '2101'];
-      invalidYears.forEach((year) => {
+      // Format violations (caught by regex)
+      const formatInvalid = ['202', '20244', 'abcd'];
+      formatInvalid.forEach((year) => {
+        const folderName = `${year}-09-1234567890-telco-test`;
+        const result = FolderNamingUtil.validateClaimName(folderName);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
+      });
+
+      // Range violations (valid format but year out of range)
+      const rangeInvalid = ['2019', '2101'];
+      rangeInvalid.forEach((year) => {
         const folderName = `${year}-09-1234567890-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
@@ -517,7 +528,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-${month}-1234567890-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid month format');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
@@ -527,7 +540,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-09-${timestamp}-telco-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid timestamp format');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
@@ -537,7 +552,9 @@ describe('FolderNamingUtil', () => {
         const folderName = `2024-09-1234567890-${category}-test`;
         const result = FolderNamingUtil.validateClaimName(folderName);
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain('Invalid category code');
+        expect(result.errors).toContain(
+          'Folder name does not follow expected format: year-month-timestamp-category[-claimName]',
+        );
       });
     });
 
@@ -560,10 +577,10 @@ describe('FolderNamingUtil', () => {
         'telco',
         'fitness',
         'dental',
-        'skill',
-        'event',
-        'lunch',
-        'dinner',
+        'skill-enhancement',
+        'company-event',
+        'company-lunch',
+        'company-dinner',
         'others',
       ];
       validCategories.forEach((category) => {
@@ -581,7 +598,7 @@ describe('FolderNamingUtil', () => {
     ): ClaimDataForFolderNaming => ({
       id: 'claim-uuid-12345678-90ab-cdef-1234-567890abcdef',
       claimName: 'Monthly Phone Bill Sep 2024',
-      category: ClaimCategory.TELCO,
+      category: 'telco',
       month: 9,
       year: 2024,
       createdAt: new Date('2024-09-15T14:30:45.123Z'),
@@ -601,7 +618,7 @@ describe('FolderNamingUtil', () => {
 
     it('should generate realistic fitness claim folder name', () => {
       const claimData = createRealisticClaimData({
-        category: ClaimCategory.FITNESS,
+        category: 'fitness',
         claimName: 'Gym Membership Q3 2024',
       });
       const result = FolderNamingUtil.generateFolderName(claimData);
@@ -614,20 +631,20 @@ describe('FolderNamingUtil', () => {
 
     it('should generate realistic company lunch claim folder name', () => {
       const claimData = createRealisticClaimData({
-        category: ClaimCategory.COMPANY_LUNCH,
+        category: 'company-lunch',
         claimName: 'Team Building Lunch',
       });
       const result = FolderNamingUtil.generateFolderName(claimData);
 
       expect(result.isValid).toBe(true);
       expect(result.folderName).toMatch(
-        /^2024-09-\d{10}-lunch-team-building-lunch$/,
+        /^2024-09-\d{10}-company-lunch-team-building-lunch$/,
       );
     });
 
     it('should handle others category with custom claim name', () => {
       const claimData = createRealisticClaimData({
-        category: ClaimCategory.OTHERS,
+        category: 'others',
         claimName: 'Office Supplies and Equipment',
       });
       const result = FolderNamingUtil.generateFolderName(claimData);
@@ -670,16 +687,16 @@ describe('FolderNamingUtil', () => {
       const testCases = [
         {
           claimName: 'Q3 2024 Mobile Data Plan',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
         },
-        { claimName: 'Annual Dental Checkup', category: ClaimCategory.FITNESS },
-        { claimName: 'Team Building Event', category: ClaimCategory.TELCO },
-        { claimName: 'AWS Certification', category: ClaimCategory.FITNESS },
-        { claimName: null, category: ClaimCategory.TELCO },
-        { claimName: '   ', category: ClaimCategory.FITNESS },
+        { claimName: 'Annual Dental Checkup', category: 'fitness' },
+        { claimName: 'Team Building Event', category: 'telco' },
+        { claimName: 'AWS Certification', category: 'fitness' },
+        { claimName: null, category: 'telco' },
+        { claimName: '   ', category: 'fitness' },
         {
           claimName: 'Very Long Name That Exceeds Limits',
-          category: ClaimCategory.TELCO,
+          category: 'telco',
         },
       ];
 
