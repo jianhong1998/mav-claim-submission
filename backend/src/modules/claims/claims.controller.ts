@@ -61,6 +61,7 @@ import { IClaimCreationData } from './types/claim-creation-data.type';
 import { IClaimMetadata, IClaimEmailRequest } from '@project/types';
 import { EmailService } from '../email/services/email.service';
 import { EmailPreviewService } from '../email/services/email-preview.service';
+import { AmountUtil } from 'src/shared/utils/amount.util';
 
 @ApiTags('Claims')
 @Controller('claims')
@@ -1435,7 +1436,7 @@ export class ClaimsController {
     const total = existingTotal + newAmount;
 
     // Convert cents to dollars for limit comparison
-    const limitInDollars = limit.amount / 100;
+    const limitInDollars = AmountUtil.convertCentToDollar(limit.amount);
 
     // Throw exception if limit exceeded
     if (total > limitInDollars) {

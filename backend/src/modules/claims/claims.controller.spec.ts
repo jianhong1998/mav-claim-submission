@@ -9,6 +9,10 @@ import { ClaimsController } from './claims.controller';
 import { ClaimStatus } from '@project/types';
 import { UserEntity } from '../user/entities/user.entity';
 import { ClaimEntity } from './entities/claim.entity';
+import { ClaimDBUtil } from './utils/claim-db.util';
+import { EmailService } from '../email/services/email.service';
+import { EmailPreviewService } from '../email/services/email-preview.service';
+import { ClaimCategoryService } from '../claim-category/services/claim-category-services';
 
 /**
  * Interface for accessing private methods in ClaimsController during testing
@@ -60,6 +64,8 @@ describe('ClaimsController - Status Transition Validation', () => {
   let mockEmailService: {
     sendClaimEmail: Mock;
   };
+  let mockEmailPreviewService: Record<string, Mock>;
+  let mockClaimCategoryService: Record<string, Mock>;
 
   beforeEach(() => {
     // Clear all mocks before each test
@@ -79,8 +85,17 @@ describe('ClaimsController - Status Transition Validation', () => {
       sendClaimEmail: vi.fn(),
     };
 
+    mockEmailPreviewService = {};
+
+    mockClaimCategoryService = {};
+
     // Create controller instance with mocked dependencies
-    controller = new ClaimsController(mockClaimDBUtil, mockEmailService);
+    controller = new ClaimsController(
+      mockClaimDBUtil as unknown as ClaimDBUtil,
+      mockEmailService as unknown as EmailService,
+      mockEmailPreviewService as unknown as EmailPreviewService,
+      mockClaimCategoryService as unknown as ClaimCategoryService,
+    );
   });
 
   describe('validateStatusTransition - Valid Transitions', () => {
@@ -281,6 +296,8 @@ describe('ClaimsController - Resend Email Endpoint', () => {
   let mockEmailService: {
     sendClaimEmail: Mock;
   };
+  let mockEmailPreviewService: Record<string, Mock>;
+  let mockClaimCategoryService: Record<string, Mock>;
 
   const mockUser: UserEntity = {
     id: 'user-123',
@@ -292,10 +309,10 @@ describe('ClaimsController - Resend Email Endpoint', () => {
     updatedAt: new Date(),
   };
 
-  const mockClaimEntity: ClaimEntity = {
+  const mockClaimEntity = {
     id: 'claim-123',
     userId: 'user-123',
-    category: 'telco',
+    categoryId: 'category-uuid-123',
     claimName: 'Test Claim',
     month: 9,
     year: 2025,
@@ -306,7 +323,7 @@ describe('ClaimsController - Resend Email Endpoint', () => {
     attachments: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+  } as unknown as ClaimEntity;
 
   beforeEach(() => {
     // Clear all mocks before each test
@@ -321,8 +338,17 @@ describe('ClaimsController - Resend Email Endpoint', () => {
       sendClaimEmail: vi.fn(),
     };
 
+    mockEmailPreviewService = {};
+
+    mockClaimCategoryService = {};
+
     // Create controller instance with mocked dependencies
-    controller = new ClaimsController(mockClaimDBUtil, mockEmailService);
+    controller = new ClaimsController(
+      mockClaimDBUtil as unknown as ClaimDBUtil,
+      mockEmailService as unknown as EmailService,
+      mockEmailPreviewService as unknown as EmailPreviewService,
+      mockClaimCategoryService as unknown as ClaimCategoryService,
+    );
   });
 
   describe('resendClaimEmail - Successful Scenarios', () => {
@@ -454,11 +480,13 @@ describe('ClaimsController - Resend Email Endpoint', () => {
 
       const error = await controller
         .resendClaimEmail(mockUser, claimId)
-        .catch((err: unknown) => err as BadRequestException);
+        .catch((err: unknown) => err);
 
-      expect(error.message).toContain('Cannot resend email');
-      expect(error.message).toContain('Claim status is draft');
-      expect(error.message).toContain('expected sent or failed');
+      expect(error).toBeInstanceOf(BadRequestException);
+      const errorMessage = (error as BadRequestException).message;
+      expect(errorMessage).toContain('Cannot resend email');
+      expect(errorMessage).toContain('Claim status is draft');
+      expect(errorMessage).toContain('expected sent or failed');
     });
 
     it('should throw BadRequestException for paid claim', async () => {
