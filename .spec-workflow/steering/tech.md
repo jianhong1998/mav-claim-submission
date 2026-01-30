@@ -29,13 +29,11 @@ mav-claim-submission/
 │   │   ├── auth/         # Authentication module
 │   │   │   ├── entities/ # OAuth tokens, auth-related entities
 │   │   │   └── ...       # Controllers, services, etc.
-│   │   ├── user/         # User management module
-│   │   │   ├── entities/ # User entity
-│   │   │   └── ...       # User-related logic
-│   │   └── claims/       # Claims module
-│   │       ├── entities/ # Claims, attachments entities
-│   │       └── ...       # Claims-related logic
-│   └── src/shared/       # Common utilities and DTOs
+│   │   ├── claim-category/ # Database-driven categories and limits
+│   │   ├── user/         # User profile, email preferences
+│   │   ├── internal/     # Test data endpoints (feature-flagged)
+│   │   └── common/       # Shared utilities, base classes
+│   └── src/configs/      # Application configuration
 ├── frontend/             # Next.js web application
 │   ├── src/app/          # App Router pages and layouts
 │   ├── src/components/   # Reusable UI components
@@ -56,11 +54,19 @@ mav-claim-submission/
 
 **Claims Entity**
 - **Critical Workflow**: Claims created immediately in 'draft' state to provide UUID for file uploads
-- Status flow: `draft → sent ↔ paid → failed` (with resend capability)
-- Categories using Object.freeze() pattern (not TypeScript enum)
+- Status flow: `draft → sent ↔ paid`, `failed → resend`
+- `category_id` FK to `claim_categories` table (database-driven, not hard-coded enum)
 - Validation constraints for amounts and dates
+- Category-specific limits (monthly/yearly) validated at claim creation/update
 - Immutable audit trail with timestamps
 - Stored in `src/modules/claims/entities/claim.entity.ts`
+
+**Claim Category Entity**
+- Database-driven categories with configurable limits
+- `claim_categories` table: code, name, isEnabled, soft delete
+- `claim_category_limits` table: one-to-one, type (monthly/yearly), amount in SGD cents
+- New categories can be added without code changes
+- Stored in `src/modules/claim-category/entities/`
 
 **Attachments Entity**
 - Google Drive file metadata only (no binary storage)
@@ -96,24 +102,23 @@ mav-claim-submission/
 ### Enum Pattern (Critical)
 ```typescript
 // ❌ AVOID: TypeScript enum
-export enum ClaimCategory {
-  TELCO = 'telco',
+export enum ClaimStatus {
+  DRAFT = 'draft',
 }
 
 // ✅ USE: Object.freeze() with as const
-export const ClaimCategory = Object.freeze({
-  TELCO: 'telco',
-  FITNESS: 'fitness',
-  DENTAL: 'dental',
-  COMPANY_EVENT: 'company-event',
-  COMPANY_LUNCH: 'company-lunch',
-  COMPANY_DINNER: 'company-dinner',
-  OTHERS: 'others',
+export const ClaimStatus = Object.freeze({
+  DRAFT: 'draft',
+  SENT: 'sent',
+  PAID: 'paid',
+  FAILED: 'failed',
 } as const);
-export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
+export type ClaimStatus = (typeof ClaimStatus)[keyof typeof ClaimStatus];
 ```
 
 **Benefits**: Better tree-shaking, predictable JS output, module compatibility
+
+**Note**: `ClaimCategory` was migrated from Object.freeze enum to database-driven (`claim_categories` table). Categories are now fetched via `GET /claim-categories` API.
 
 ## API Design Patterns
 
@@ -164,8 +169,9 @@ auth/
 
 ### Email Processing
 - **Synchronous**: Immediate Gmail API calls (no queuing)
-- **No Attachments**: Use shareable Google Drive URLs
-- **Error Handling**: Proper fallbacks for API failures
+- **Hybrid Attachments** (ADR-003): Files <5MB sent as email attachments, >=5MB as shareable Drive URLs
+- **Email Preview**: Draft claims can be previewed before submission (no external API calls)
+- **Error Handling**: Proper fallbacks for API failures, automatic fallback to Drive links on download failure
 
 ### Token Management Implementation
 - **Automatic Refresh**: Tokens refreshed on expiry using googleapis OAuth2 client

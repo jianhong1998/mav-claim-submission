@@ -56,6 +56,7 @@ NestJS modules in `backend/src/modules/`:
 | `app`         | Root module, imports all feature modules            |
 | `auth`        | Google OAuth, JWT sessions, guards                  |
 | `claims`      | Claim CRUD, validation, status flow                 |
+| `claim-category` | Database-driven categories and limits (GET /claim-categories) |
 | `attachments` | File metadata handling                              |
 | `drive`       | Google Drive token endpoint for client-side uploads |
 | `email`       | Gmail API, email templates, preview service         |
@@ -74,7 +75,8 @@ Next.js App Router in `frontend/src/`:
 | `components/claims/` | Claim-specific components                                |
 | `components/email/`  | Email preview modal                                      |
 | `hooks/queries/`     | TanStack Query hooks                                     |
-| `hooks/email/`       | Email-specific hooks                                     |
+| `hooks/categories/`  | Category hooks (useCategories, useCategoriesForSelection) |
+| `hooks/email/`       | Email-specific hooks (useEmailPreview, useEmailSending)   |
 | `lib/`               | API client, utilities                                    |
 
 ## TypeScript Standards
@@ -107,6 +109,10 @@ export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
 
 **Hybrid Email Attachments** (ADR-003): Files <5MB sent as attachments, ≥5MB as shareable Drive URLs.
 
+**Database-Driven Categories**: Claim categories and limits stored in `claim_categories` / `claim_category_limits` tables. Limits in cents, converted to dollars at API boundary. Categories fetched via `GET /claim-categories`.
+
+**Email Preview**: Draft claims can be previewed before submission via `GET /claims/:id/preview`. No external API calls - generates preview from templates and metadata only.
+
 **Client-Side Drive Uploads**: Files upload directly from browser using OAuth tokens. Backend handles metadata only.
 
 **Dark Mode Only**: UI uses dark theme exclusively.
@@ -122,10 +128,11 @@ Managed from root `.env` file. Key variables:
 
 ## Specification Workflow
 
-Active specs in `.spec-workflow/specs/`:
+Active specs in `.spec-workflow/specs/` (all complete):
 
-- `preview-email-content/` - Backend email preview API (complete)
-- `preview-email-frontend/` - Frontend email preview UI (complete)
+- `claim-category-refactoring/` - Database-driven categories replacing hard-coded enums (13/13 tasks)
+- `preview-email-content/` - Backend email preview API (7/7 tasks)
+- `preview-email-frontend/` - Frontend email preview UI (8/8 tasks)
 
 ## Role Definition
 

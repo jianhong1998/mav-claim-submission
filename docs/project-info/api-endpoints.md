@@ -110,6 +110,42 @@
 - **Purpose**: Refresh Gmail OAuth token
 - **Authentication**: Required (JWT)
 
+## Claim Categories Endpoints
+
+### `GET /claim-categories`
+- **Purpose**: Get all claim categories with their limits
+- **Authentication**: Required (JWT)
+- **Query Parameters**:
+  - `includeDisabled` (optional, boolean): Include disabled categories
+  - `includeDeleted` (optional, boolean): Include soft-deleted categories
+- **Success Response** (200):
+```json
+{
+  "success": true,
+  "categories": [
+    {
+      "uuid": "category-uuid",
+      "code": "telco",
+      "name": "Telecommunications",
+      "limit": {
+        "type": "monthly",
+        "amount": 150.00
+      }
+    },
+    {
+      "uuid": "category-uuid-2",
+      "code": "skill-enhancement",
+      "name": "Skill Enhancement",
+      "limit": null
+    }
+  ]
+}
+```
+- **Notes**:
+  - Limit `amount` is returned in dollars (stored as cents in database)
+  - `limit: null` means unlimited
+  - `limit.type` is either `"monthly"` or `"yearly"`
+
 ## Claims Management Endpoints
 
 ### `GET /claims`
@@ -520,7 +556,7 @@ Claims API endpoints return the following status codes:
 ## Validation Rules
 
 ### Claim Validation
-- **Category**: Must be one of: `telco`, `fitness`, `dental`, `skill-enhancement`, `company-event`, `company-lunch`, `company-dinner`, `others`
+- **Category**: Must be a valid category code from the database (e.g., `telco`, `fitness`, `dental`, `skill-enhancement`, `company-event`, `company-lunch`, `company-dinner`, `others`). Validated via `ClaimCategoryService.getByCode()`
 - **Month**: Must be between 1 and 12 (integer)
 - **Year**: Must be between 2020 and 2100 (integer)
 - **Total Amount**: Must be positive number with at most 2 decimal places, maximum $10,000

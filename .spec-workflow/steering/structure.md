@@ -28,29 +28,21 @@ mav-claim-submission/
 ```
 backend/src/
 ├── modules/                 # Feature modules
-│   ├── auth/               # Authentication & OAuth
-│   │   ├── controllers/    # HTTP endpoints
-│   │   ├── services/       # Business logic
-│   │   ├── dtos/          # Request/response types
-│   │   └── entities/      # Database models
-│   ├── claims/            # Claim management (3-phase workflow)
-│   │   ├── controllers/   # Create claim → File upload → Email send
-│   │   ├── services/      # Business logic for sequential processing
-│   │   ├── dtos/         # Sequential request/response types
-│   │   └── entities/     # Claims with draft/sent/paid status
-│   ├── attachments/       # File metadata management
-│   │   ├── controllers/   # Metadata storage after Drive upload
-│   │   ├── services/      # Drive folder structure validation
-│   │   └── entities/      # Attachment metadata with claim UUID links
-│   ├── drive/             # Google Drive integration
-│   └── email/             # Gmail integration
-├── shared/                 # Cross-module utilities
-│   ├── config/            # Configuration management
-│   ├── decorators/        # Custom decorators
-│   └── filters/           # Exception filters
-├── database/              # Database configuration
+│   ├── app/               # Root module, health checks
+│   ├── auth/              # Google OAuth, JWT sessions, guards
+│   ├── claims/            # Claim CRUD, validation, status flow
+│   ├── claim-category/    # Database-driven categories and limits
+│   ├── attachments/       # File metadata handling
+│   ├── drive/             # Google Drive token endpoint
+│   ├── email/             # Gmail API, templates, preview service
+│   ├── user/              # User profile, email preferences
+│   ├── internal/          # Test data endpoints (feature-flagged)
+│   └── common/            # Shared utilities, base classes
+├── db/                     # Database configuration
 │   ├── migrations/        # TypeORM migrations
-│   └── seeds/             # Test data
+│   ├── seeders/           # Database seeders
+│   └── entities/          # Entity registration
+├── configs/               # Application configuration
 ├── app.module.ts          # Root application module
 └── main.ts                # Application entry point
 ```
@@ -79,31 +71,37 @@ module-name/
 
 ```
 frontend/src/
-├── app/                   # App Router (Next.js 13+)
-│   ├── (auth)/           # Route groups
-│   │   ├── login/        # Login page
-│   │   └── layout.tsx    # Auth layout
-│   ├── dashboard/        # Dashboard pages
-│   ├── claims/           # Claim management
-│   │   ├── create/       # 3-phase claim creation workflow
-│   │   ├── [id]/         # Individual claim view/edit
-│   │   └── list/         # Claims listing with filters
+├── app/                   # App Router (Next.js 15)
+│   ├── (auth)/           # Route groups (login, callback)
+│   ├── claims/           # Claims page
+│   ├── profile/          # User profile page
+│   ├── health-check/     # Health check endpoint
 │   ├── layout.tsx        # Root layout
 │   └── page.tsx          # Home page
 ├── components/           # Reusable UI components
-│   ├── ui/              # Base components (buttons, inputs)
-│   ├── forms/           # Form components
-│   ├── layout/          # Layout components
-│   └── charts/          # Data visualization
+│   ├── ui/              # Base components (Dialog, Button, Skeleton, etc.)
+│   ├── claims/          # Claim-specific components (forms, cards, lists)
+│   ├── attachments/     # Attachment upload/display
+│   ├── email/           # Email preview modal, status notification
+│   ├── navigation/      # Navigation components
+│   ├── headers/         # Header components
+│   ├── common/          # Shared components
+│   └── providers/       # React providers (Query, Theme)
+├── hooks/               # Custom React hooks
+│   ├── queries/         # TanStack Query setup and keys
+│   ├── categories/      # Category hooks (useCategories, useCategoriesForSelection)
+│   ├── claims/          # Claim management hooks
+│   ├── email/           # Email hooks (useEmailPreview, useEmailSending)
+│   ├── attachments/     # Attachment hooks
+│   ├── auth/            # Auth hooks
+│   └── user/            # User hooks
 ├── lib/                 # Utilities and configurations
-│   ├── api/             # API client functions
-│   ├── auth/            # Authentication utilities
-│   ├── hooks/           # Custom React hooks
-│   └── utils/           # Helper functions
-├── styles/              # CSS and styling
-│   ├── globals.css      # Global styles
-│   └── components.css   # Component styles
-└── types/               # Frontend-specific types
+│   ├── validation/      # Validation utilities
+│   ├── api-client.ts    # Axios + React Query setup
+│   ├── claim-utils.ts   # Claim utilities
+│   └── google-drive-client.ts  # Drive API client
+├── types/               # Frontend-specific types
+└── constants/           # Application constants
 ```
 
 ### Component Organization Pattern
@@ -134,33 +132,31 @@ components/
 
 ```
 packages/types/src/
-├── entities/            # Database entity types
-│   ├── user.types.ts
-│   ├── claim.types.ts
-│   └── attachment.types.ts
 ├── dtos/               # API data transfer objects
-│   ├── auth/
-│   ├── claims/            # 3-phase workflow DTOs
-│   │   ├── create-claim.dto.ts      # Phase 1: Initial claim creation
-│   │   ├── attach-files.dto.ts      # Phase 2: File metadata attachment
-│   │   └── submit-claim.dto.ts      # Phase 3: Final submission
-│   ├── attachments/       # File metadata DTOs
-│   └── drive/
-├── enums/              # Shared enums (Object.freeze pattern)
-│   ├── claim-status.ts
-│   └── claim-category.ts
-├── api/               # API response types
-└── index.ts           # Main exports
+│   ├── auth.dto.ts
+│   ├── claim.dto.ts           # Claim CRUD types (category as code string)
+│   ├── claim-category.dto.ts  # IClaimCategory, IClaimCategoryListResponse
+│   ├── attachment.dto.ts
+│   ├── email.dto.ts
+│   ├── email/                 # Email-specific DTOs
+│   │   └── preview-email-response.dto.ts  # IPreviewEmailResponse
+│   ├── drive-request.dto.ts
+│   ├── drive-response.dto.ts
+│   ├── health-check.dto.ts
+│   └── index.ts              # Barrel exports
+├── auth/               # Auth-specific types
+├── drive.type.ts       # Drive types
+├── test-data/          # Test data types
+└── index.ts            # Main exports
 ```
 
 **Usage Pattern**:
 ```typescript
-// Backend
-import { ClaimCategory, ClaimStatus } from '@project/types';
-
-// Frontend  
-import { ClaimCreateRequest, ClaimResponse } from '@project/types';
+// Backend & Frontend
+import { IClaimCategory, IClaimCreateRequest, ClaimStatus } from '@project/types';
 ```
+
+**Note**: `ClaimCategory` enum was removed. Categories are now database-driven and fetched via `GET /claim-categories`.
 
 ## Testing Structure
 
@@ -201,12 +197,12 @@ docs/
 │   ├── architecture.md
 │   ├── business-logic.md
 │   ├── api-endpoints.md
-│   └── development-commands.md
-├── specifications/    # Detailed feature specs
-│   └── 002/          # Claim system specification
-└── guides/           # Development guides
-    ├── setup.md
-    └── deployment.md
+│   ├── development-commands.md
+│   └── google-drive-integration.md
+├── adr/              # Architecture Decision Records
+│   └── 003-hybrid-email-attachments.md
+├── specifications/    # Detailed feature specs (001-006)
+└── deployment/       # Deployment documentation
 ```
 
 ## Configuration Management
