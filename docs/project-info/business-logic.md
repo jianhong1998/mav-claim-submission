@@ -2,15 +2,22 @@
 
 ## Claim Categories and Limits
 
-**Claim Categories with Monthly Limits**:
-- **Telco**: SGD 150/month
-- **Fitness**: SGD 50/month  
-- **Dental**: No limit
-- **Skill Enhancement**: No limit
-- **Company Event**: No limit
-- **Company Lunch**: No limit
-- **Company Dinner**: No limit
-- **Others**: No limit (requires claim name field)
+Categories are **database-driven** (stored in `claim_categories` and `claim_category_limits` tables). New categories can be added without code changes.
+
+**Seeded Categories with Limits**:
+
+| Code | Display Name | Limit Type | Amount (SGD) |
+|------|-------------|------------|--------------|
+| `telco` | Telecommunications | Monthly | $150.00 |
+| `fitness` | Fitness & Wellness | Monthly | $50.00 |
+| `dental` | Dental Care | Yearly | $300.00 |
+| `skill-enhancement` | Skill Enhancement | — | Unlimited |
+| `company-event` | Company Event | — | Unlimited |
+| `company-lunch` | Company Lunch | — | Unlimited |
+| `company-dinner` | Company Dinner | — | Unlimited |
+| `others` | Others | — | Unlimited (requires claim name field) |
+
+**Limit amounts are stored in cents** in the database for financial precision and converted to dollars at the API boundary.
 
 ## Validation Rules
 

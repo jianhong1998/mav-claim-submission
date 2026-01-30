@@ -2,13 +2,13 @@
   "mcpServers": {
     "spec-workflow": {
       "type": "stdio",
-      "command": "npx",
+      "command": "pnpx",
       "args": ["@pimzino/spec-workflow-mcp@latest", "./"],
       "env": {}
     },
     "playwright": {
       "type": "stdio",
-      "command": "npx",
+      "command": "pnpx",
       "args": ["@playwright/mcp@latest"],
       "env": {}
     },

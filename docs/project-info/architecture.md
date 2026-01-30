@@ -51,9 +51,16 @@ Uses NestJS modules with feature-based organization:
   - `services/gmail-client.service.ts` - Gmail API client for email sending
   - `services/email-template.service.ts` - Email template generation
   - `services/attachment-processor.service.ts` - Hybrid attachment processing (ADR-003)
+  - `services/email-preview.service.ts` - Email preview generation (no external API calls)
   - `services/email.service.ts` - Email orchestration service
 - `src/modules/drive/`: Google Drive API integration
 - `src/modules/claims/`: Claim entities and database utilities
+- `src/modules/claim-category/`: Database-driven claim categories and limits
+  - `controllers/claim-category.controller.ts` - GET /claim-categories endpoint
+  - `services/claim-category-services.ts` - Category lookup by code, list all categories
+  - `entities/claim-category.entity.ts` - ClaimCategoryEntity
+  - `entities/claim-category-limit.entity.ts` - ClaimCategoryLimitEntity (one-to-one)
+  - `utils/` - Database utility classes
 - `src/modules/user/`: User entity and database utilities
 - `src/modules/common/`: Shared utilities and base classes
 - `src/configs/`: Application configuration using `AppConfig` class
@@ -86,12 +93,35 @@ Uses NestJS modules with feature-based organization:
 
 ### Implemented Tables
 
+#### claim_categories
+```sql
+CREATE TABLE claim_categories (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    is_enabled BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL
+);
+```
+
+#### claim_category_limits
+```sql
+CREATE TABLE claim_category_limits (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category_id UUID NOT NULL UNIQUE REFERENCES claim_categories(uuid),
+    type VARCHAR(20) NOT NULL CHECK (type IN ('monthly', 'yearly')),
+    amount INTEGER NOT NULL DEFAULT 0  -- Amount in SGD cents
+);
+```
+
 #### claims
 ```sql
 CREATE TABLE claims (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('telco', 'fitness', 'dental', 'skill-enhancement', 'company-event', 'company-lunch', 'company-dinner', 'others')),
+    category_id UUID NOT NULL REFERENCES claim_categories(uuid),
     claim_name VARCHAR(255) NULL, -- Required only for 'others' category
     month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
     year INTEGER NOT NULL,
@@ -105,7 +135,7 @@ CREATE TABLE claims (
 
 CREATE INDEX idx_claims_user_id ON claims(user_id);
 CREATE INDEX idx_claims_status ON claims(status);
-CREATE INDEX idx_claims_category ON claims(category);
+CREATE INDEX idx_claims_category_id ON claims(category_id);
 CREATE INDEX idx_claims_month_year ON claims(month, year);
 CREATE INDEX idx_claims_created_at ON claims(created_at);
 ```
@@ -138,7 +168,11 @@ CREATE INDEX idx_attachments_drive_file_id ON attachments(google_drive_file_id);
 ```
 users (1) ──┐
             ├── oauth_tokens (N)
+            ├── user_email_preferences (N)
             └── claims (N)
+
+claim_categories (1) ── claim_category_limits (0..1)
+claim_categories (1) ── claims (N)
 
 claims (1) ── attachments (N)
 ```
@@ -168,7 +202,7 @@ All tables use:
 // Create new claim with uploaded attachment details
 POST /api/claims
 Body: {
-  category: ClaimCategoryEnum;
+  category: string (category code);
   claimName?: string; // Required for 'others'
   month: number; // 1-12
   year: number;
@@ -193,12 +227,12 @@ Response: {
 GET /api/claims/:claimId
 Response: {
   id: string;
-  category: ClaimCategoryEnum;
+  category: string (category code);
   claimName?: string;
   month: number;
   year: number;
   totalAmount: number;
-  status: ClaimStatusEnum;
+  status: ClaimStatus;
   submissionDate?: string;
   attachments: Array<{
     id: string;

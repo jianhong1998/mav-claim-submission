@@ -29,16 +29,17 @@
 
 **1. Digital Claim Submission**
 - Replace email attachments with Google Drive integration
-- Support all claim categories: telco, fitness, dental, company events, lunches, dinners, others
+- Support database-driven claim categories with configurable limits (monthly/yearly)
 - Mobile-responsive dark mode UI exclusively
 - **Critical Workflow**: Claims created FIRST (draft state) → Files uploaded to claim-specific folders → Email sent and status updated to 'sent'
-- Status tracking: draft → sent ↔ paid → failed (with resend capability)
+- Email preview before submission (generates preview without sending)
+- Status tracking: draft → sent ↔ paid, failed → resend capability
 
 **2. Google Workspace Integration**
 - **Authentication**: Google OAuth with @mavericks-consulting.com domain restriction
 - **File Storage**: Client-side uploads to employee's personal Google Drive (no S3)
 - **Drive Folder Structure**: `Mavericks Claims/{claimUuid}/` for organized file management
-- **Email Processing**: Synchronous Gmail API with shareable Drive URLs (no attachments)
+- **Email Processing**: Synchronous Gmail API with hybrid attachments (ADR-003: files <5MB as attachments, >=5MB as Drive URLs)
 - **Required Scopes**: Gmail send + Google Drive file access
 
 **3. Compliance & Audit Trail**
