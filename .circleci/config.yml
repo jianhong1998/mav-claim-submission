@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  WORKFLOW_TYPE:
+    type: string
+    default: 'cicd'
+
 # =============================================================================
 # REUSABLE COMMANDS FOR DOCKER OPERATIONS
 # =============================================================================
@@ -230,13 +235,12 @@ jobs:
   # -----------------------------------------------------------------------------
   renovate:
     docker:
-      - image: cimg/node:22.11
+      - image: renovate/renovate
     resource_class: small
     steps:
-      - checkout
       - run:
           name: Run Renovate
-          command: npx renovate
+          command: renovate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 
   lint-check:
     docker:
@@ -283,9 +287,7 @@ jobs:
 workflows:
   ci-cd:
     when:
-      or:
-        - equal: [webhook, << pipeline.trigger_source >>]
-        - equal: [api, << pipeline.trigger_source >>]
+      equal: [cicd, << pipeline.parameters.WORKFLOW_TYPE >>]
     jobs:
       # =======================================================================
       # STEP 1: Always run tests first (ALL branches, ALL tags)
@@ -488,8 +490,6 @@ workflows:
   # =============================================================================
   renovate:
     when:
-      or:
-        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-        - equal: [api, << pipeline.trigger_source >>]
+      equal: [dependency-update, << pipeline.parameters.WORKFLOW_TYPE >>]
     jobs:
       - renovate
