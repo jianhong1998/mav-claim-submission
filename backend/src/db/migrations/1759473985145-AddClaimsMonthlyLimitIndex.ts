@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddClaimsMonthlyLimitIndex1759473985145
-  implements MigrationInterface
-{
+export class AddClaimsMonthlyLimitIndex1759473985145 implements MigrationInterface {
   name = 'AddClaimsMonthlyLimitIndex1759473985145';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -114,7 +114,8 @@ OAuth initiation button that handles Google authentication flow with comprehensi
 
 ```typescript
 interface GoogleOAuthButtonProps
-  extends React.ComponentProps<'button'>,
+  extends
+    React.ComponentProps<'button'>,
     Pick<VariantProps<typeof buttonVariants>, 'size'> {
   className?: string;
   disabled?: boolean;

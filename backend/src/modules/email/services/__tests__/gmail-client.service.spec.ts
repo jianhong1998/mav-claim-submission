@@ -625,9 +625,7 @@ describe('GmailClient', () => {
       const rawMessage = decodeEmailMessage(sendCall.requestBody.raw);
 
       expect(rawMessage).toContain('Test with émojis 🚀 and ñoñô characters');
-      expect(rawMessage).toContain(
-        'Body with special chars: © ® ™ € £ ¥ § ¶',
-      );
+      expect(rawMessage).toContain('Body with special chars: © ® ™ € £ ¥ § ¶');
     });
 
     it('should handle empty subject and body', async () => {
