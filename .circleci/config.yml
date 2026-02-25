@@ -240,7 +240,7 @@ jobs:
     steps:
       - run:
           name: Run Renovate
-          command: renovate
+          command: renovate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 
   lint-check:
     docker:
