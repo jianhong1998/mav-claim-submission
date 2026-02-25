@@ -218,6 +218,26 @@ jobs:
           name: Run frontend UI tests
           command: make test/ui
 
+  # -----------------------------------------------------------------------------
+  # renovate: Run Renovate bot to create dependency update PRs
+  # -----------------------------------------------------------------------------
+  # Purpose: Scan all workspace package.json files and open PRs for minor/patch updates
+  # Triggered by: Scheduled pipeline (weekly) or manual API trigger only
+  # Resource: small - Renovate only calls GitHub API, no compilation needed
+  # Env vars required in CircleCI project settings:
+  #   - RENOVATE_TOKEN: GitHub PAT with repo scope
+  #   - GITHUB_COM_TOKEN: Same PAT (used for package metadata lookups)
+  # -----------------------------------------------------------------------------
+  renovate:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Run Renovate
+          command: npx renovate
+
   lint-check:
     docker:
       - image: cimg/node:22.11
@@ -262,6 +282,10 @@ jobs:
 
 workflows:
   ci-cd:
+    when:
+      or:
+        - equal: [webhook, << pipeline.trigger_source >>]
+        - equal: [api, << pipeline.trigger_source >>]
     jobs:
       # =======================================================================
       # STEP 1: Always run tests first (ALL branches, ALL tags)
@@ -442,3 +466,30 @@ workflows:
               ignore: /.*/
             tags:
               only: /^\d+\.\d+\.\d+$/
+
+  # =============================================================================
+  # RENOVATE WORKFLOW
+  # =============================================================================
+  # Standalone dependency update pipeline - completely isolated from ci-cd.
+  # Only runs on:
+  #   - scheduled_pipeline: CircleCI scheduled trigger (weekly cron)
+  #   - api: Manual trigger via CircleCI UI or API
+  # Never runs on git pushes (webhook trigger excluded).
+  #
+  # Setup required in CircleCI UI (Project Settings):
+  #   Triggers → Add Scheduled Trigger:
+  #     Name: weekly-renovate
+  #     Branch: main
+  #     Cron: 0 1 * * 1  (Monday 01:00 UTC = 09:00 SGT)
+  #
+  #   Environment Variables:
+  #     RENOVATE_TOKEN: GitHub PAT with repo scope
+  #     GITHUB_COM_TOKEN: Same PAT (for package metadata lookups)
+  # =============================================================================
+  renovate:
+    when:
+      or:
+        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        - equal: [api, << pipeline.trigger_source >>]
+    jobs:
+      - renovate
