@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddClaimsYearlyLimitIndex1759718008252
-  implements MigrationInterface
-{
+export class AddClaimsYearlyLimitIndex1759718008252 implements MigrationInterface {
   name = 'AddClaimsYearlyLimitIndex1759718008252';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

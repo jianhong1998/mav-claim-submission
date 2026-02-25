@@ -41,7 +41,8 @@ const monitorRenderPerformance = (startTime: number, operation: string) => {
 };
 
 interface GoogleOAuthButtonProps
-  extends React.ComponentProps<'button'>,
+  extends
+    React.ComponentProps<'button'>,
     Pick<VariantProps<typeof buttonVariants>, 'size'> {
   className?: string;
   disabled?: boolean;
