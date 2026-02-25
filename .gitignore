@@ -17,6 +17,9 @@ postgres-data
 # Local files
 *.local.*
 
+# Worktrees
+.worktrees/
+
 # Temp folders
 **/temp
 **/tmp
