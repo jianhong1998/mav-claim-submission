@@ -5,7 +5,7 @@
 # =======================================================
 # Base Stage - Common dependencies
 # =======================================================
-FROM node:22.22.0-slim AS base
+FROM node:22.22.1-slim AS base
 
 # Install build dependencies and pnpm in base layer (rarely changes)
 RUN apt update \
