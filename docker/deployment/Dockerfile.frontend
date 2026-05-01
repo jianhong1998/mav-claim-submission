@@ -7,7 +7,7 @@
 # =======================================================
 # Stage 1: Dependencies - Install all dependencies
 # =======================================================
-FROM node:22.22.0-alpine AS deps
+FROM node:22.22.2-alpine AS deps
 
 # Install pnpm globally
 RUN npm install -g pnpm@latest
@@ -32,7 +32,7 @@ RUN pnpm install --frozen-lockfile
 # =======================================================
 # Stage 2: Build - Build Next.js with standalone output
 # =======================================================
-FROM node:22.22.0-alpine AS build
+FROM node:22.22.2-alpine AS build
 
 # Install pnpm globally
 RUN npm install -g pnpm@latest
@@ -70,7 +70,7 @@ RUN pnpm --filter=frontend run build
 # =======================================================
 # Stage 3: Runtime - Minimal production image
 # =======================================================
-FROM node:22.22.0-alpine AS runtime
+FROM node:22.22.2-alpine AS runtime
 
 # Install dumb-init for proper signal handling (PID 1)
 # dumb-init ensures SIGTERM signals are properly forwarded to the Node.js process
